@@ -1,6 +1,6 @@
+use axum::{Router, routing};
 use chrono::{DateTime, Utc};
 use utoipa::OpenApi;
-use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use super::{ApiState, subscription_entry::SubscriptionEntryFilter};
@@ -15,18 +15,20 @@ mod update_stream;
 const STREAMS_TAG: &str = "Streams";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(Stream, Paginated<Stream>, create_stream::StreamCreate, update_stream::StreamUpdate)))]
+#[openapi(
+    components(schemas(Stream, Paginated<Stream>, create_stream::StreamCreate, update_stream::StreamUpdate)),
+    paths(list_streams::handler, create_stream::handler, get_stream::handler, update_stream::handler, delete_stream::handler)
+)]
 pub(crate) struct StreamApi;
 
 impl StreamApi {
-    pub(crate) fn router() -> OpenApiRouter<ApiState> {
-        OpenApiRouter::with_openapi(StreamApi::openapi())
-            .routes(routes!(list_streams::handler, create_stream::handler))
-            .routes(routes!(
-                get_stream::handler,
-                update_stream::handler,
-                delete_stream::handler
-            ))
+    pub(crate) fn router() -> Router<ApiState> {
+        Router::new()
+            .route("/", routing::get(list_streams::handler))
+            .route("/", routing::post(create_stream::handler))
+            .route("/{id}", routing::get(get_stream::handler))
+            .route("/{id}", routing::patch(update_stream::handler))
+            .route("/{id}", routing::delete(delete_stream::handler))
     }
 }
 

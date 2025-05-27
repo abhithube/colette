@@ -28,12 +28,14 @@ use url::Url;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct Config {
     pub oidc: OidcConfig,
     pub storage: StorageConfig,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct OidcConfig {
     pub client_id: String,
     pub redirect_url: Url,
@@ -41,6 +43,7 @@ pub struct OidcConfig {
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct StorageConfig {
     pub base_url: Url,
 }

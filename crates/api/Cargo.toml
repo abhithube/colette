@@ -30,8 +30,8 @@ utoipa = { version = "5.3.1", default-features = false, features = [
   "preserve_path_order",
   "url",
   "uuid",
+  "yaml",
 ] }
-utoipa-axum = { version = "0.2.0", default-features = false }
 utoipa-scalar = { version = "0.3.0", default-features = false, features = [
   "axum",
 ] }

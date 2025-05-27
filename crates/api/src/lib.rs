@@ -1,5 +1,3 @@
-use std::ops::RangeFull;
-
 use api_key::ApiKeyApi;
 use auth::AuthApi;
 use axum::{
@@ -28,15 +26,14 @@ use utoipa::{
         security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
     },
 };
-use utoipa_axum::router::OpenApiRouter;
 use utoipa_scalar::{Scalar, Servable};
 
-mod api_key;
+pub mod api_key;
 mod auth;
 mod bookmark;
 mod collection;
 mod common;
-mod config;
+pub mod config;
 mod feed;
 mod feed_entry;
 mod stream;
@@ -44,13 +41,33 @@ mod subscription;
 mod subscription_entry;
 mod tag;
 
+const API_PREFIX: &str = "/api";
+
 #[derive(utoipa::OpenApi)]
 #[openapi(
+    info(
+        title = "Colette API",
+        description = "Public REST API for the Colette app. Supports OAuth 2.0 and API key authentication.",
+        license(name = "MIT")
+    ),
+    nest(
+        (path = "/apiKeys", api = ApiKeyApi),
+        (path = "/auth", api = AuthApi),
+        (path = "/bookmarks", api = BookmarkApi),
+        (path = "/collections", api = CollectionApi),
+        (path = "/config", api = ConfigApi),
+        (path = "/feedEntries", api = FeedEntryApi),
+        (path = "/feeds", api = FeedApi),
+        (path = "/streams", api = StreamApi),
+        (path = "/subscriptions", api = SubscriptionApi),
+        (path = "/subscriptionEntries", api = SubscriptionEntryApi),
+        (path = "/tags", api = TagApi),
+    ),
     components(schemas(ApiError, TextOp, BooleanOp, DateOp)),
     security(("bearerAuth" = [])),
     modifiers(&Security)
 )]
-struct ApiDoc;
+pub struct ApiDoc;
 
 struct Security;
 
@@ -70,13 +87,20 @@ impl Modify for Security {
     }
 }
 
-pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> Router {
-    let api_prefix = "/api";
+pub fn create_openapi() -> utoipa::openapi::OpenApi {
+    let mut openapi = ApiDoc::openapi();
+    openapi.servers = Some(vec![Server::new(API_PREFIX)]);
 
-    let (api, mut openapi) = OpenApiRouter::with_openapi(ApiDoc::openapi())
+    openapi
+}
+
+pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> Router {
+    let openapi = create_openapi();
+
+    let mut api = Router::new()
         .nest(
-            api_prefix,
-            OpenApiRouter::new()
+            API_PREFIX,
+            Router::new()
                 .nest("/apiKeys", ApiKeyApi::router())
                 .nest("/auth", AuthApi::router())
                 .nest("/bookmarks", BookmarkApi::router())
@@ -91,31 +115,18 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> R
                     api_state.clone(),
                     add_user_extension,
                 ))
-                .nest("/config", ConfigApi::router())
-                .layer(TraceLayer::new_for_http())
-                .with_state(api_state),
+                .nest("/config", ConfigApi::router()),
         )
-        .split_for_parts();
-
-    openapi.info.title = "Colette API".to_owned();
-    openapi.servers = Some(vec![Server::new(api_prefix)]);
-
-    openapi.paths.paths = openapi
-        .paths
-        .paths
-        .drain(RangeFull)
-        .map(|(k, v)| (k.replace(&format!("{}/", api_prefix), "/"), v))
-        .collect();
-
-    let mut api = api
         .merge(Scalar::with_url(
-            format!("{}/doc", api_prefix),
+            format!("{}/doc", API_PREFIX),
             openapi.clone(),
         ))
         .route(
-            &format!("{}/openapi.json", api_prefix),
-            routing::get(|| async move { openapi.to_pretty_json().unwrap() }),
-        );
+            &format!("{}/openapi.yaml", API_PREFIX),
+            routing::get(|| async move { openapi.to_yaml().unwrap() }),
+        )
+        .layer(TraceLayer::new_for_http())
+        .with_state(api_state);
 
     if let Some(origin_urls) = origin_urls {
         let origins = origin_urls

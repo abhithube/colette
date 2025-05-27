@@ -1,6 +1,6 @@
+use axum::{Router, routing};
 use chrono::{DateTime, Utc};
 use utoipa::OpenApi;
-use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use super::{ApiState, bookmark::BookmarkFilter};
@@ -15,21 +15,20 @@ mod update_collection;
 const COLLECTIONS_TAG: &str = "Collections";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(Collection, Paginated<Collection>, create_collection::CollectionCreate, update_collection::CollectionUpdate)))]
+#[openapi(
+    components(schemas(Collection, Paginated<Collection>, create_collection::CollectionCreate, update_collection::CollectionUpdate)),
+    paths(list_collections::handler, create_collection::handler, get_collection::handler, update_collection::handler, delete_collection::handler)
+)]
 pub(crate) struct CollectionApi;
 
 impl CollectionApi {
-    pub(crate) fn router() -> OpenApiRouter<ApiState> {
-        OpenApiRouter::with_openapi(CollectionApi::openapi())
-            .routes(routes!(
-                list_collections::handler,
-                create_collection::handler
-            ))
-            .routes(routes!(
-                get_collection::handler,
-                update_collection::handler,
-                delete_collection::handler
-            ))
+    pub(crate) fn router() -> Router<ApiState> {
+        Router::new()
+            .route("/", routing::get(list_collections::handler))
+            .route("/", routing::post(create_collection::handler))
+            .route("/{id}", routing::get(get_collection::handler))
+            .route("/{id}", routing::patch(update_collection::handler))
+            .route("/{id}", routing::delete(delete_collection::handler))
     }
 }
 

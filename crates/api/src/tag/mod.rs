@@ -1,6 +1,6 @@
+use axum::{Router, routing};
 use chrono::{DateTime, Utc};
 use utoipa::OpenApi;
-use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use super::ApiState;
@@ -15,18 +15,20 @@ mod update_tag;
 const TAGS_TAG: &str = "Tags";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(Tag, TagDetails, Paginated<TagDetails>, create_tag::TagCreate, update_tag::TagUpdate)))]
+#[openapi(
+    components(schemas(Tag, TagDetails, Paginated<TagDetails>, create_tag::TagCreate, update_tag::TagUpdate)),
+    paths(list_tags::handler, create_tag::handler, get_tag::handler, update_tag::handler, delete_tag::handler)
+)]
 pub(crate) struct TagApi;
 
 impl TagApi {
-    pub(crate) fn router() -> OpenApiRouter<ApiState> {
-        OpenApiRouter::with_openapi(TagApi::openapi())
-            .routes(routes!(list_tags::handler, create_tag::handler))
-            .routes(routes!(
-                get_tag::handler,
-                update_tag::handler,
-                delete_tag::handler
-            ))
+    pub(crate) fn router() -> Router<ApiState> {
+        Router::new()
+            .route("/", routing::get(list_tags::handler))
+            .route("/", routing::post(create_tag::handler))
+            .route("/{id}", routing::get(get_tag::handler))
+            .route("/{id}", routing::patch(update_tag::handler))
+            .route("/{id}", routing::delete(delete_tag::handler))
     }
 }
 

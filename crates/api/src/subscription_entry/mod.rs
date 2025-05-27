@@ -1,7 +1,7 @@
+use axum::{Router, routing};
 use chrono::{DateTime, Utc};
 use colette_core::subscription_entry;
 use utoipa::OpenApi;
-use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use super::{
@@ -15,13 +15,15 @@ mod list_subscription_entries;
 const SUBSCRIPTION_ENTRIES_TAG: &str = "Subscription Entries";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(SubscriptionEntry, SubscriptionEntryDetails, Paginated<SubscriptionEntryDetails>, SubscriptionEntryFilter, SubscriptionEntryTextField, SubscriptionEntryBooleanField, SubscriptionEntryDateField)))]
+#[openapi(
+    components(schemas(SubscriptionEntry, SubscriptionEntryDetails, Paginated<SubscriptionEntryDetails>, SubscriptionEntryFilter, SubscriptionEntryTextField, SubscriptionEntryBooleanField, SubscriptionEntryDateField)),
+    paths(list_subscription_entries::handler)
+)]
 pub(crate) struct SubscriptionEntryApi;
 
 impl SubscriptionEntryApi {
-    pub(crate) fn router() -> OpenApiRouter<ApiState> {
-        OpenApiRouter::with_openapi(SubscriptionEntryApi::openapi())
-            .routes(routes!(list_subscription_entries::handler))
+    pub(crate) fn router() -> Router<ApiState> {
+        Router::new().route("/", routing::get(list_subscription_entries::handler))
     }
 }
 

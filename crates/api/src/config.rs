@@ -1,11 +1,11 @@
 use axum::{
-    Json,
+    Json, Router,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
+    routing,
 };
 use utoipa::OpenApi;
-use utoipa_axum::{router::OpenApiRouter, routes};
 
 use super::ApiState;
 use crate::ApiConfig;
@@ -13,12 +13,12 @@ use crate::ApiConfig;
 const CONFIG_TAG: &str = "Config";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(ApiConfig)))]
+#[openapi(components(schemas(ApiConfig)), paths(handler))]
 pub(crate) struct ConfigApi;
 
 impl ConfigApi {
-    pub(crate) fn router() -> OpenApiRouter<ApiState> {
-        OpenApiRouter::with_openapi(ConfigApi::openapi()).routes(routes!(handler))
+    pub(crate) fn router() -> Router<ApiState> {
+        Router::new().route("/", routing::get(handler))
     }
 }
 

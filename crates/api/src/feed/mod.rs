@@ -1,7 +1,7 @@
+use axum::{Router, routing};
 use chrono::{DateTime, Utc};
 use url::Url;
 use utoipa::OpenApi;
-use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use super::ApiState;
@@ -12,14 +12,17 @@ mod scrape_feed;
 const FEEDS_TAG: &str = "Feeds";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(Feed, detect_feeds::FeedDetect, detect_feeds::FeedDetected)))]
+#[openapi(
+    components(schemas(Feed, detect_feeds::FeedDetect, detect_feeds::FeedDetected)),
+    paths(detect_feeds::handler, scrape_feed::handler)
+)]
 pub(crate) struct FeedApi;
 
 impl FeedApi {
-    pub(crate) fn router() -> OpenApiRouter<ApiState> {
-        OpenApiRouter::with_openapi(FeedApi::openapi())
-            .routes(routes!(detect_feeds::handler))
-            .routes(routes!(scrape_feed::handler))
+    pub(crate) fn router() -> Router<ApiState> {
+        Router::new()
+            .route("/detect", routing::post(detect_feeds::handler))
+            .route("/scrape", routing::post(scrape_feed::handler))
     }
 }
 

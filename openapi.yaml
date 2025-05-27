@@ -1,0 +1,3098 @@
+openapi: 3.1.0
+info:
+  title: Colette API
+  description: Public REST API for the Colette app. Supports OAuth 2.0 and API key authentication.
+  license:
+    name: MIT
+  version: 0.1.0
+servers:
+- url: /api
+paths:
+  /apiKeys:
+    get:
+      tags:
+      - API Keys
+      description: List user API keys
+      operationId: listApiKeys
+      responses:
+        '200':
+          description: Paginated list of API keys
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Paginated_ApiKey'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    post:
+      tags:
+      - API Keys
+      description: Create an API key
+      operationId: createApiKey
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiKeyCreate'
+        required: true
+      responses:
+        '201':
+          description: Created API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyCreated'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /apiKeys/{id}:
+    get:
+      tags:
+      - API Keys
+      description: Get an API key by ID
+      operationId: getApiKey
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: API key by ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKey'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: API key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      tags:
+      - API Keys
+      description: Delete an API key by ID
+      operationId: deleteApiKey
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Successfully deleted API key
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: API key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    patch:
+      tags:
+      - API Keys
+      description: Update an API key by ID
+      operationId: updateApiKey
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiKeyUpdate'
+        required: true
+      responses:
+        '200':
+          description: Updated API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKey'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: API key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/@me:
+    get:
+      tags:
+      - Auth
+      description: Get the active user
+      operationId: getActiveUser
+      responses:
+        '200':
+          description: Active user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /bookmarks:
+    get:
+      tags:
+      - Bookmarks
+      description: List user bookmarks
+      operationId: listBookmarks
+      parameters:
+      - name: collectionId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: filterByTags
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: tag[]
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+            format: uuid
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: withTags
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Paginated list of bookmarks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Paginated_BookmarkDetails'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    post:
+      tags:
+      - Bookmarks
+      description: Add a bookmark
+      operationId: createBookmark
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookmarkCreate'
+        required: true
+      responses:
+        '201':
+          description: Created bookmark
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bookmark'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: Bookmark already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /bookmarks/{id}:
+    get:
+      tags:
+      - Bookmarks
+      description: Get a bookmark by ID
+      operationId: getBookmark
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: withTags
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Bookmark by ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookmarkDetails'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Bookmark not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      tags:
+      - Bookmarks
+      description: Delete a bookmark by ID
+      operationId: deleteBookmark
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Successfully deleted bookmark
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Bookmark not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    patch:
+      tags:
+      - Bookmarks
+      description: Update a bookmark by ID
+      operationId: updateBookmark
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookmarkUpdate'
+        required: true
+      responses:
+        '200':
+          description: Updated bookmark
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bookmark'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Bookmark not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /bookmarks/{id}/linkTags:
+    patch:
+      tags:
+      - Bookmarks
+      description: Link a list of tags to a bookmark
+      operationId: linkBookmarkTags
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkBookmarkTags'
+        required: true
+      responses:
+        '204':
+          description: Successfully linked tags
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Bookmark not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /bookmarks/scrape:
+    post:
+      tags:
+      - Bookmarks
+      description: Scrape bookmark from a webpage
+      operationId: scrapeBookmark
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookmarkScrape'
+        required: true
+      responses:
+        '201':
+          description: Scraped bookmark
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookmarkScraped'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '502':
+          description: Failed to fetch data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /bookmarks/import:
+    post:
+      tags:
+      - Bookmarks
+      description: Import bookmarks into user account
+      operationId: importBookmarks
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              type: array
+              items:
+                type: integer
+                format: int32
+                minimum: 0
+        required: true
+      responses:
+        '204':
+          description: Successfully started import
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /bookmarks/export:
+    post:
+      tags:
+      - Bookmarks
+      description: Export user bookmarks
+      operationId: exportBookmarks
+      responses:
+        '200':
+          description: Netscape bookmarks file
+          content:
+            text/html:
+              schema:
+                type: array
+                items:
+                  type: integer
+                  format: int32
+                  minimum: 0
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /collections:
+    get:
+      tags:
+      - Collections
+      description: List user collections
+      operationId: listCollections
+      responses:
+        '200':
+          description: Paginated list of collections
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Paginated_Collection'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    post:
+      tags:
+      - Collections
+      description: Create a collection
+      operationId: createCollection
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionCreate'
+        required: true
+      responses:
+        '201':
+          description: Created collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: Collection already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /collections/{id}:
+    get:
+      tags:
+      - Collections
+      description: Get a collection by ID
+      operationId: getCollection
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Collection by ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Collection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      tags:
+      - Collections
+      description: Delete a collection by ID
+      operationId: deleteCollection
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Successfully deleted collection
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Collection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    patch:
+      tags:
+      - Collections
+      description: Update a collection by ID
+      operationId: updateCollection
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionUpdate'
+        required: true
+      responses:
+        '200':
+          description: Updated collection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Collection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /config:
+    get:
+      tags:
+      - Config
+      description: Get the API config
+      operationId: getConfig
+      responses:
+        '200':
+          description: API config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Config'
+      security:
+      - {}
+  /feedEntries:
+    get:
+      tags:
+      - Feed Entries
+      description: List feed entries
+      operationId: listFeedEntries
+      parameters:
+      - name: streamId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: feedId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: hasRead
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: tag[]
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+            format: uuid
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Paginated list of feed entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Paginated_FeedEntry'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /feedEntries/{id}:
+    get:
+      tags:
+      - Feed Entries
+      description: Get a feed entry by ID
+      operationId: getFeedEntry
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Feed entry by ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedEntry'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Feed entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /feeds/detect:
+    post:
+      tags:
+      - Feeds
+      description: Detects web feeds on a page
+      operationId: detectFeeds
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedDetect'
+        required: true
+      responses:
+        '201':
+          description: List of detected feeds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FeedDetected'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '502':
+          description: Failed to fetch data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /feeds/scrape:
+    post:
+      tags:
+      - Feeds
+      description: Scrape web feed
+      operationId: scrapeFeed
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedScrape'
+        required: true
+      responses:
+        '201':
+          description: Scraped feed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feed'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '502':
+          description: Failed to fetch data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /streams:
+    get:
+      tags:
+      - Streams
+      description: List user streams
+      operationId: listStreams
+      responses:
+        '200':
+          description: Paginated list of streams
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Paginated_Stream'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    post:
+      tags:
+      - Streams
+      description: Create a stream
+      operationId: createStream
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StreamCreate'
+        required: true
+      responses:
+        '201':
+          description: Created stream
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stream'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: Stream already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /streams/{id}:
+    get:
+      tags:
+      - Streams
+      description: Get a stream by ID
+      operationId: getStream
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Stream by ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stream'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Stream not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      tags:
+      - Streams
+      description: Delete a stream by ID
+      operationId: deleteStream
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Successfully deleted stream
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Stream not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    patch:
+      tags:
+      - Streams
+      description: Update a stream by ID
+      operationId: updateStream
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StreamUpdate'
+        required: true
+      responses:
+        '200':
+          description: Updated stream
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stream'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Stream not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /subscriptions:
+    get:
+      tags:
+      - Subscriptions
+      description: List user subscriptions
+      operationId: listSubscriptions
+      parameters:
+      - name: filterByTags
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: tag[]
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+            format: uuid
+      - name: withFeed
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: withUnreadCount
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: withTags
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Paginated list of subscriptions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Paginated_SubscriptionDetails'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    post:
+      tags:
+      - Subscriptions
+      description: Subscribe to a web feed
+      operationId: createSubscription
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionCreate'
+        required: true
+      responses:
+        '201':
+          description: Created subscription
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: Subscription already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /subscriptions/{id}:
+    get:
+      tags:
+      - Subscriptions
+      description: Get a subscription by ID
+      operationId: getSubscription
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: withFeed
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: withUnreadCount
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: withTags
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Subscription by ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionDetails'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      tags:
+      - Subscriptions
+      description: Delete a subscription by ID
+      operationId: deleteSubscription
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Successfully deleted subscription
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    patch:
+      tags:
+      - Subscriptions
+      description: Update a subscription by ID
+      operationId: updateSubscription
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionUpdate'
+        required: true
+      responses:
+        '200':
+          description: Updated subscription
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /subscriptions/{id}/linkTags:
+    patch:
+      tags:
+      - Subscriptions
+      description: Link a list of tags to a subscription
+      operationId: linkSubscriptionTags
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkSubscriptionTags'
+        required: true
+      responses:
+        '204':
+          description: Successfully linked tags
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /subscriptions/{sid}/entries/{eid}/markAsRead:
+    post:
+      tags:
+      - Subscriptions
+      description: Mark a subscription entry as read
+      operationId: markSubscriptionEntryAsRead
+      parameters:
+      - name: sid
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: eid
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Updated subscription entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionEntry'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Subscription entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /subscriptions/{sid}/entries/{eid}/markAsUnread:
+    post:
+      tags:
+      - Subscriptions
+      description: Mark a subscription entry as unread
+      operationId: markSubscriptionEntryAsUnread
+      parameters:
+      - name: sid
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: eid
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Updated subscription entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionEntry'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Subscription entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /subscriptions/import:
+    post:
+      tags:
+      - Subscriptions
+      description: Import subscriptions into user account
+      operationId: importSubscriptions
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              type: array
+              items:
+                type: integer
+                format: int32
+                minimum: 0
+        required: true
+      responses:
+        '204':
+          description: Successfully started import
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /subscriptions/export:
+    post:
+      tags:
+      - Subscriptions
+      description: Export user subscriptions
+      operationId: exportSubscriptions
+      responses:
+        '200':
+          description: OPML subscriptions file
+          content:
+            application/xml:
+              schema:
+                type: array
+                items:
+                  type: integer
+                  format: int32
+                  minimum: 0
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /subscriptionEntries:
+    get:
+      tags:
+      - Subscription Entries
+      description: List subscription entries
+      operationId: listSubscriptionEntries
+      parameters:
+      - name: streamId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: subscriptionId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: hasRead
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: tag[]
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+            format: uuid
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Paginated list of subscription entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Paginated_SubscriptionEntryDetails'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /tags:
+    get:
+      tags:
+      - Tags
+      description: List user tags
+      operationId: listTags
+      parameters:
+      - name: tagType
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - bookmarks
+          - feeds
+      - name: withFeedCount
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: withBookmarkCount
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Paginated list of tags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Paginated_TagDetails'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    post:
+      tags:
+      - Tags
+      description: Create a tag
+      operationId: createTag
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagCreate'
+        required: true
+      responses:
+        '201':
+          description: Created tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '409':
+          description: Tag already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /tags/{id}:
+    get:
+      tags:
+      - Tags
+      description: Get a tag by ID
+      operationId: getTag
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: withFeedCount
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: withBookmarkCount
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        '200':
+          description: Tag by ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagDetails'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      tags:
+      - Tags
+      description: Delete a tag by ID
+      operationId: deleteTag
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Successfully deleted tag
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    patch:
+      tags:
+      - Tags
+      description: Update a tag by ID
+      operationId: updateTag
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagUpdate'
+        required: true
+      responses:
+        '200':
+          description: Updated tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+components:
+  schemas:
+    ApiError:
+      type: object
+      required:
+      - code
+      - message
+      properties:
+        code:
+          $ref: '#/components/schemas/ApiErrorCode'
+        message:
+          type: string
+    ApiErrorCode:
+      type: string
+      enum:
+      - NOT_AUTHENTICATED
+      - NOT_AUTHORIZED
+      - NOT_FOUND
+      - ALREADY_EXISTS
+      - VALIDATION
+      - BAD_GATEWAY
+      - UNKNOWN
+    ApiKey:
+      type: object
+      required:
+      - id
+      - title
+      - preview
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        preview:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ApiKeyCreate:
+      type: object
+      required:
+      - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+    ApiKeyCreated:
+      type: object
+      required:
+      - id
+      - value
+      - title
+      - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        value:
+          type: string
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    ApiKeyUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+    Bookmark:
+      type: object
+      required:
+      - id
+      - link
+      - title
+      - thumbnailUrl
+      - publishedAt
+      - author
+      - archivedUrl
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        link:
+          type: string
+          format: uri
+        title:
+          type: string
+        thumbnailUrl:
+          type:
+          - string
+          - 'null'
+          format: uri
+        publishedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        author:
+          type:
+          - string
+          - 'null'
+        archivedUrl:
+          type:
+          - string
+          - 'null'
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    BookmarkCreate:
+      type: object
+      required:
+      - url
+      - title
+      properties:
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
+          minLength: 1
+        thumbnailUrl:
+          type:
+          - string
+          - 'null'
+          format: uri
+        publishedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        author:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+    BookmarkDateField:
+      type: string
+      enum:
+      - publishedAt
+      - createdAt
+      - updatedAt
+    BookmarkDetails:
+      type: object
+      required:
+      - bookmark
+      properties:
+        bookmark:
+          $ref: '#/components/schemas/Bookmark'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+    BookmarkFilter:
+      oneOf:
+      - type: object
+        required:
+        - text
+        properties:
+          text:
+            type: object
+            required:
+            - field
+            - op
+            properties:
+              field:
+                $ref: '#/components/schemas/BookmarkTextField'
+              op:
+                $ref: '#/components/schemas/TextOp'
+      - type: object
+        required:
+        - date
+        properties:
+          date:
+            type: object
+            required:
+            - field
+            - op
+            properties:
+              field:
+                $ref: '#/components/schemas/BookmarkDateField'
+              op:
+                $ref: '#/components/schemas/DateOp'
+      - type: object
+        required:
+        - and
+        properties:
+          and:
+            type: array
+            items:
+              $ref: '#/components/schemas/BookmarkFilter'
+      - type: object
+        required:
+        - or
+        properties:
+          or:
+            type: array
+            items:
+              $ref: '#/components/schemas/BookmarkFilter'
+      - type: object
+        required:
+        - not
+        properties:
+          not:
+            $ref: '#/components/schemas/BookmarkFilter'
+    BookmarkScrape:
+      type: object
+      required:
+      - url
+      properties:
+        url:
+          type: string
+          format: uri
+    BookmarkScraped:
+      type: object
+      required:
+      - link
+      - title
+      - thumbnailUrl
+      - publishedAt
+      - author
+      properties:
+        link:
+          type: string
+          format: uri
+        title:
+          type: string
+        thumbnailUrl:
+          type:
+          - string
+          - 'null'
+          format: uri
+        publishedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        author:
+          type:
+          - string
+          - 'null'
+    BookmarkTextField:
+      type: string
+      enum:
+      - link
+      - title
+      - author
+      - tag
+    BookmarkUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        thumbnailUrl:
+          type:
+          - string
+          - 'null'
+          format: uri
+        publishedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        author:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+    BooleanOp:
+      oneOf:
+      - type: object
+        required:
+        - equals
+        properties:
+          equals:
+            type: boolean
+    Collection:
+      type: object
+      required:
+      - id
+      - title
+      - filter
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        filter:
+          $ref: '#/components/schemas/BookmarkFilter'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CollectionCreate:
+      type: object
+      required:
+      - title
+      - filter
+      properties:
+        title:
+          type: string
+          minLength: 1
+        filter:
+          $ref: '#/components/schemas/BookmarkFilter'
+    CollectionUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        filter:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/BookmarkFilter'
+    Config:
+      type: object
+      required:
+      - oidc
+      - storage
+      properties:
+        oidc:
+          $ref: '#/components/schemas/OidcConfig'
+        storage:
+          $ref: '#/components/schemas/StorageConfig'
+    DateOp:
+      oneOf:
+      - type: object
+        required:
+        - before
+        properties:
+          before:
+            type: string
+            format: date-time
+      - type: object
+        required:
+        - after
+        properties:
+          after:
+            type: string
+            format: date-time
+      - type: object
+        required:
+        - between
+        properties:
+          between:
+            type: object
+            required:
+            - start
+            - end
+            properties:
+              start:
+                type: string
+                format: date-time
+              end:
+                type: string
+                format: date-time
+      - type: object
+        required:
+        - inLast
+        properties:
+          inLast:
+            type: integer
+            format: int64
+    Feed:
+      type: object
+      required:
+      - id
+      - sourceUrl
+      - link
+      - title
+      - description
+      - refreshedAt
+      - isCustom
+      properties:
+        id:
+          type: string
+          format: uuid
+        sourceUrl:
+          type: string
+          format: uri
+        link:
+          type: string
+          format: uri
+        title:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        refreshedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        isCustom:
+          type: boolean
+    FeedDetect:
+      type: object
+      required:
+      - url
+      properties:
+        url:
+          type: string
+          format: uri
+    FeedDetected:
+      type: object
+      required:
+      - url
+      - title
+      properties:
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
+    FeedEntry:
+      type: object
+      required:
+      - id
+      - link
+      - title
+      - publishedAt
+      - description
+      - author
+      - thumbnailUrl
+      - feedId
+      properties:
+        id:
+          type: string
+          format: uuid
+        link:
+          type: string
+          format: uri
+        title:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        description:
+          type:
+          - string
+          - 'null'
+        author:
+          type:
+          - string
+          - 'null'
+        thumbnailUrl:
+          type:
+          - string
+          - 'null'
+          format: uri
+        feedId:
+          type: string
+          format: uuid
+    FeedScrape:
+      type: object
+      required:
+      - url
+      properties:
+        url:
+          type: string
+          format: uri
+    LinkBookmarkTags:
+      type: object
+      required:
+      - tagIds
+      properties:
+        tagIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+    LinkSubscriptionTags:
+      type: object
+      required:
+      - tagIds
+      properties:
+        tagIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+    OidcConfig:
+      type: object
+      required:
+      - clientId
+      - redirectUrl
+      - issuerUrl
+      properties:
+        clientId:
+          type: string
+        redirectUrl:
+          type: string
+          format: uri
+        issuerUrl:
+          type: string
+          format: uri
+    Paginated_ApiKey:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - title
+            - preview
+            - createdAt
+            - updatedAt
+            properties:
+              id:
+                type: string
+                format: uuid
+              title:
+                type: string
+              preview:
+                type: string
+              createdAt:
+                type: string
+                format: date-time
+              updatedAt:
+                type: string
+                format: date-time
+        cursor:
+          type: string
+    Paginated_BookmarkDetails:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required:
+            - bookmark
+            properties:
+              bookmark:
+                $ref: '#/components/schemas/Bookmark'
+              tags:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+        cursor:
+          type: string
+    Paginated_Collection:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - title
+            - filter
+            - createdAt
+            - updatedAt
+            properties:
+              id:
+                type: string
+                format: uuid
+              title:
+                type: string
+              filter:
+                $ref: '#/components/schemas/BookmarkFilter'
+              createdAt:
+                type: string
+                format: date-time
+              updatedAt:
+                type: string
+                format: date-time
+        cursor:
+          type: string
+    Paginated_FeedEntry:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - link
+            - title
+            - publishedAt
+            - description
+            - author
+            - thumbnailUrl
+            - feedId
+            properties:
+              id:
+                type: string
+                format: uuid
+              link:
+                type: string
+                format: uri
+              title:
+                type: string
+              publishedAt:
+                type: string
+                format: date-time
+              description:
+                type:
+                - string
+                - 'null'
+              author:
+                type:
+                - string
+                - 'null'
+              thumbnailUrl:
+                type:
+                - string
+                - 'null'
+                format: uri
+              feedId:
+                type: string
+                format: uuid
+        cursor:
+          type: string
+    Paginated_Stream:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - title
+            - filter
+            - createdAt
+            - updatedAt
+            properties:
+              id:
+                type: string
+                format: uuid
+              title:
+                type: string
+              filter:
+                $ref: '#/components/schemas/SubscriptionEntryFilter'
+              createdAt:
+                type: string
+                format: date-time
+              updatedAt:
+                type: string
+                format: date-time
+        cursor:
+          type: string
+    Paginated_SubscriptionDetails:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required:
+            - subscription
+            properties:
+              subscription:
+                $ref: '#/components/schemas/Subscription'
+              feed:
+                $ref: '#/components/schemas/Feed'
+              tags:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+              unreadCount:
+                type: integer
+                format: int64
+        cursor:
+          type: string
+    Paginated_SubscriptionEntryDetails:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required:
+            - subscriptionEntry
+            properties:
+              subscriptionEntry:
+                $ref: '#/components/schemas/SubscriptionEntry'
+              feedEntry:
+                $ref: '#/components/schemas/FeedEntry'
+        cursor:
+          type: string
+    Paginated_TagDetails:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            required:
+            - tag
+            properties:
+              tag:
+                $ref: '#/components/schemas/Tag'
+              feedCount:
+                type: integer
+                format: int64
+              bookmarkCount:
+                type: integer
+                format: int64
+        cursor:
+          type: string
+    StorageConfig:
+      type: object
+      required:
+      - baseUrl
+      properties:
+        baseUrl:
+          type: string
+          format: uri
+    Stream:
+      type: object
+      required:
+      - id
+      - title
+      - filter
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        filter:
+          $ref: '#/components/schemas/SubscriptionEntryFilter'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    StreamCreate:
+      type: object
+      required:
+      - title
+      - filter
+      properties:
+        title:
+          type: string
+          minLength: 1
+        filter:
+          $ref: '#/components/schemas/SubscriptionEntryFilter'
+    StreamUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        filter:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/SubscriptionEntryFilter'
+    Subscription:
+      type: object
+      required:
+      - id
+      - title
+      - description
+      - feedId
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        feedId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SubscriptionCreate:
+      type: object
+      required:
+      - title
+      - feedId
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+        feedId:
+          type: string
+          format: uuid
+    SubscriptionDetails:
+      type: object
+      required:
+      - subscription
+      properties:
+        subscription:
+          $ref: '#/components/schemas/Subscription'
+        feed:
+          $ref: '#/components/schemas/Feed'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        unreadCount:
+          type: integer
+          format: int64
+    SubscriptionEntry:
+      type: object
+      required:
+      - subscriptionId
+      - feedEntryId
+      - hasRead
+      properties:
+        subscriptionId:
+          type: string
+          format: uuid
+        feedEntryId:
+          type: string
+          format: uuid
+        hasRead:
+          type: boolean
+        readAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    SubscriptionEntryBooleanField:
+      type: string
+      enum:
+      - hasRead
+    SubscriptionEntryDateField:
+      type: string
+      enum:
+      - publishedAt
+    SubscriptionEntryDetails:
+      type: object
+      required:
+      - subscriptionEntry
+      properties:
+        subscriptionEntry:
+          $ref: '#/components/schemas/SubscriptionEntry'
+        feedEntry:
+          $ref: '#/components/schemas/FeedEntry'
+    SubscriptionEntryFilter:
+      oneOf:
+      - type: object
+        required:
+        - text
+        properties:
+          text:
+            type: object
+            required:
+            - field
+            - op
+            properties:
+              field:
+                $ref: '#/components/schemas/SubscriptionEntryTextField'
+              op:
+                $ref: '#/components/schemas/TextOp'
+      - type: object
+        required:
+        - boolean
+        properties:
+          boolean:
+            type: object
+            required:
+            - field
+            - op
+            properties:
+              field:
+                $ref: '#/components/schemas/SubscriptionEntryBooleanField'
+              op:
+                $ref: '#/components/schemas/BooleanOp'
+      - type: object
+        required:
+        - date
+        properties:
+          date:
+            type: object
+            required:
+            - field
+            - op
+            properties:
+              field:
+                $ref: '#/components/schemas/SubscriptionEntryDateField'
+              op:
+                $ref: '#/components/schemas/DateOp'
+      - type: object
+        required:
+        - and
+        properties:
+          and:
+            type: array
+            items:
+              $ref: '#/components/schemas/SubscriptionEntryFilter'
+      - type: object
+        required:
+        - or
+        properties:
+          or:
+            type: array
+            items:
+              $ref: '#/components/schemas/SubscriptionEntryFilter'
+      - type: object
+        required:
+        - not
+        properties:
+          not:
+            $ref: '#/components/schemas/SubscriptionEntryFilter'
+    SubscriptionEntryTextField:
+      type: string
+      enum:
+      - link
+      - title
+      - description
+      - author
+      - tag
+    SubscriptionUpdate:
+      type: object
+      properties:
+        title:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+        description:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+    Tag:
+      type: object
+      required:
+      - id
+      - title
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TagCreate:
+      type: object
+      required:
+      - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+    TagDetails:
+      type: object
+      required:
+      - tag
+      properties:
+        tag:
+          $ref: '#/components/schemas/Tag'
+        feedCount:
+          type: integer
+          format: int64
+        bookmarkCount:
+          type: integer
+          format: int64
+    TagUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+    TextOp:
+      oneOf:
+      - type: object
+        required:
+        - equals
+        properties:
+          equals:
+            type: string
+      - type: object
+        required:
+        - contains
+        properties:
+          contains:
+            type: string
+      - type: object
+        required:
+        - startsWith
+        properties:
+          startsWith:
+            type: string
+      - type: object
+        required:
+        - endsWith
+        properties:
+          endsWith:
+            type: string
+    User:
+      type: object
+      required:
+      - id
+      - externalId
+      - email
+      - displayName
+      - pictureUrl
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        externalId:
+          type: string
+        email:
+          type:
+          - string
+          - 'null'
+          format: email
+        displayName:
+          type:
+          - string
+          - 'null'
+        pictureUrl:
+          type:
+          - string
+          - 'null'
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+- bearerAuth: []

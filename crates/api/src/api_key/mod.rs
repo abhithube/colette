@@ -1,6 +1,6 @@
+use axum::{Router, routing};
 use chrono::{DateTime, Utc};
 use utoipa::OpenApi;
-use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use super::{ApiState, common::Paginated};
@@ -14,18 +14,20 @@ mod update_api_key;
 const API_KEYS_TAG: &str = "API Keys";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(ApiKey, Paginated<ApiKey>, create_api_key::ApiKeyCreate, create_api_key::ApiKeyCreated, update_api_key::ApiKeyUpdate)))]
+#[openapi(
+    components(schemas(ApiKey, Paginated<ApiKey>, create_api_key::ApiKeyCreate, create_api_key::ApiKeyCreated, update_api_key::ApiKeyUpdate)),
+    paths(list_api_keys::handler, create_api_key::handler, get_api_key::handler, update_api_key::handler, delete_api_key::handler)
+)]
 pub(crate) struct ApiKeyApi;
 
 impl ApiKeyApi {
-    pub(crate) fn router() -> OpenApiRouter<ApiState> {
-        OpenApiRouter::with_openapi(ApiKeyApi::openapi())
-            .routes(routes!(list_api_keys::handler, create_api_key::handler))
-            .routes(routes!(
-                get_api_key::handler,
-                update_api_key::handler,
-                delete_api_key::handler
-            ))
+    pub(crate) fn router() -> Router<ApiState> {
+        Router::new()
+            .route("/", routing::get(list_api_keys::handler))
+            .route("/", routing::post(create_api_key::handler))
+            .route("/{id}", routing::get(get_api_key::handler))
+            .route("/{id}", routing::patch(update_api_key::handler))
+            .route("/{id}", routing::delete(delete_api_key::handler))
     }
 }
 

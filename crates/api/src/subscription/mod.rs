@@ -1,6 +1,6 @@
+use axum::{Router, routing};
 use chrono::{DateTime, Utc};
 use utoipa::OpenApi;
-use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use super::{ApiState, common::Paginated, feed::Feed, tag::Tag};
@@ -19,33 +19,34 @@ mod update_subscription;
 const SUBSCRIPTIONS_TAG: &str = "Subscriptions";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(
-    Subscription,
-    SubscriptionDetails,
-    Paginated<SubscriptionDetails>,
-    create_subscription::SubscriptionCreate,
-    update_subscription::SubscriptionUpdate,
-    link_subscription_tags::LinkSubscriptionTags
-)))]
+#[openapi(
+    components(schemas(Subscription, SubscriptionDetails, Paginated<SubscriptionDetails>, create_subscription::SubscriptionCreate, update_subscription::SubscriptionUpdate, link_subscription_tags::LinkSubscriptionTags)),
+    paths(list_subscriptions::handler, create_subscription::handler, get_subscription::handler, update_subscription::handler, delete_subscription::handler, link_subscription_tags::handler, mark_subscription_entry_as_read::handler, mark_subscription_entry_as_unread::handler, import_subscriptions::handler, export_subscriptions::handler)
+)]
 pub(crate) struct SubscriptionApi;
 
 impl SubscriptionApi {
-    pub(crate) fn router() -> OpenApiRouter<ApiState> {
-        OpenApiRouter::with_openapi(SubscriptionApi::openapi())
-            .routes(routes!(
-                list_subscriptions::handler,
-                create_subscription::handler
-            ))
-            .routes(routes!(
-                get_subscription::handler,
-                update_subscription::handler,
-                delete_subscription::handler
-            ))
-            .routes(routes!(link_subscription_tags::handler))
-            .routes(routes!(mark_subscription_entry_as_read::handler))
-            .routes(routes!(mark_subscription_entry_as_unread::handler))
-            .routes(routes!(import_subscriptions::handler))
-            .routes(routes!(export_subscriptions::handler))
+    pub(crate) fn router() -> Router<ApiState> {
+        Router::new()
+            .route("/", routing::get(list_subscriptions::handler))
+            .route("/", routing::post(create_subscription::handler))
+            .route("/{id}", routing::get(get_subscription::handler))
+            .route("/{id}", routing::patch(update_subscription::handler))
+            .route("/{id}", routing::delete(delete_subscription::handler))
+            .route(
+                "/{id}/linkTags",
+                routing::post(link_subscription_tags::handler),
+            )
+            .route(
+                "/{sid}/entries/{eid}/markAsRead",
+                routing::post(mark_subscription_entry_as_read::handler),
+            )
+            .route(
+                "/{sid}/entries/{eid}/markAsUnread",
+                routing::post(mark_subscription_entry_as_unread::handler),
+            )
+            .route("/import", routing::post(import_subscriptions::handler))
+            .route("/export", routing::post(export_subscriptions::handler))
     }
 }
 

@@ -1,7 +1,7 @@
+use axum::{Router, routing};
 use chrono::{DateTime, Utc};
 use url::Url;
 use utoipa::OpenApi;
-use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use super::{ApiState, common::Paginated};
@@ -12,14 +12,17 @@ mod list_feed_entries;
 const FEED_ENTRIES_TAG: &str = "Feed Entries";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(FeedEntry, Paginated<FeedEntry>)))]
+#[openapi(
+    components(schemas(FeedEntry, Paginated<FeedEntry>)),
+    paths(list_feed_entries::handler, get_feed_entry::handler)
+)]
 pub(crate) struct FeedEntryApi;
 
 impl FeedEntryApi {
-    pub(crate) fn router() -> OpenApiRouter<ApiState> {
-        OpenApiRouter::with_openapi(FeedEntryApi::openapi())
-            .routes(routes!(list_feed_entries::handler))
-            .routes(routes!(get_feed_entry::handler))
+    pub(crate) fn router() -> Router<ApiState> {
+        Router::new()
+            .route("/", routing::get(list_feed_entries::handler))
+            .route("/{id}", routing::get(get_feed_entry::handler))
     }
 }
 

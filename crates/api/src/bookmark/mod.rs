@@ -1,8 +1,8 @@
+use axum::{Router, routing};
 use chrono::{DateTime, Utc};
 use colette_core::bookmark;
 use url::Url;
 use utoipa::OpenApi;
-use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use super::{
@@ -25,22 +25,24 @@ mod update_bookmark;
 const BOOKMARKS_TAG: &str = "Bookmarks";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(Bookmark, BookmarkDetails, Paginated<BookmarkDetails>, create_bookmark::BookmarkCreate, update_bookmark::BookmarkUpdate, link_bookmark_tags::LinkBookmarkTags, scrape_bookmark::BookmarkScrape, scrape_bookmark::BookmarkScraped, BookmarkFilter, BookmarkTextField, BookmarkDateField)))]
+#[openapi(
+    components(schemas(Bookmark, BookmarkDetails, Paginated<BookmarkDetails>, create_bookmark::BookmarkCreate, update_bookmark::BookmarkUpdate, link_bookmark_tags::LinkBookmarkTags, scrape_bookmark::BookmarkScrape, scrape_bookmark::BookmarkScraped, BookmarkFilter, BookmarkTextField, BookmarkDateField)),
+    paths(list_bookmarks::handler, create_bookmark::handler, get_bookmark::handler, update_bookmark::handler, delete_bookmark::handler, link_bookmark_tags::handler, scrape_bookmark::handler, import_bookmarks::handler, export_bookmarks::handler)
+)]
 pub(crate) struct BookmarkApi;
 
 impl BookmarkApi {
-    pub(crate) fn router() -> OpenApiRouter<ApiState> {
-        OpenApiRouter::with_openapi(BookmarkApi::openapi())
-            .routes(routes!(list_bookmarks::handler, create_bookmark::handler))
-            .routes(routes!(
-                get_bookmark::handler,
-                update_bookmark::handler,
-                delete_bookmark::handler
-            ))
-            .routes(routes!(link_bookmark_tags::handler))
-            .routes(routes!(scrape_bookmark::handler))
-            .routes(routes!(import_bookmarks::handler))
-            .routes(routes!(export_bookmarks::handler))
+    pub(crate) fn router() -> Router<ApiState> {
+        Router::new()
+            .route("/", routing::get(list_bookmarks::handler))
+            .route("/", routing::post(create_bookmark::handler))
+            .route("/{id}", routing::get(get_bookmark::handler))
+            .route("/{id}", routing::patch(update_bookmark::handler))
+            .route("/{id}", routing::delete(delete_bookmark::handler))
+            .route("/{id}/linkTags", routing::post(link_bookmark_tags::handler))
+            .route("/scrape", routing::post(scrape_bookmark::handler))
+            .route("/import", routing::post(import_bookmarks::handler))
+            .route("/export", routing::post(export_bookmarks::handler))
     }
 }
 

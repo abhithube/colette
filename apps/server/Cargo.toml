@@ -43,3 +43,6 @@ tracing-subscriber = { version = "0.3.19", default-features = false, features = 
   "tracing-log",
 ] }
 url.workspace = true
+
+[build-dependencies]
+colette-api.workspace = true
