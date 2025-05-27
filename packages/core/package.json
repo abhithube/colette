@@ -5,13 +5,22 @@
     "./lib/index.ts"
   ],
   "scripts": {
-    "generate": "openapi-typescript http://localhost:8000/api/openapi.json -o ./lib/openapi.d.ts"
+    "generate": "openapi-typescript http://localhost:8000/api/openapi.json -o ./lib/openapi.d.ts",
+    "format": "prettier --write ./lib/gen"
   },
   "dependencies": {
-    "openapi-fetch": "^0.13.5"
+    "openapi-fetch": "^0.13.5",
+    "zod": "*"
   },
   "devDependencies": {
+    "@kubb/cli": "^3.10.12",
+    "@kubb/core": "^3.10.12",
+    "@kubb/plugin-client": "^3.10.12",
+    "@kubb/plugin-oas": "^3.10.12",
+    "@kubb/plugin-ts": "^3.10.12",
+    "@kubb/plugin-zod": "^3.10.12",
     "openapi-typescript": "^7.6.1",
+    "openid-client": "*",
     "typescript": "*"
   }
 }
