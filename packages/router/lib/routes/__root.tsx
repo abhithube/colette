@@ -1,39 +1,41 @@
-import { API, User } from '@colette/core'
+import { client as fetchClient, User } from '@colette/core'
 import { getActiveUserOptions, getConfigOptions } from '@colette/query'
 import type { QueryClient } from '@tanstack/react-query'
 import { Link, createRootRouteWithContext } from '@tanstack/react-router'
-import * as client from 'openid-client'
+import * as oidcClient from 'openid-client'
 
 export const rootRoute = createRootRouteWithContext<{
-  api: API
   queryClient: QueryClient
   user?: User
 }>()({
   beforeLoad: async ({ context }) => {
-    const config = await context.queryClient.ensureQueryData(
-      getConfigOptions(context.api),
-    )
+    const config = await context.queryClient.ensureQueryData(getConfigOptions())
 
-    const clientConfig = await client.discovery(
-      new URL(config.oidc.issuer_url),
-      config.oidc.client_id,
+    const clientConfig = await oidcClient.discovery(
+      new URL(config.oidc.issuerUrl),
+      config.oidc.clientId,
       undefined,
       undefined,
       {
-        execute: [client.allowInsecureRequests],
+        execute: [oidcClient.allowInsecureRequests],
       },
     )
 
+    fetchClient.setConfig({
+      ...fetchClient.getConfig(),
+      oidcConfig: clientConfig,
+    })
+
     try {
       const user = await context.queryClient.ensureQueryData(
-        getActiveUserOptions(context.api),
+        getActiveUserOptions(),
       )
 
       return {
         user,
         oidcConfig: {
           clientConfig,
-          redirectUri: config.oidc.redirect_url,
+          redirectUri: config.oidc.redirectUrl,
         },
       }
     } catch (error) {
@@ -42,7 +44,7 @@ export const rootRoute = createRootRouteWithContext<{
       return {
         oidcConfig: {
           clientConfig,
-          redirectUri: config.oidc.redirect_url,
+          redirectUri: config.oidc.redirectUrl,
         },
       }
     }

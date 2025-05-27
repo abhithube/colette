@@ -1,5 +1,12 @@
-import type { API, CollectionCreate, CollectionUpdate } from '@colette/core'
-import { useAPI } from '@colette/util'
+import {
+  createCollection,
+  deleteCollection,
+  getCollection,
+  listCollections,
+  updateCollection,
+  type CollectionCreate,
+  type CollectionUpdate,
+} from '@colette/core'
 import {
   queryOptions,
   useMutation,
@@ -8,25 +15,23 @@ import {
 
 const COLLECTIONS_PREFIX = 'collections'
 
-export const listCollectionsOptions = (api: API) =>
+export const listCollectionsOptions = () =>
   queryOptions({
     queryKey: [COLLECTIONS_PREFIX],
-    queryFn: () => api.collections.listCollections(),
+    queryFn: () => listCollections(),
   })
 
-export const getCollectionOptions = (api: API, id: string) =>
+export const getCollectionOptions = (id: string) =>
   queryOptions({
     queryKey: [COLLECTIONS_PREFIX, id],
-    queryFn: () => api.collections.getCollection(id),
+    queryFn: () => getCollection(id),
   })
 
 export const useCreateCollectionMutation = () => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: CollectionCreate) =>
-      api.collections.createCollection(data),
+    mutationFn: (data: CollectionCreate) => createCollection(data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [COLLECTIONS_PREFIX],
@@ -36,12 +41,10 @@ export const useCreateCollectionMutation = () => {
 }
 
 export const useUpdateCollectionMutation = (id: string) => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: CollectionUpdate) =>
-      api.collections.updateCollection(id, data),
+    mutationFn: (data: CollectionUpdate) => updateCollection(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [COLLECTIONS_PREFIX],
@@ -51,11 +54,10 @@ export const useUpdateCollectionMutation = (id: string) => {
 }
 
 export const useDeleteCollectionMutation = (id: string) => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => api.collections.deleteCollection(id),
+    mutationFn: () => deleteCollection(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [COLLECTIONS_PREFIX],

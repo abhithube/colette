@@ -1,14 +1,11 @@
 import { EntryList } from '../subscriptions/components/entry-list'
 import { listSubscriptionEntriesOptions } from '@colette/query'
-import { useAPI } from '@colette/util'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 
 export const HomePage = () => {
-  const api = useAPI()
-
   const query = useInfiniteQuery(
-    listSubscriptionEntriesOptions(api, { hasRead: false }),
+    listSubscriptionEntriesOptions({ hasRead: false }),
   )
 
   useEffect(() => {

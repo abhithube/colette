@@ -10,11 +10,9 @@ export const streamsIdRoute = createRoute({
   path: '$streamId',
   loader: async ({ context, params }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(
-        getStreamOptions(context.api, params.streamId),
-      ),
+      context.queryClient.ensureQueryData(getStreamOptions(params.streamId)),
       context.queryClient.ensureInfiniteQueryData(
-        listSubscriptionEntriesOptions(context.api, {
+        listSubscriptionEntriesOptions({
           streamId: params.streamId,
         }),
       ),

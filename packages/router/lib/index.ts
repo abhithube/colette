@@ -13,7 +13,6 @@ import { subscriptionsIndexRoute } from './routes/(app)/subscriptions/index'
 import { authCallbackRoute } from './routes/(auth)/auth-callback'
 import { loginRoute } from './routes/(auth)/login'
 import { rootRoute } from './routes/__root'
-import { API } from '@colette/core'
 import { QueryClient } from '@tanstack/react-query'
 import { createRouter } from '@tanstack/react-router'
 
@@ -32,16 +31,16 @@ const routeTree = rootRoute.addChildren([
   ]),
 ])
 
-export const buildRouter = (api: API, queryClient: QueryClient) =>
-  createRouter({
+export const buildRouter = (queryClient: QueryClient) => {
+  return createRouter({
     routeTree,
     context: {
-      api,
       queryClient,
     },
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,
   })
+}
 
 declare module '@tanstack/react-router' {
   interface Register {

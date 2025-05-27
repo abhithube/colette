@@ -6,8 +6,6 @@ export const collectionsRoute = createRoute({
   getParentRoute: () => layoutRoute,
   path: 'collections',
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(
-      listCollectionsOptions(context.api),
-    )
+    await context.queryClient.ensureQueryData(listCollectionsOptions())
   },
 })

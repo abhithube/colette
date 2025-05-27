@@ -6,8 +6,6 @@ export const stashRoute = createRoute({
   getParentRoute: () => layoutRoute,
   path: 'stash',
   loader: async ({ context }) => {
-    await context.queryClient.ensureInfiniteQueryData(
-      listBookmarksOptions(context.api),
-    )
+    await context.queryClient.ensureInfiniteQueryData(listBookmarksOptions())
   },
 })

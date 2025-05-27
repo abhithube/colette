@@ -7,7 +7,7 @@ export const indexRoute = createRoute({
   path: '/',
   loader: async ({ context }) => {
     await context.queryClient.ensureInfiniteQueryData(
-      listSubscriptionEntriesOptions(context.api),
+      listSubscriptionEntriesOptions(),
     )
   },
 })

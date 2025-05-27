@@ -32,7 +32,7 @@ export const authCallbackRoute = createRoute({
 
       localStorage.setItem('colette-access-token', res.access_token)
       if (res.refresh_token) {
-        localStorage.setItem('colette-refresh-token', res.access_token)
+        localStorage.setItem('colette-refresh-token', res.refresh_token)
       }
     }
 

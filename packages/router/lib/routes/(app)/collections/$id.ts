@@ -8,10 +8,10 @@ export const collectionsIdRoute = createRoute({
   loader: async ({ context, params }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(
-        getCollectionOptions(context.api, params.collectionId),
+        getCollectionOptions(params.collectionId),
       ),
       context.queryClient.ensureInfiniteQueryData(
-        listBookmarksOptions(context.api, {
+        listBookmarksOptions({
           collectionId: params.collectionId,
         }),
       ),

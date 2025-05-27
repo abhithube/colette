@@ -1,5 +1,12 @@
-import type { API, StreamCreate, StreamUpdate } from '@colette/core'
-import { useAPI } from '@colette/util'
+import {
+  createStream,
+  deleteStream,
+  getStream,
+  listStreams,
+  updateStream,
+  type StreamCreate,
+  type StreamUpdate,
+} from '@colette/core'
 import {
   queryOptions,
   useMutation,
@@ -8,24 +15,23 @@ import {
 
 const STREAMS_PREFIX = 'streams'
 
-export const listStreamsOptions = (api: API) =>
+export const listStreamsOptions = () =>
   queryOptions({
     queryKey: [STREAMS_PREFIX],
-    queryFn: () => api.streams.listStreams(),
+    queryFn: () => listStreams(),
   })
 
-export const getStreamOptions = (api: API, id: string) =>
+export const getStreamOptions = (id: string) =>
   queryOptions({
     queryKey: [STREAMS_PREFIX, id],
-    queryFn: () => api.streams.getStream(id),
+    queryFn: () => getStream(id),
   })
 
 export const useCreateStreamMutation = () => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: StreamCreate) => api.streams.createStream(data),
+    mutationFn: (data: StreamCreate) => createStream(data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [STREAMS_PREFIX],
@@ -35,11 +41,10 @@ export const useCreateStreamMutation = () => {
 }
 
 export const useUpdateStreamMutation = (id: string) => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: StreamUpdate) => api.streams.updateStream(id, data),
+    mutationFn: (data: StreamUpdate) => updateStream(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [STREAMS_PREFIX],
@@ -49,11 +54,10 @@ export const useUpdateStreamMutation = (id: string) => {
 }
 
 export const useDeleteStreamMutation = (id: string) => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => api.streams.deleteStream(id),
+    mutationFn: () => deleteStream(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [STREAMS_PREFIX],

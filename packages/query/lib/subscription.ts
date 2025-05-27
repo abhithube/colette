@@ -1,13 +1,20 @@
 import { SUBSCRIPTION_ENTRIES_PREFIX } from './subscription-entry'
-import type {
-  API,
-  LinkSubscriptionTags,
-  SubscriptionCreate,
-  SubscriptionGetQuery,
-  SubscriptionListQuery,
-  SubscriptionUpdate,
+import {
+  type LinkSubscriptionTags,
+  type SubscriptionCreate,
+  type GetSubscriptionQueryParams,
+  type ListSubscriptionsQueryParams,
+  type SubscriptionUpdate,
+  listSubscriptions,
+  getSubscription,
+  createSubscription,
+  updateSubscription,
+  deleteSubscription,
+  linkSubscriptionTags,
+  markSubscriptionEntryAsRead,
+  markSubscriptionEntryAsUnread,
+  importSubscriptions,
 } from '@colette/core'
-import { useAPI } from '@colette/util'
 import {
   queryOptions,
   useMutation,
@@ -17,31 +24,27 @@ import {
 const SUBSCRIPTIONS_PREFIX = 'subscriptions'
 
 export const listSubscriptionsOptions = (
-  api: API,
-  query: SubscriptionListQuery = {},
+  query: ListSubscriptionsQueryParams = {},
 ) =>
   queryOptions({
     queryKey: [SUBSCRIPTIONS_PREFIX, query],
-    queryFn: () => api.subscriptions.listSubscriptions(query),
+    queryFn: () => listSubscriptions(query),
   })
 
 export const getSubscriptionOptions = (
-  api: API,
   id: string,
-  query: SubscriptionGetQuery = {},
+  query: GetSubscriptionQueryParams = {},
 ) =>
   queryOptions({
     queryKey: [SUBSCRIPTIONS_PREFIX, id],
-    queryFn: () => api.subscriptions.getSubscription(id, query),
+    queryFn: () => getSubscription(id, query),
   })
 
 export const useCreateSubscriptionMutation = () => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: SubscriptionCreate) =>
-      api.subscriptions.createSubscription(data),
+    mutationFn: (data: SubscriptionCreate) => createSubscription(data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [SUBSCRIPTIONS_PREFIX],
@@ -51,12 +54,10 @@ export const useCreateSubscriptionMutation = () => {
 }
 
 export const useUpdateSubscriptionMutation = (id: string) => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: SubscriptionUpdate) =>
-      api.subscriptions.updateSubscription(id, data),
+    mutationFn: (data: SubscriptionUpdate) => updateSubscription(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [SUBSCRIPTIONS_PREFIX],
@@ -66,11 +67,10 @@ export const useUpdateSubscriptionMutation = (id: string) => {
 }
 
 export const useDeleteSubscriptionMutation = (id: string) => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => api.subscriptions.deleteSubscription(id),
+    mutationFn: () => deleteSubscription(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [SUBSCRIPTIONS_PREFIX],
@@ -80,12 +80,10 @@ export const useDeleteSubscriptionMutation = (id: string) => {
 }
 
 export const useLinkSubscriptionTagsMutation = (id: string) => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: LinkSubscriptionTags) =>
-      api.subscriptions.linkSubscriptionTags(id, data),
+    mutationFn: (data: LinkSubscriptionTags) => linkSubscriptionTags(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [SUBSCRIPTIONS_PREFIX],
@@ -98,11 +96,10 @@ export const useMarkSubscriptionEntryAsReadMutation = (
   sid: string,
   eid: string,
 ) => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => api.subscriptions.markSubscriptionEntryAsRead(sid, eid),
+    mutationFn: () => markSubscriptionEntryAsRead(sid, eid),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [SUBSCRIPTION_ENTRIES_PREFIX],
@@ -115,11 +112,10 @@ export const useMarkSubscriptionEntryAsUnreadMutation = (
   sid: string,
   eid: string,
 ) => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => api.subscriptions.markSubscriptionEntryAsUnread(sid, eid),
+    mutationFn: () => markSubscriptionEntryAsUnread(sid, eid),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [SUBSCRIPTION_ENTRIES_PREFIX],
@@ -129,11 +125,11 @@ export const useMarkSubscriptionEntryAsUnreadMutation = (
 }
 
 export const useImportSubscriptionsMutation = () => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: File) => api.subscriptions.importSubscriptions(data),
+    mutationFn: async (data: File) =>
+      importSubscriptions(new Uint8Array(await data.arrayBuffer()) as never),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [SUBSCRIPTIONS_PREFIX],

@@ -1,12 +1,9 @@
 import { SubscriptionItem } from './subscription-item'
 import { listSubscriptionsOptions } from '@colette/query'
-import { useAPI } from '@colette/util'
 import { useQuery } from '@tanstack/react-query'
 
 export const SubscriptionList = () => {
-  const api = useAPI()
-
-  const query = useQuery(listSubscriptionsOptions(api, { withFeed: true }))
+  const query = useQuery(listSubscriptionsOptions({ withFeed: true }))
 
   if (query.isLoading || !query.data) return
 

@@ -1,12 +1,16 @@
-import type {
-  API,
+import {
   BookmarkCreate,
-  BookmarkListQuery,
   BookmarkScrape,
   BookmarkUpdate,
+  createBookmark,
+  deleteBookmark,
+  linkBookmarkTags,
   LinkBookmarkTags,
+  listBookmarks,
+  ListBookmarksQueryParams,
+  scrapeBookmark,
+  updateBookmark,
 } from '@colette/core'
-import { useAPI } from '@colette/util'
 import {
   infiniteQueryOptions,
   useMutation,
@@ -16,13 +20,12 @@ import {
 const BOOKMARKS_PREFIX = 'bookmarks'
 
 export const listBookmarksOptions = (
-  api: API,
-  query: Omit<BookmarkListQuery, 'cursor'> = {},
+  query: Omit<ListBookmarksQueryParams, 'cursor'> = {},
 ) =>
   infiniteQueryOptions({
     queryKey: [BOOKMARKS_PREFIX, query],
     queryFn: ({ pageParam }) =>
-      api.bookmarks.listBookmarks({
+      listBookmarks({
         ...query,
         cursor: pageParam,
       }),
@@ -31,11 +34,10 @@ export const listBookmarksOptions = (
   })
 
 export const useCreateBookmarkMutation = () => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: BookmarkCreate) => api.bookmarks.createBookmark(data),
+    mutationFn: (data: BookmarkCreate) => createBookmark(data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [BOOKMARKS_PREFIX],
@@ -45,12 +47,10 @@ export const useCreateBookmarkMutation = () => {
 }
 
 export const useUpdateBookmarkMutation = (id: string) => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: BookmarkUpdate) =>
-      api.bookmarks.updateBookmark(id, data),
+    mutationFn: (data: BookmarkUpdate) => updateBookmark(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [BOOKMARKS_PREFIX],
@@ -60,11 +60,10 @@ export const useUpdateBookmarkMutation = (id: string) => {
 }
 
 export const useDeleteBookmarkMutation = (id: string) => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => api.bookmarks.deleteBookmark(id),
+    mutationFn: () => deleteBookmark(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [BOOKMARKS_PREFIX],
@@ -74,12 +73,10 @@ export const useDeleteBookmarkMutation = (id: string) => {
 }
 
 export const useLinkBookmarkTagsMutation = (id: string) => {
-  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: LinkBookmarkTags) =>
-      api.bookmarks.linkBookmarkTags(id, data),
+    mutationFn: (data: LinkBookmarkTags) => linkBookmarkTags(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [BOOKMARKS_PREFIX],
@@ -89,9 +86,7 @@ export const useLinkBookmarkTagsMutation = (id: string) => {
 }
 
 export const useScrapeBookmarkMutation = () => {
-  const api = useAPI()
-
   return useMutation({
-    mutationFn: (data: BookmarkScrape) => api.bookmarks.scrapeBookmark(data),
+    mutationFn: (data: BookmarkScrape) => scrapeBookmark(data),
   })
 }

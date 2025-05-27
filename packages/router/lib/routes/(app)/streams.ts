@@ -6,6 +6,6 @@ export const streamsRoute = createRoute({
   getParentRoute: () => layoutRoute,
   path: 'streams',
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(listStreamsOptions(context.api))
+    await context.queryClient.ensureQueryData(listStreamsOptions())
   },
 })

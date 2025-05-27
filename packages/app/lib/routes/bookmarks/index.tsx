@@ -2,15 +2,12 @@ import { BookmarkGrid } from './components/bookmark-grid'
 import { CreateBookmarkModal } from './components/create-form/create-bookmark-modal'
 import { listBookmarksOptions } from '@colette/query'
 import { Button, Dialog } from '@colette/ui'
-import { useAPI } from '@colette/util'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Plus } from 'lucide-react'
 import { useEffect } from 'react'
 
 export const StashPage = () => {
-  const api = useAPI()
-
-  const query = useInfiniteQuery(listBookmarksOptions(api))
+  const query = useInfiniteQuery(listBookmarksOptions())
 
   useEffect(() => {
     window.scrollTo(0, 0)

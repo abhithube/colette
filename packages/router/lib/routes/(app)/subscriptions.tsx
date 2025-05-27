@@ -6,9 +6,7 @@ export const subscriptionsRoute = createRoute({
   getParentRoute: () => layoutRoute,
   path: 'subscriptions',
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(
-      listSubscriptionsOptions(context.api),
-    )
+    await context.queryClient.ensureQueryData(listSubscriptionsOptions())
   },
   component: () => <Outlet />,
 })

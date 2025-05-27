@@ -1,19 +1,19 @@
-import type { FeedDetect, FeedScrape } from '@colette/core'
-import { useAPI } from '@colette/util'
+import {
+  detectFeeds,
+  scrapeFeed,
+  type FeedDetect,
+  type FeedScrape,
+} from '@colette/core'
 import { useMutation } from '@tanstack/react-query'
 
 export const useDetectFeedsMutation = () => {
-  const api = useAPI()
-
   return useMutation({
-    mutationFn: (data: FeedDetect) => api.feeds.detectFeeds(data),
+    mutationFn: (data: FeedDetect) => detectFeeds(data),
   })
 }
 
 export const useScrapeFeedMutation = () => {
-  const api = useAPI()
-
   return useMutation({
-    mutationFn: (data: FeedScrape) => api.feeds.scrapeFeed(data),
+    mutationFn: (data: FeedScrape) => scrapeFeed(data),
   })
 }

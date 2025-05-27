@@ -11,10 +11,10 @@ export const subscriptionsIdRoute = createRoute({
   loader: async ({ context, params }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(
-        getSubscriptionOptions(context.api, params.subscriptionId),
+        getSubscriptionOptions(params.subscriptionId),
       ),
       context.queryClient.ensureInfiniteQueryData(
-        listSubscriptionEntriesOptions(context.api, {
+        listSubscriptionEntriesOptions({
           subscriptionId: params.subscriptionId,
         }),
       ),
