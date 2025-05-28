@@ -60,7 +60,7 @@ pub enum Base64Error {
 }
 
 pub fn random_generate(len: usize) -> String {
-    let mut raw = Vec::with_capacity(len);
+    let mut raw = vec![0; len];
     rand::rng().fill_bytes(&mut raw);
 
     STANDARD_NO_PAD.encode(raw)
