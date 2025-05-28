@@ -42,15 +42,20 @@ pub(super) async fn handler(
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub(super) struct SubscriptionEntryListQuery {
+    /// Filter by the ID of a stream whose filters may apply to the subscription entry
     #[param(nullable = false)]
     stream_id: Option<Uuid>,
+    /// Filter by the ID of the associated subscription
     #[param(nullable = false)]
     subscription_id: Option<Uuid>,
+    /// Filter by whether the subscription entry has been marked as read
     #[param(nullable = false)]
     has_read: Option<bool>,
+    /// Filter by the IDs of the tags linked to the associated subscription
     #[param(nullable = false)]
     #[serde(rename = "tag[]")]
     tags: Option<Vec<Uuid>>,
+    /// Pagination cursor from the previous set of results
     #[param(nullable = false)]
     cursor: Option<String>,
 }

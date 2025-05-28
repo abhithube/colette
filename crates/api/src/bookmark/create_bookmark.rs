@@ -43,14 +43,20 @@ pub(super) async fn handler(
     }
 }
 
+/// Data to create a new bookmark
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct BookmarkCreate {
+    /// URL of the webpage the bookmark links to
     url: Url,
+    /// Human-readable name for the new bookmark, cannot be empty
     #[schema(value_type = String, min_length = 1)]
     title: NonEmptyString,
+    /// Thumbnail URL of the new bookmark, will be archived
     thumbnail_url: Option<Url>,
+    /// Timestamp at which the bookmark was published
     published_at: Option<DateTime<Utc>>,
+    /// Author for the new bookmark, cannot be empty
     #[schema(value_type = Option<String>, min_length = 1)]
     author: Option<NonEmptyString>,
 }

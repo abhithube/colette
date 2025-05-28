@@ -33,9 +33,11 @@ pub(super) async fn handler(
     }
 }
 
+/// Data to scrape an RSS feed using
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct FeedScrape {
+    /// URL of an RSS feed to scrape
     url: Url,
 }
 

@@ -40,13 +40,17 @@ pub(super) async fn handler(
     }
 }
 
+/// Data to create a new user subscription
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct SubscriptionCreate {
+    /// Human-readable name for the new subscription, cannot be empty
     #[schema(value_type = String, min_length = 1)]
     title: NonEmptyString,
+    /// Description for the new subscription, cannot be empty
     #[schema(value_type = Option<String>, min_length = 1)]
     description: Option<NonEmptyString>,
+    /// Unique identifier of the associated RSS feed
     feed_id: Uuid,
 }
 

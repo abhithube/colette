@@ -26,17 +26,25 @@ impl FeedApi {
     }
 }
 
+/// RSS feed
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Feed {
+    /// Unique identifier of the feed
     id: Uuid,
+    /// URL to scrape for feed updates
     source_url: Url,
+    /// URL of the webpage the feed links to
     link: Url,
+    /// Title of the feed
     title: String,
+    /// Description of the feed
     #[schema(required)]
     description: Option<String>,
+    /// Timestamp at which the feed was refreshed
     #[schema(required)]
     refreshed_at: Option<DateTime<Utc>>,
+    /// Whether the feed was scraped from a custom plugin
     is_custom: bool,
 }
 

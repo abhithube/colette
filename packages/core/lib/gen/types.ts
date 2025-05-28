@@ -29,122 +29,165 @@ export type ApiErrorCodeEnum =
 
 export type ApiErrorCode = ApiErrorCodeEnum
 
+/**
+ * @description Long-lived token linked to a user\'s account. Useful for third party client apps to access a user\'s data. The full value is returned only once, on creation.
+ */
 export type ApiKey = {
   /**
+   * @description Unique identifier of the API key
    * @type string, uuid
    */
   id: string
   /**
+   * @description Human-readable name of the API key
    * @type string
    */
   title: string
   /**
+   * @description Partial view of the API key value for identification purposes
    * @type string
    */
   preview: string
   /**
+   * @description Timestamp at which the API key was created
    * @type string, date-time
    */
   createdAt: string
   /**
+   * @description Timestamp at which the API key was last modified
    * @type string, date-time
    */
   updatedAt: string
 }
 
+/**
+ * @description Data to create a new API key
+ */
 export type ApiKeyCreate = {
   /**
+   * @description Human-readable name for the API key to create, cannot be empty
    * @minLength 1
    * @type string
    */
   title: string
 }
 
+/**
+ * @description Newly created API key, containing the full value. This value must be saved in a safe location, as subsequent GET requests will only show a preview.
+ */
 export type ApiKeyCreated = {
   /**
+   * @description Unique identifier of the new API key
    * @type string, uuid
    */
   id: string
   /**
+   * @description Full value of the new API key
    * @type string
    */
   value: string
   /**
+   * @description Human-readable name of the new API key
    * @type string
    */
   title: string
   /**
+   * @description Timestamp at which the API key was created
    * @type string, date-time
    */
   createdAt: string
 }
 
+/**
+ * @description Details regarding the existing API key to update
+ */
 export type ApiKeyUpdate = {
   /**
+   * @description Human-readable name for the API key to update, cannot be empty
    * @minLength 1
    * @type string | undefined
    */
   title?: string
 }
 
+/**
+ * @description Bookmark to a webpage
+ */
 export type Bookmark = {
   /**
+   * @description Unique identifier of the bookmark
    * @type string, uuid
    */
   id: string
   /**
+   * @description URL of the webpage the bookmark links to
    * @type string, uri
    */
   link: string
   /**
+   * @description Title of the bookmark
    * @type string
    */
   title: string
   /**
+   * @description Thumbnail URL of the bookmark
    * @type string,null, uri
    */
   thumbnailUrl: string | null
   /**
+   * @description Timestamp at which the bookmark was published
    * @type string,null, date-time
    */
   publishedAt: string | null
   /**
+   * @description Author of the bookmark
    * @type string,null
    */
   author: string | null
   /**
+   * @description URL of the archived version of the bookmark\'s thumbnail
    * @type string,null, uri
    */
   archivedUrl: string | null
   /**
+   * @description Timestamp at which the bookmark was created
    * @type string, date-time
    */
   createdAt: string
   /**
+   * @description Timestamp at which the bookmark was modified
    * @type string, date-time
    */
   updatedAt: string
 }
 
+/**
+ * @description Data to create a new bookmark
+ */
 export type BookmarkCreate = {
   /**
+   * @description URL of the webpage the bookmark links to
    * @type string, uri
    */
   url: string
   /**
+   * @description Human-readable name for the new bookmark, cannot be empty
    * @minLength 1
    * @type string
    */
   title: string
   /**
+   * @description Thumbnail URL of the new bookmark, will be archived
    * @type string,null | undefined, uri
    */
   thumbnailUrl?: string | null
   /**
+   * @description Timestamp at which the bookmark was published
    * @type string,null | undefined, date-time
    */
   publishedAt?: string | null
   /**
+   * @description Author for the new bookmark, cannot be empty
    * @minLength 1
    * @type string,null | undefined
    */
@@ -162,12 +205,17 @@ export type BookmarkDateFieldEnum =
 
 export type BookmarkDateField = BookmarkDateFieldEnum
 
+/**
+ * @description Extended details of a bookmark
+ */
 export type BookmarkDetails = {
   /**
+   * @description Bookmark to a webpage
    * @type object
    */
   bookmark: Bookmark
   /**
+   * @description Linked tags, present if requested
    * @type array | undefined
    */
   tags?: Tag[]
@@ -214,31 +262,43 @@ export type BookmarkFilter =
       not: BookmarkFilter
     }
 
+/**
+ * @description Data to scrape a bookmark using
+ */
 export type BookmarkScrape = {
   /**
+   * @description URL of a webpage to scrape
    * @type string, uri
    */
   url: string
 }
 
+/**
+ * @description Scraped bookmark
+ */
 export type BookmarkScraped = {
   /**
+   * @description URL of the webpage of the scraped bookmark
    * @type string, uri
    */
   link: string
   /**
+   * @description Title of the scraped bookmark
    * @type string
    */
   title: string
   /**
+   * @description Thumbnail URL of the scraped bookmark
    * @type string,null, uri
    */
   thumbnailUrl: string | null
   /**
+   * @description Timestamp at which the scraped bookmark was published
    * @type string,null, date-time
    */
   publishedAt: string | null
   /**
+   * @description Author of the scraped bookmark
    * @type string,null
    */
   author: string | null
@@ -256,21 +316,28 @@ export type BookmarkTextFieldEnum =
 
 export type BookmarkTextField = BookmarkTextFieldEnum
 
+/**
+ * @description Updates to make to an existing bookmark
+ */
 export type BookmarkUpdate = {
   /**
+   * @description Human-readable name for the bookmark to update, cannot be empty
    * @minLength 1
    * @type string | undefined
    */
   title?: string
   /**
+   * @description Thumbnail URL of the bookmark to update, will be archived
    * @type string,null | undefined, uri
    */
   thumbnailUrl?: string | null
   /**
+   * @description Timestamp at which the bookmark was published
    * @type string,null | undefined, date-time
    */
   publishedAt?: string | null
   /**
+   * @description Author of the bookmark to update, cannot be empty
    * @minLength 1
    * @type string,null | undefined
    */
@@ -322,12 +389,17 @@ export type CollectionUpdate = {
   filter?: null | BookmarkFilter
 }
 
+/**
+ * @description API config
+ */
 export type Config = {
   /**
+   * @description API OIDC config
    * @type object
    */
   oidc: OidcConfig
   /**
+   * @description API storage config
    * @type object
    */
   storage: StorageConfig
@@ -368,180 +440,249 @@ export type DateOp =
       inLast: number
     }
 
+/**
+ * @description RSS feed
+ */
 export type Feed = {
   /**
+   * @description Unique identifier of the feed
    * @type string, uuid
    */
   id: string
   /**
+   * @description URL to scrape for feed updates
    * @type string, uri
    */
   sourceUrl: string
   /**
+   * @description URL of the webpage the feed links to
    * @type string, uri
    */
   link: string
   /**
+   * @description Title of the feed
    * @type string
    */
   title: string
   /**
+   * @description Description of the feed
    * @type string,null
    */
   description: string | null
   /**
+   * @description Timestamp at which the feed was refreshed
    * @type string,null, date-time
    */
   refreshedAt: string | null
   /**
+   * @description Whether the feed was scraped from a custom plugin
    * @type boolean
    */
   isCustom: boolean
 }
 
+/**
+ * @description Data to detect RSS feeds using
+ */
 export type FeedDetect = {
   /**
+   * @description URL of a webpage to detect RSS feeds on
    * @type string, uri
    */
   url: string
 }
 
+/**
+ * @description Detected RSS feed
+ */
 export type FeedDetected = {
   /**
+   * @description URL of the detected RSS feed
    * @type string, uri
    */
   url: string
   /**
+   * @description Title of the detected RSS feed
    * @type string
    */
   title: string
 }
 
+/**
+ * @description RSS feed entry
+ */
 export type FeedEntry = {
   /**
+   * @description Unique identifier of the feed entry
    * @type string, uuid
    */
   id: string
   /**
+   * @description URL of the webpage the feed entry links to
    * @type string, uri
    */
   link: string
   /**
+   * @description Title of the feed entry
    * @type string
    */
   title: string
   /**
+   * @description Timestamp at which the feed entry was published
    * @type string, date-time
    */
   publishedAt: string
   /**
+   * @description Description of the feed entry
    * @type string,null
    */
   description: string | null
   /**
+   * @description Author of the feed entry
    * @type string,null
    */
   author: string | null
   /**
+   * @description Thumbnail URL of the feed entry
    * @type string,null, uri
    */
   thumbnailUrl: string | null
   /**
+   * @description Unique identifier of the associated RSS feed
    * @type string, uuid
    */
   feedId: string
 }
 
+/**
+ * @description Data to scrape an RSS feed using
+ */
 export type FeedScrape = {
   /**
+   * @description URL of an RSS feed to scrape
    * @type string, uri
    */
   url: string
 }
 
+/**
+ * @description Action to link tags to a bookmark
+ */
 export type LinkBookmarkTags = {
   /**
+   * @description Unique identifiers of the tags to link to the bookmark
    * @type array
    */
   tagIds: string[]
 }
 
+/**
+ * @description Action to link tags to a user subscription
+ */
 export type LinkSubscriptionTags = {
   /**
+   * @description Unique identifiers of the tags to link to the subscription
    * @type array
    */
   tagIds: string[]
 }
 
+/**
+ * @description API OIDC config
+ */
 export type OidcConfig = {
   /**
+   * @description OIDC client ID
    * @type string
    */
   clientId: string
   /**
+   * @description OIDC redirect URI
    * @type string, uri
    */
   redirectUrl: string
   /**
+   * @description OIDC issuer URL
    * @type string, uri
    */
   issuerUrl: string
 }
 
+/**
+ * @description Paginated list of results
+ */
 export type PaginatedApiKey = {
   /**
+   * @description Current set of results
    * @type array
    */
   data: {
     /**
+     * @description Unique identifier of the API key
      * @type string, uuid
      */
     id: string
     /**
+     * @description Human-readable name of the API key
      * @type string
      */
     title: string
     /**
+     * @description Partial view of the API key value for identification purposes
      * @type string
      */
     preview: string
     /**
+     * @description Timestamp at which the API key was created
      * @type string, date-time
      */
     createdAt: string
     /**
+     * @description Timestamp at which the API key was last modified
      * @type string, date-time
      */
     updatedAt: string
   }[]
   /**
+   * @description Pagination cursor, only present if more results are available
    * @type string | undefined
    */
   cursor?: string
 }
 
+/**
+ * @description Paginated list of results
+ */
 export type PaginatedBookmarkDetails = {
   /**
+   * @description Current set of results
    * @type array
    */
   data: {
     /**
+     * @description Bookmark to a webpage
      * @type object
      */
     bookmark: Bookmark
     /**
+     * @description Linked tags, present if requested
      * @type array | undefined
      */
     tags?: Tag[]
   }[]
   /**
+   * @description Pagination cursor, only present if more results are available
    * @type string | undefined
    */
   cursor?: string
 }
 
+/**
+ * @description Paginated list of results
+ */
 export type PaginatedCollection = {
   /**
+   * @description Current set of results
    * @type array
    */
   data: {
@@ -564,57 +705,75 @@ export type PaginatedCollection = {
     updatedAt: string
   }[]
   /**
+   * @description Pagination cursor, only present if more results are available
    * @type string | undefined
    */
   cursor?: string
 }
 
+/**
+ * @description Paginated list of results
+ */
 export type PaginatedFeedEntry = {
   /**
+   * @description Current set of results
    * @type array
    */
   data: {
     /**
+     * @description Unique identifier of the feed entry
      * @type string, uuid
      */
     id: string
     /**
+     * @description URL of the webpage the feed entry links to
      * @type string, uri
      */
     link: string
     /**
+     * @description Title of the feed entry
      * @type string
      */
     title: string
     /**
+     * @description Timestamp at which the feed entry was published
      * @type string, date-time
      */
     publishedAt: string
     /**
+     * @description Description of the feed entry
      * @type string,null
      */
     description: string | null
     /**
+     * @description Author of the feed entry
      * @type string,null
      */
     author: string | null
     /**
+     * @description Thumbnail URL of the feed entry
      * @type string,null, uri
      */
     thumbnailUrl: string | null
     /**
+     * @description Unique identifier of the associated RSS feed
      * @type string, uuid
      */
     feedId: string
   }[]
   /**
+   * @description Pagination cursor, only present if more results are available
    * @type string | undefined
    */
   cursor?: string
 }
 
+/**
+ * @description Paginated list of results
+ */
 export type PaginatedStream = {
   /**
+   * @description Current set of results
    * @type array
    */
   data: {
@@ -637,85 +796,114 @@ export type PaginatedStream = {
     updatedAt: string
   }[]
   /**
+   * @description Pagination cursor, only present if more results are available
    * @type string | undefined
    */
   cursor?: string
 }
 
+/**
+ * @description Paginated list of results
+ */
 export type PaginatedSubscriptionDetails = {
   /**
+   * @description Current set of results
    * @type array
    */
   data: {
     /**
+     * @description User subscription to an RSS feed
      * @type object
      */
     subscription: Subscription
     /**
+     * @description RSS feed
      * @type object | undefined
      */
     feed?: Feed
     /**
+     * @description Linked tags, present if requested
      * @type array | undefined
      */
     tags?: Tag[]
     /**
+     * @description Count of unread subscription entries associated with the subscription, present if requested
      * @type integer | undefined, int64
      */
     unreadCount?: number
   }[]
   /**
+   * @description Pagination cursor, only present if more results are available
    * @type string | undefined
    */
   cursor?: string
 }
 
+/**
+ * @description Paginated list of results
+ */
 export type PaginatedSubscriptionEntryDetails = {
   /**
+   * @description Current set of results
    * @type array
    */
   data: {
     /**
+     * @description Association of a RSS feed entry to a user subscription. The pairing of subscription ID and feed entry ID is unique.
      * @type object
      */
     subscriptionEntry: SubscriptionEntry
     /**
+     * @description RSS feed entry
      * @type object | undefined
      */
     feedEntry?: FeedEntry
   }[]
   /**
+   * @description Pagination cursor, only present if more results are available
    * @type string | undefined
    */
   cursor?: string
 }
 
+/**
+ * @description Paginated list of results
+ */
 export type PaginatedTagDetails = {
   /**
+   * @description Current set of results
    * @type array
    */
   data: {
     /**
+     * @description Tag that can be attached to subscriptions and bookmarks
      * @type object
      */
     tag: Tag
     /**
+     * @description Count of subscriptions the tag is linked to, present if requested
      * @type integer | undefined, int64
      */
-    feedCount?: number
+    subscriptionCount?: number
     /**
+     * @description Count of bookmarks the tag is linked to, present if requested
      * @type integer | undefined, int64
      */
     bookmarkCount?: number
   }[]
   /**
+   * @description Pagination cursor, only present if more results are available
    * @type string | undefined
    */
   cursor?: string
 }
 
+/**
+ * @description API storage config
+ */
 export type StorageConfig = {
   /**
+   * @description Base URL for the image storage server
    * @type string, uri
    */
   baseUrl: string
@@ -759,83 +947,112 @@ export type StreamUpdate = {
   filter?: null | SubscriptionEntryFilter
 }
 
+/**
+ * @description User subscription to an RSS feed
+ */
 export type Subscription = {
   /**
+   * @description Unique identifier of the subscription
    * @type string, uuid
    */
   id: string
   /**
+   * @description Human-readable name of the subscription
    * @type string
    */
   title: string
   /**
+   * @description Description of the subscription
    * @type string,null
    */
   description: string | null
   /**
+   * @description Unique identifier of the associated RSS feed
    * @type string, uuid
    */
   feedId: string
   /**
+   * @description Timestamp at which the subscription was created
    * @type string, date-time
    */
   createdAt: string
   /**
+   * @description Timestamp at which the subscription was modified
    * @type string, date-time
    */
   updatedAt: string
 }
 
+/**
+ * @description Data to create a new user subscription
+ */
 export type SubscriptionCreate = {
   /**
+   * @description Human-readable name for the new subscription, cannot be empty
    * @minLength 1
    * @type string
    */
   title: string
   /**
+   * @description Description for the new subscription, cannot be empty
    * @minLength 1
    * @type string,null | undefined
    */
   description?: string | null
   /**
+   * @description Unique identifier of the associated RSS feed
    * @type string, uuid
    */
   feedId: string
 }
 
+/**
+ * @description Extended details of a user subscription
+ */
 export type SubscriptionDetails = {
   /**
+   * @description User subscription to an RSS feed
    * @type object
    */
   subscription: Subscription
   /**
+   * @description RSS feed
    * @type object | undefined
    */
   feed?: Feed
   /**
+   * @description Linked tags, present if requested
    * @type array | undefined
    */
   tags?: Tag[]
   /**
+   * @description Count of unread subscription entries associated with the subscription, present if requested
    * @type integer | undefined, int64
    */
   unreadCount?: number
 }
 
+/**
+ * @description Association of a RSS feed entry to a user subscription. The pairing of subscription ID and feed entry ID is unique.
+ */
 export type SubscriptionEntry = {
   /**
+   * @description Unique identifier of the associated subscription
    * @type string, uuid
    */
   subscriptionId: string
   /**
+   * @description Unique identifier of the associated feed entry
    * @type string, uuid
    */
   feedEntryId: string
   /**
+   * @description Whether the subscription entry has been marked as read
    * @type boolean
    */
   hasRead: boolean
   /**
+   * @description Timestamp at which the subscription entry has been marked as read
    * @type string,null | undefined, date-time
    */
   readAt?: string | null
@@ -859,12 +1076,17 @@ export type SubscriptionEntryDateFieldEnum =
 
 export type SubscriptionEntryDateField = SubscriptionEntryDateFieldEnum
 
+/**
+ * @description Extended details of a subscription entry
+ */
 export type SubscriptionEntryDetails = {
   /**
+   * @description Association of a RSS feed entry to a user subscription. The pairing of subscription ID and feed entry ID is unique.
    * @type object
    */
   subscriptionEntry: SubscriptionEntry
   /**
+   * @description RSS feed entry
    * @type object | undefined
    */
   feedEntry?: FeedEntry
@@ -936,63 +1158,89 @@ export type SubscriptionEntryTextFieldEnum =
 
 export type SubscriptionEntryTextField = SubscriptionEntryTextFieldEnum
 
+/**
+ * @description Updates to make to an existing subscription
+ */
 export type SubscriptionUpdate = {
   /**
+   * @description Human-readable name for the subscription to update, cannot be empty
    * @minLength 1
    * @type string,null | undefined
    */
   title?: string | null
   /**
+   * @description Description for the subscription to update, cannot be empty
    * @minLength 1
    * @type string,null | undefined
    */
   description?: string | null
 }
 
+/**
+ * @description Tag that can be attached to subscriptions and bookmarks
+ */
 export type Tag = {
   /**
+   * @description Unique identifier of the tag
    * @type string, uuid
    */
   id: string
   /**
+   * @description Human-readable name of the tag, unique per user
    * @type string
    */
   title: string
   /**
+   * @description Timestamp at which the tag was created
    * @type string, date-time
    */
   createdAt: string
   /**
+   * @description Timestamp at which the tag was last modified
    * @type string, date-time
    */
   updatedAt: string
 }
 
+/**
+ * @description Data to create a new tag
+ */
 export type TagCreate = {
   /**
+   * @description Human-readable name for the new tag, cannot be empty
    * @minLength 1
    * @type string
    */
   title: string
 }
 
+/**
+ * @description Extended details of a tag
+ */
 export type TagDetails = {
   /**
+   * @description Tag that can be attached to subscriptions and bookmarks
    * @type object
    */
   tag: Tag
   /**
+   * @description Count of subscriptions the tag is linked to, present if requested
    * @type integer | undefined, int64
    */
-  feedCount?: number
+  subscriptionCount?: number
   /**
+   * @description Count of bookmarks the tag is linked to, present if requested
    * @type integer | undefined, int64
    */
   bookmarkCount?: number
 }
 
+/**
+ * @description Updates to make to an existing tag
+ */
 export type TagUpdate = {
   /**
+   * @description Human-readable name for the tag to update, cannot be empty
    * @minLength 1
    * @type string | undefined
    */
@@ -1025,32 +1273,42 @@ export type TextOp =
       endsWith: string
     }
 
+/**
+ * @description User account. A new user is created if the \"sub\" field in the OIDC access token does not match an existing user.
+ */
 export type User = {
   /**
+   * @description Unique identifier of the user
    * @type string, uuid
    */
   id: string
   /**
+   * @description Unique identifier of the user from the external identity server
    * @type string
    */
   externalId: string
   /**
+   * @description Email address of the user from the external identity server
    * @type string,null, email
    */
   email: string | null
   /**
+   * @description Display name of the user
    * @type string,null
    */
   displayName: string | null
   /**
+   * @description Profile picture URL of the user
    * @type string,null, uri
    */
   pictureUrl: string | null
   /**
+   * @description Timestamp at which the user was created
    * @type string, date-time
    */
   createdAt: string
   /**
+   * @description Timestamp at which the user was last modified
    * @type string, date-time
    */
   updatedAt: string
@@ -1110,6 +1368,7 @@ export type CreateApiKeyMutation = {
 
 export type GetApiKeyPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -1150,6 +1409,7 @@ export type GetApiKeyQuery = {
 
 export type DeleteApiKeyPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -1190,6 +1450,7 @@ export type DeleteApiKeyMutation = {
 
 export type UpdateApiKeyPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -1260,22 +1521,27 @@ export type GetActiveUserQuery = {
 
 export type ListBookmarksQueryParams = {
   /**
+   * @description Filter by the ID of a collection whose filters may apply to the bookmark
    * @type string | undefined, uuid
    */
   collectionId?: string
   /**
+   * @description Whether to filter by tags linked to the bookmark
    * @type boolean | undefined
    */
   filterByTags?: boolean
   /**
+   * @description Filter by the IDs of the tags linked to the bookmark
    * @type array | undefined
    */
   'tag[]'?: string[]
   /**
+   * @description Pagination cursor
    * @type string | undefined
    */
   cursor?: string
   /**
+   * @description Whether to include the tags linked to the bookmark
    * @type boolean | undefined
    */
   withTags?: boolean
@@ -1341,6 +1607,7 @@ export type CreateBookmarkMutation = {
 
 export type GetBookmarkPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -1348,6 +1615,7 @@ export type GetBookmarkPathParams = {
 
 export type GetBookmarkQueryParams = {
   /**
+   * @description Whether to include the tags linked to the bookmark
    * @type boolean | undefined
    */
   withTags?: boolean
@@ -1389,6 +1657,7 @@ export type GetBookmarkQuery = {
 
 export type DeleteBookmarkPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -1429,6 +1698,7 @@ export type DeleteBookmarkMutation = {
 
 export type UpdateBookmarkPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -1481,6 +1751,7 @@ export type UpdateBookmarkMutation = {
 
 export type LinkBookmarkTagsPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -1672,6 +1943,7 @@ export type CreateCollectionMutation = {
 
 export type GetCollectionPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -1712,6 +1984,7 @@ export type GetCollectionQuery = {
 
 export type DeleteCollectionPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -1752,6 +2025,7 @@ export type DeleteCollectionMutation = {
 
 export type UpdateCollectionPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -1816,22 +2090,12 @@ export type GetConfigQuery = {
 
 export type ListFeedEntriesQueryParams = {
   /**
-   * @type string | undefined, uuid
-   */
-  streamId?: string
-  /**
+   * @description Filter by the ID of the associated RSS feed
    * @type string | undefined, uuid
    */
   feedId?: string
   /**
-   * @type boolean | undefined
-   */
-  hasRead?: boolean
-  /**
-   * @type array | undefined
-   */
-  'tag[]'?: string[]
-  /**
+   * @description Pagination cursor
    * @type string | undefined
    */
   cursor?: string
@@ -1862,6 +2126,7 @@ export type ListFeedEntriesQuery = {
 
 export type GetFeedEntryPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -2029,6 +2294,7 @@ export type CreateStreamMutation = {
 
 export type GetStreamPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -2069,6 +2335,7 @@ export type GetStreamQuery = {
 
 export type DeleteStreamPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -2109,6 +2376,7 @@ export type DeleteStreamMutation = {
 
 export type UpdateStreamPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -2157,22 +2425,27 @@ export type UpdateStreamMutation = {
 
 export type ListSubscriptionsQueryParams = {
   /**
+   * @description Whether to filter by tags linked to the subscription
    * @type boolean | undefined
    */
   filterByTags?: boolean
   /**
+   * @description Filter by the IDs of the tags linked to the subscription
    * @type array | undefined
    */
   'tag[]'?: string[]
   /**
+   * @description Whether to include the feed associated with the subscription
    * @type boolean | undefined
    */
   withFeed?: boolean
   /**
+   * @description Whether to include the count of the unread subscription entries associated with the subscription
    * @type boolean | undefined
    */
   withUnreadCount?: boolean
   /**
+   * @description Whether to include the tags linked to the subscription
    * @type boolean | undefined
    */
   withTags?: boolean
@@ -2238,6 +2511,7 @@ export type CreateSubscriptionMutation = {
 
 export type GetSubscriptionPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -2245,14 +2519,17 @@ export type GetSubscriptionPathParams = {
 
 export type GetSubscriptionQueryParams = {
   /**
+   * @description Whether to include the feed associated with the subscription
    * @type boolean | undefined
    */
   withFeed?: boolean
   /**
+   * @description Whether to include the count of the unread subscription entries associated with the subscription
    * @type boolean | undefined
    */
   withUnreadCount?: boolean
   /**
+   * @description Whether to include the tags linked to the subscription
    * @type boolean | undefined
    */
   withTags?: boolean
@@ -2294,6 +2571,7 @@ export type GetSubscriptionQuery = {
 
 export type DeleteSubscriptionPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -2334,6 +2612,7 @@ export type DeleteSubscriptionMutation = {
 
 export type UpdateSubscriptionPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -2386,6 +2665,7 @@ export type UpdateSubscriptionMutation = {
 
 export type LinkSubscriptionTagsPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -2438,10 +2718,12 @@ export type LinkSubscriptionTagsMutation = {
 
 export type MarkSubscriptionEntryAsReadPathParams = {
   /**
+   * @description Unique identifier of the associated subscription
    * @type string, uuid
    */
   sid: string
   /**
+   * @description Unique identifier of the associated feed entry
    * @type string, uuid
    */
   eid: string
@@ -2492,10 +2774,12 @@ export type MarkSubscriptionEntryAsReadMutation = {
 
 export type MarkSubscriptionEntryAsUnreadPathParams = {
   /**
+   * @description Unique identifier of the associated subscription
    * @type string, uuid
    */
   sid: string
   /**
+   * @description Unique identifier of the associated feed entry
    * @type string, uuid
    */
   eid: string
@@ -2593,22 +2877,27 @@ export type ExportSubscriptionsMutation = {
 
 export type ListSubscriptionEntriesQueryParams = {
   /**
+   * @description Filter by the ID of a stream whose filters may apply to the subscription entry
    * @type string | undefined, uuid
    */
   streamId?: string
   /**
+   * @description Filter by the ID of the associated subscription
    * @type string | undefined, uuid
    */
   subscriptionId?: string
   /**
+   * @description Filter by whether the subscription entry has been marked as read
    * @type boolean | undefined
    */
   hasRead?: boolean
   /**
+   * @description Filter by the IDs of the tags linked to the associated subscription
    * @type array | undefined
    */
   'tag[]'?: string[]
   /**
+   * @description Pagination cursor from the previous set of results
    * @type string | undefined
    */
   cursor?: string
@@ -2647,14 +2936,17 @@ export type ListTagsQueryParamsTagTypeEnum =
 
 export type ListTagsQueryParams = {
   /**
+   * @description Filter by the type of tag
    * @type string | undefined
    */
   tagType?: ListTagsQueryParamsTagTypeEnum
   /**
+   * @description Whether to include the count of subscriptions the tag is linked to
    * @type boolean | undefined
    */
-  withFeedCount?: boolean
+  withSubscriptionCount?: boolean
   /**
+   * @description Whether to include the count of bookmarks the tag is linked to
    * @type boolean | undefined
    */
   withBookmarkCount?: boolean
@@ -2720,6 +3012,7 @@ export type CreateTagMutation = {
 
 export type GetTagPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -2727,10 +3020,12 @@ export type GetTagPathParams = {
 
 export type GetTagQueryParams = {
   /**
+   * @description Whether to include the count of subscriptions the tag is linked to
    * @type boolean | undefined
    */
-  withFeedCount?: boolean
+  withSubscriptionCount?: boolean
   /**
+   * @description Whether to include the count of bookmarks the tag is linked to
    * @type boolean | undefined
    */
   withBookmarkCount?: boolean
@@ -2772,6 +3067,7 @@ export type GetTagQuery = {
 
 export type DeleteTagPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string
@@ -2812,6 +3108,7 @@ export type DeleteTagMutation = {
 
 export type UpdateTagPathParams = {
   /**
+   * @description Unique identifier of the resource
    * @type string, uuid
    */
   id: string

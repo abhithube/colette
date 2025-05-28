@@ -54,6 +54,7 @@ pub(super) async fn handler(
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub(super) struct BookmarkGetQuery {
+    /// Whether to include the tags linked to the bookmark
     #[serde(default = "with_tags")]
     with_tags: bool,
 }

@@ -33,6 +33,6 @@ pub struct TagParams {
     pub user_id: Option<Uuid>,
     pub cursor: Option<String>,
     pub limit: Option<u64>,
-    pub with_feed_count: bool,
+    pub with_subscription_count: bool,
     pub with_bookmark_count: bool,
 }

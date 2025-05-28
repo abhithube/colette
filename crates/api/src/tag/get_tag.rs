@@ -33,7 +33,7 @@ pub(super) async fn handler(
         .get_tag(
             tag::TagGetQuery {
                 id,
-                with_feed_count: query.with_feed_count,
+                with_subscription_count: query.with_subscription_count,
                 with_bookmark_count: query.with_bookmark_count,
             },
             user.id,
@@ -53,13 +53,15 @@ pub(super) async fn handler(
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub(super) struct TagGetQuery {
-    #[serde(default = "with_feed_count")]
-    with_feed_count: bool,
+    /// Whether to include the count of subscriptions the tag is linked to
+    #[serde(default = "with_subscription_count")]
+    with_subscription_count: bool,
+    /// Whether to include the count of bookmarks the tag is linked to
     #[serde(default = "with_bookmark_count")]
     with_bookmark_count: bool,
 }
 
-fn with_feed_count() -> bool {
+fn with_subscription_count() -> bool {
     false
 }
 

@@ -72,9 +72,6 @@ impl FeedEntryService {
 
 #[derive(Debug, Clone, Default)]
 pub struct FeedEntryListQuery {
-    pub stream_id: Option<Uuid>,
     pub feed_id: Option<Uuid>,
-    pub has_read: Option<bool>,
-    pub tags: Option<Vec<Uuid>>,
     pub cursor: Option<String>,
 }

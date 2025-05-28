@@ -31,13 +31,19 @@ impl ApiKeyApi {
     }
 }
 
+/// Long-lived token linked to a user's account. Useful for third party client apps to access a user's data. The full value is returned only once, on creation.
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct ApiKey {
+    /// Unique identifier of the API key
     id: Uuid,
+    /// Human-readable name of the API key
     title: String,
+    /// Partial view of the API key value for identification purposes
     preview: String,
+    /// Timestamp at which the API key was created
     created_at: DateTime<Utc>,
+    /// Timestamp at which the API key was last modified
     updated_at: DateTime<Utc>,
 }
 

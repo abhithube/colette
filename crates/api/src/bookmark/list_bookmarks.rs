@@ -49,15 +49,20 @@ pub(super) async fn handler(
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub(super) struct BookmarkListQuery {
+    /// Filter by the ID of a collection whose filters may apply to the bookmark
     #[param(nullable = false)]
     collection_id: Option<Uuid>,
+    /// Whether to filter by tags linked to the bookmark
     #[param(nullable = false)]
     filter_by_tags: Option<bool>,
+    /// Filter by the IDs of the tags linked to the bookmark
     #[param(nullable = false)]
     #[serde(rename = "tag[]")]
     tags: Option<Vec<Uuid>>,
+    /// Pagination cursor
     #[param(nullable = false)]
     cursor: Option<String>,
+    /// Whether to include the tags linked to the bookmark
     #[serde(default = "with_tags")]
     with_tags: bool,
 }

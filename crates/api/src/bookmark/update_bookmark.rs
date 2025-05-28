@@ -46,17 +46,22 @@ pub(super) async fn handler(
     }
 }
 
+/// Updates to make to an existing bookmark
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct BookmarkUpdate {
+    /// Human-readable name for the bookmark to update, cannot be empty
     #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
     title: Option<NonEmptyString>,
+    /// Thumbnail URL of the bookmark to update, will be archived
     #[serde(default, with = "serde_with::rust::double_option")]
     #[schema(value_type = Option<Url>)]
     thumbnail_url: Option<Option<Url>>,
+    /// Timestamp at which the bookmark was published
     #[serde(default, with = "serde_with::rust::double_option")]
     #[schema(value_type = Option<DateTime<Utc>>)]
     published_at: Option<Option<DateTime<Utc>>>,
+    /// Author of the bookmark to update, cannot be empty
     #[serde(default, with = "serde_with::rust::double_option")]
     #[schema(value_type = Option<Option<String>>, min_length = 1)]
     author: Option<Option<NonEmptyString>>,

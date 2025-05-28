@@ -27,20 +27,28 @@ impl SubscriptionEntryApi {
     }
 }
 
+/// Association of a RSS feed entry to a user subscription. The pairing of subscription ID and feed entry ID is unique.
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SubscriptionEntry {
+    /// Unique identifier of the associated subscription
     subscription_id: Uuid,
+    /// Unique identifier of the associated feed entry
     feed_entry_id: Uuid,
+    /// Whether the subscription entry has been marked as read
     has_read: bool,
+    /// Timestamp at which the subscription entry has been marked as read
     read_at: Option<DateTime<Utc>>,
 }
 
+/// Extended details of a subscription entry
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct SubscriptionEntryDetails {
+    /// Subscription entry itself, always present
     subscription_entry: SubscriptionEntry,
     #[schema(nullable = false)]
+    /// Associated feed entry, present if requested
     #[serde(skip_serializing_if = "Option::is_none")]
     feed_entry: Option<FeedEntry>,
 }

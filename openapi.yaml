@@ -78,6 +78,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -121,6 +122,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -160,6 +162,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -241,17 +244,20 @@ paths:
       parameters:
       - name: collectionId
         in: query
+        description: Filter by the ID of a collection whose filters may apply to the bookmark
         required: false
         schema:
           type: string
           format: uuid
       - name: filterByTags
         in: query
+        description: Whether to filter by tags linked to the bookmark
         required: false
         schema:
           type: boolean
       - name: tag[]
         in: query
+        description: Filter by the IDs of the tags linked to the bookmark
         required: false
         schema:
           type: array
@@ -260,11 +266,13 @@ paths:
             format: uuid
       - name: cursor
         in: query
+        description: Pagination cursor
         required: false
         schema:
           type: string
       - name: withTags
         in: query
+        description: Whether to include the tags linked to the bookmark
         required: false
         schema:
           type: boolean
@@ -338,12 +346,14 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
           format: uuid
       - name: withTags
         in: query
+        description: Whether to include the tags linked to the bookmark
         required: false
         schema:
           type: boolean
@@ -386,6 +396,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -425,6 +436,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -481,6 +493,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -703,6 +716,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -746,6 +760,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -785,6 +800,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -854,33 +870,16 @@ paths:
       description: List feed entries
       operationId: listFeedEntries
       parameters:
-      - name: streamId
-        in: query
-        required: false
-        schema:
-          type: string
-          format: uuid
       - name: feedId
         in: query
+        description: Filter by the ID of the associated RSS feed
         required: false
         schema:
           type: string
           format: uuid
-      - name: hasRead
-        in: query
-        required: false
-        schema:
-          type: boolean
-      - name: tag[]
-        in: query
-        required: false
-        schema:
-          type: array
-          items:
-            type: string
-            format: uuid
       - name: cursor
         in: query
+        description: Pagination cursor
         required: false
         schema:
           type: string
@@ -912,6 +911,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -1111,6 +1111,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -1154,6 +1155,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -1193,6 +1195,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -1249,11 +1252,13 @@ paths:
       parameters:
       - name: filterByTags
         in: query
+        description: Whether to filter by tags linked to the subscription
         required: false
         schema:
           type: boolean
       - name: tag[]
         in: query
+        description: Filter by the IDs of the tags linked to the subscription
         required: false
         schema:
           type: array
@@ -1262,16 +1267,19 @@ paths:
             format: uuid
       - name: withFeed
         in: query
+        description: Whether to include the feed associated with the subscription
         required: false
         schema:
           type: boolean
       - name: withUnreadCount
         in: query
+        description: Whether to include the count of the unread subscription entries associated with the subscription
         required: false
         schema:
           type: boolean
       - name: withTags
         in: query
+        description: Whether to include the tags linked to the subscription
         required: false
         schema:
           type: boolean
@@ -1345,22 +1353,26 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
           format: uuid
       - name: withFeed
         in: query
+        description: Whether to include the feed associated with the subscription
         required: false
         schema:
           type: boolean
       - name: withUnreadCount
         in: query
+        description: Whether to include the count of the unread subscription entries associated with the subscription
         required: false
         schema:
           type: boolean
       - name: withTags
         in: query
+        description: Whether to include the tags linked to the subscription
         required: false
         schema:
           type: boolean
@@ -1403,6 +1415,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -1442,6 +1455,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -1498,6 +1512,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -1550,12 +1565,14 @@ paths:
       parameters:
       - name: sid
         in: path
+        description: Unique identifier of the associated subscription
         required: true
         schema:
           type: string
           format: uuid
       - name: eid
         in: path
+        description: Unique identifier of the associated feed entry
         required: true
         schema:
           type: string
@@ -1606,12 +1623,14 @@ paths:
       parameters:
       - name: sid
         in: path
+        description: Unique identifier of the associated subscription
         required: true
         schema:
           type: string
           format: uuid
       - name: eid
         in: path
+        description: Unique identifier of the associated feed entry
         required: true
         schema:
           type: string
@@ -1722,23 +1741,27 @@ paths:
       parameters:
       - name: streamId
         in: query
+        description: Filter by the ID of a stream whose filters may apply to the subscription entry
         required: false
         schema:
           type: string
           format: uuid
       - name: subscriptionId
         in: query
+        description: Filter by the ID of the associated subscription
         required: false
         schema:
           type: string
           format: uuid
       - name: hasRead
         in: query
+        description: Filter by whether the subscription entry has been marked as read
         required: false
         schema:
           type: boolean
       - name: tag[]
         in: query
+        description: Filter by the IDs of the tags linked to the associated subscription
         required: false
         schema:
           type: array
@@ -1747,6 +1770,7 @@ paths:
             format: uuid
       - name: cursor
         in: query
+        description: Pagination cursor from the previous set of results
         required: false
         schema:
           type: string
@@ -1778,19 +1802,22 @@ paths:
       parameters:
       - name: tagType
         in: query
+        description: Filter by the type of tag
         required: false
         schema:
           type: string
           enum:
           - bookmarks
           - feeds
-      - name: withFeedCount
+      - name: withSubscriptionCount
         in: query
+        description: Whether to include the count of subscriptions the tag is linked to
         required: false
         schema:
           type: boolean
       - name: withBookmarkCount
         in: query
+        description: Whether to include the count of bookmarks the tag is linked to
         required: false
         schema:
           type: boolean
@@ -1864,17 +1891,20 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
           format: uuid
-      - name: withFeedCount
+      - name: withSubscriptionCount
         in: query
+        description: Whether to include the count of subscriptions the tag is linked to
         required: false
         schema:
           type: boolean
       - name: withBookmarkCount
         in: query
+        description: Whether to include the count of bookmarks the tag is linked to
         required: false
         schema:
           type: boolean
@@ -1917,6 +1947,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -1956,6 +1987,7 @@ paths:
       parameters:
       - name: id
         in: path
+        description: Unique identifier of the resource
         required: true
         schema:
           type: string
@@ -2027,6 +2059,7 @@ components:
       - UNKNOWN
     ApiKey:
       type: object
+      description: Long-lived token linked to a user's account. Useful for third party client apps to access a user's data. The full value is returned only once, on creation.
       required:
       - id
       - title
@@ -2037,26 +2070,34 @@ components:
         id:
           type: string
           format: uuid
+          description: Unique identifier of the API key
         title:
           type: string
+          description: Human-readable name of the API key
         preview:
           type: string
+          description: Partial view of the API key value for identification purposes
         createdAt:
           type: string
           format: date-time
+          description: Timestamp at which the API key was created
         updatedAt:
           type: string
           format: date-time
+          description: Timestamp at which the API key was last modified
     ApiKeyCreate:
       type: object
+      description: Data to create a new API key
       required:
       - title
       properties:
         title:
           type: string
+          description: Human-readable name for the API key to create, cannot be empty
           minLength: 1
     ApiKeyCreated:
       type: object
+      description: Newly created API key, containing the full value. This value must be saved in a safe location, as subsequent GET requests will only show a preview.
       required:
       - id
       - value
@@ -2066,21 +2107,28 @@ components:
         id:
           type: string
           format: uuid
+          description: Unique identifier of the new API key
         value:
           type: string
+          description: Full value of the new API key
         title:
           type: string
+          description: Human-readable name of the new API key
         createdAt:
           type: string
           format: date-time
+          description: Timestamp at which the API key was created
     ApiKeyUpdate:
       type: object
+      description: Details regarding the existing API key to update
       properties:
         title:
           type: string
+          description: Human-readable name for the API key to update, cannot be empty
           minLength: 1
     Bookmark:
       type: object
+      description: Bookmark to a webpage
       required:
       - id
       - link
@@ -2095,38 +2143,48 @@ components:
         id:
           type: string
           format: uuid
+          description: Unique identifier of the bookmark
         link:
           type: string
           format: uri
+          description: URL of the webpage the bookmark links to
         title:
           type: string
+          description: Title of the bookmark
         thumbnailUrl:
           type:
           - string
           - 'null'
           format: uri
+          description: Thumbnail URL of the bookmark
         publishedAt:
           type:
           - string
           - 'null'
           format: date-time
+          description: Timestamp at which the bookmark was published
         author:
           type:
           - string
           - 'null'
+          description: Author of the bookmark
         archivedUrl:
           type:
           - string
           - 'null'
           format: uri
+          description: URL of the archived version of the bookmark's thumbnail
         createdAt:
           type: string
           format: date-time
+          description: Timestamp at which the bookmark was created
         updatedAt:
           type: string
           format: date-time
+          description: Timestamp at which the bookmark was modified
     BookmarkCreate:
       type: object
+      description: Data to create a new bookmark
       required:
       - url
       - title
@@ -2134,23 +2192,28 @@ components:
         url:
           type: string
           format: uri
+          description: URL of the webpage the bookmark links to
         title:
           type: string
+          description: Human-readable name for the new bookmark, cannot be empty
           minLength: 1
         thumbnailUrl:
           type:
           - string
           - 'null'
           format: uri
+          description: Thumbnail URL of the new bookmark, will be archived
         publishedAt:
           type:
           - string
           - 'null'
           format: date-time
+          description: Timestamp at which the bookmark was published
         author:
           type:
           - string
           - 'null'
+          description: Author for the new bookmark, cannot be empty
           minLength: 1
     BookmarkDateField:
       type: string
@@ -2160,15 +2223,18 @@ components:
       - updatedAt
     BookmarkDetails:
       type: object
+      description: Extended details of a bookmark
       required:
       - bookmark
       properties:
         bookmark:
           $ref: '#/components/schemas/Bookmark'
+          description: Bookmark itself, always present
         tags:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
+          description: Linked tags, present if requested
     BookmarkFilter:
       oneOf:
       - type: object
@@ -2223,14 +2289,17 @@ components:
             $ref: '#/components/schemas/BookmarkFilter'
     BookmarkScrape:
       type: object
+      description: Data to scrape a bookmark using
       required:
       - url
       properties:
         url:
           type: string
           format: uri
+          description: URL of a webpage to scrape
     BookmarkScraped:
       type: object
+      description: Scraped bookmark
       required:
       - link
       - title
@@ -2241,22 +2310,27 @@ components:
         link:
           type: string
           format: uri
+          description: URL of the webpage of the scraped bookmark
         title:
           type: string
+          description: Title of the scraped bookmark
         thumbnailUrl:
           type:
           - string
           - 'null'
           format: uri
+          description: Thumbnail URL of the scraped bookmark
         publishedAt:
           type:
           - string
           - 'null'
           format: date-time
+          description: Timestamp at which the scraped bookmark was published
         author:
           type:
           - string
           - 'null'
+          description: Author of the scraped bookmark
     BookmarkTextField:
       type: string
       enum:
@@ -2266,24 +2340,29 @@ components:
       - tag
     BookmarkUpdate:
       type: object
+      description: Updates to make to an existing bookmark
       properties:
         title:
           type: string
+          description: Human-readable name for the bookmark to update, cannot be empty
           minLength: 1
         thumbnailUrl:
           type:
           - string
           - 'null'
           format: uri
+          description: Thumbnail URL of the bookmark to update, will be archived
         publishedAt:
           type:
           - string
           - 'null'
           format: date-time
+          description: Timestamp at which the bookmark was published
         author:
           type:
           - string
           - 'null'
+          description: Author of the bookmark to update, cannot be empty
           minLength: 1
     BooleanOp:
       oneOf:
@@ -2338,14 +2417,17 @@ components:
           - $ref: '#/components/schemas/BookmarkFilter'
     Config:
       type: object
+      description: API config
       required:
       - oidc
       - storage
       properties:
         oidc:
           $ref: '#/components/schemas/OidcConfig'
+          description: OIDC config
         storage:
           $ref: '#/components/schemas/StorageConfig'
+          description: Storage config
     DateOp:
       oneOf:
       - type: object
@@ -2387,6 +2469,7 @@ components:
             format: int64
     Feed:
       type: object
+      description: RSS feed
       required:
       - id
       - sourceUrl
@@ -2399,35 +2482,45 @@ components:
         id:
           type: string
           format: uuid
+          description: Unique identifier of the feed
         sourceUrl:
           type: string
           format: uri
+          description: URL to scrape for feed updates
         link:
           type: string
           format: uri
+          description: URL of the webpage the feed links to
         title:
           type: string
+          description: Title of the feed
         description:
           type:
           - string
           - 'null'
+          description: Description of the feed
         refreshedAt:
           type:
           - string
           - 'null'
           format: date-time
+          description: Timestamp at which the feed was refreshed
         isCustom:
           type: boolean
+          description: Whether the feed was scraped from a custom plugin
     FeedDetect:
       type: object
+      description: Data to detect RSS feeds using
       required:
       - url
       properties:
         url:
           type: string
           format: uri
+          description: URL of a webpage to detect RSS feeds on
     FeedDetected:
       type: object
+      description: Detected RSS feed
       required:
       - url
       - title
@@ -2435,10 +2528,13 @@ components:
         url:
           type: string
           format: uri
+          description: URL of the detected RSS feed
         title:
           type: string
+          description: Title of the detected RSS feed
     FeedEntry:
       type: object
+      description: RSS feed entry
       required:
       - id
       - link
@@ -2452,40 +2548,51 @@ components:
         id:
           type: string
           format: uuid
+          description: Unique identifier of the feed entry
         link:
           type: string
           format: uri
+          description: URL of the webpage the feed entry links to
         title:
           type: string
+          description: Title of the feed entry
         publishedAt:
           type: string
           format: date-time
+          description: Timestamp at which the feed entry was published
         description:
           type:
           - string
           - 'null'
+          description: Description of the feed entry
         author:
           type:
           - string
           - 'null'
+          description: Author of the feed entry
         thumbnailUrl:
           type:
           - string
           - 'null'
           format: uri
+          description: Thumbnail URL of the feed entry
         feedId:
           type: string
           format: uuid
+          description: Unique identifier of the associated RSS feed
     FeedScrape:
       type: object
+      description: Data to scrape an RSS feed using
       required:
       - url
       properties:
         url:
           type: string
           format: uri
+          description: URL of an RSS feed to scrape
     LinkBookmarkTags:
       type: object
+      description: Action to link tags to a bookmark
       required:
       - tagIds
       properties:
@@ -2494,8 +2601,10 @@ components:
           items:
             type: string
             format: uuid
+          description: Unique identifiers of the tags to link to the bookmark
     LinkSubscriptionTags:
       type: object
+      description: Action to link tags to a user subscription
       required:
       - tagIds
       properties:
@@ -2504,8 +2613,10 @@ components:
           items:
             type: string
             format: uuid
+          description: Unique identifiers of the tags to link to the subscription
     OidcConfig:
       type: object
+      description: API OIDC config
       required:
       - clientId
       - redirectUrl
@@ -2513,14 +2624,18 @@ components:
       properties:
         clientId:
           type: string
+          description: OIDC client ID
         redirectUrl:
           type: string
           format: uri
+          description: OIDC redirect URI
         issuerUrl:
           type: string
           format: uri
+          description: OIDC issuer URL
     Paginated_ApiKey:
       type: object
+      description: Paginated list of results
       required:
       - data
       properties:
@@ -2528,6 +2643,7 @@ components:
           type: array
           items:
             type: object
+            description: Long-lived token linked to a user's account. Useful for third party client apps to access a user's data. The full value is returned only once, on creation.
             required:
             - id
             - title
@@ -2538,20 +2654,28 @@ components:
               id:
                 type: string
                 format: uuid
+                description: Unique identifier of the API key
               title:
                 type: string
+                description: Human-readable name of the API key
               preview:
                 type: string
+                description: Partial view of the API key value for identification purposes
               createdAt:
                 type: string
                 format: date-time
+                description: Timestamp at which the API key was created
               updatedAt:
                 type: string
                 format: date-time
+                description: Timestamp at which the API key was last modified
+          description: Current set of results
         cursor:
           type: string
+          description: Pagination cursor, only present if more results are available
     Paginated_BookmarkDetails:
       type: object
+      description: Paginated list of results
       required:
       - data
       properties:
@@ -2559,19 +2683,25 @@ components:
           type: array
           items:
             type: object
+            description: Extended details of a bookmark
             required:
             - bookmark
             properties:
               bookmark:
                 $ref: '#/components/schemas/Bookmark'
+                description: Bookmark itself, always present
               tags:
                 type: array
                 items:
                   $ref: '#/components/schemas/Tag'
+                description: Linked tags, present if requested
+          description: Current set of results
         cursor:
           type: string
+          description: Pagination cursor, only present if more results are available
     Paginated_Collection:
       type: object
+      description: Paginated list of results
       required:
       - data
       properties:
@@ -2599,10 +2729,13 @@ components:
               updatedAt:
                 type: string
                 format: date-time
+          description: Current set of results
         cursor:
           type: string
+          description: Pagination cursor, only present if more results are available
     Paginated_FeedEntry:
       type: object
+      description: Paginated list of results
       required:
       - data
       properties:
@@ -2610,6 +2743,7 @@ components:
           type: array
           items:
             type: object
+            description: RSS feed entry
             required:
             - id
             - link
@@ -2623,34 +2757,45 @@ components:
               id:
                 type: string
                 format: uuid
+                description: Unique identifier of the feed entry
               link:
                 type: string
                 format: uri
+                description: URL of the webpage the feed entry links to
               title:
                 type: string
+                description: Title of the feed entry
               publishedAt:
                 type: string
                 format: date-time
+                description: Timestamp at which the feed entry was published
               description:
                 type:
                 - string
                 - 'null'
+                description: Description of the feed entry
               author:
                 type:
                 - string
                 - 'null'
+                description: Author of the feed entry
               thumbnailUrl:
                 type:
                 - string
                 - 'null'
                 format: uri
+                description: Thumbnail URL of the feed entry
               feedId:
                 type: string
                 format: uuid
+                description: Unique identifier of the associated RSS feed
+          description: Current set of results
         cursor:
           type: string
+          description: Pagination cursor, only present if more results are available
     Paginated_Stream:
       type: object
+      description: Paginated list of results
       required:
       - data
       properties:
@@ -2678,10 +2823,13 @@ components:
               updatedAt:
                 type: string
                 format: date-time
+          description: Current set of results
         cursor:
           type: string
+          description: Pagination cursor, only present if more results are available
     Paginated_SubscriptionDetails:
       type: object
+      description: Paginated list of results
       required:
       - data
       properties:
@@ -2689,24 +2837,32 @@ components:
           type: array
           items:
             type: object
+            description: Extended details of a user subscription
             required:
             - subscription
             properties:
               subscription:
                 $ref: '#/components/schemas/Subscription'
+                description: Subscription itself, always present
               feed:
                 $ref: '#/components/schemas/Feed'
+                description: Associated RSS feed, present if requested
               tags:
                 type: array
                 items:
                   $ref: '#/components/schemas/Tag'
+                description: Linked tags, present if requested
               unreadCount:
                 type: integer
                 format: int64
+                description: Count of unread subscription entries associated with the subscription, present if requested
+          description: Current set of results
         cursor:
           type: string
+          description: Pagination cursor, only present if more results are available
     Paginated_SubscriptionEntryDetails:
       type: object
+      description: Paginated list of results
       required:
       - data
       properties:
@@ -2714,17 +2870,23 @@ components:
           type: array
           items:
             type: object
+            description: Extended details of a subscription entry
             required:
             - subscriptionEntry
             properties:
               subscriptionEntry:
                 $ref: '#/components/schemas/SubscriptionEntry'
+                description: Subscription entry itself, always present
               feedEntry:
                 $ref: '#/components/schemas/FeedEntry'
+                description: Associated feed entry, present if requested
+          description: Current set of results
         cursor:
           type: string
+          description: Pagination cursor, only present if more results are available
     Paginated_TagDetails:
       type: object
+      description: Paginated list of results
       required:
       - data
       properties:
@@ -2732,27 +2894,35 @@ components:
           type: array
           items:
             type: object
+            description: Extended details of a tag
             required:
             - tag
             properties:
               tag:
                 $ref: '#/components/schemas/Tag'
-              feedCount:
+                description: Tag itself, always present
+              subscriptionCount:
                 type: integer
                 format: int64
+                description: Count of subscriptions the tag is linked to, present if requested
               bookmarkCount:
                 type: integer
                 format: int64
+                description: Count of bookmarks the tag is linked to, present if requested
+          description: Current set of results
         cursor:
           type: string
+          description: Pagination cursor, only present if more results are available
     StorageConfig:
       type: object
+      description: API storage config
       required:
       - baseUrl
       properties:
         baseUrl:
           type: string
           format: uri
+          description: Base URL for the image storage server
     Stream:
       type: object
       required:
@@ -2798,6 +2968,7 @@ components:
           - $ref: '#/components/schemas/SubscriptionEntryFilter'
     Subscription:
       type: object
+      description: User subscription to an RSS feed
       required:
       - id
       - title
@@ -2809,56 +2980,72 @@ components:
         id:
           type: string
           format: uuid
+          description: Unique identifier of the subscription
         title:
           type: string
+          description: Human-readable name of the subscription
         description:
           type:
           - string
           - 'null'
+          description: Description of the subscription
         feedId:
           type: string
           format: uuid
+          description: Unique identifier of the associated RSS feed
         createdAt:
           type: string
           format: date-time
+          description: Timestamp at which the subscription was created
         updatedAt:
           type: string
           format: date-time
+          description: Timestamp at which the subscription was modified
     SubscriptionCreate:
       type: object
+      description: Data to create a new user subscription
       required:
       - title
       - feedId
       properties:
         title:
           type: string
+          description: Human-readable name for the new subscription, cannot be empty
           minLength: 1
         description:
           type:
           - string
           - 'null'
+          description: Description for the new subscription, cannot be empty
           minLength: 1
         feedId:
           type: string
           format: uuid
+          description: Unique identifier of the associated RSS feed
     SubscriptionDetails:
       type: object
+      description: Extended details of a user subscription
       required:
       - subscription
       properties:
         subscription:
           $ref: '#/components/schemas/Subscription'
+          description: Subscription itself, always present
         feed:
           $ref: '#/components/schemas/Feed'
+          description: Associated RSS feed, present if requested
         tags:
           type: array
           items:
             $ref: '#/components/schemas/Tag'
+          description: Linked tags, present if requested
         unreadCount:
           type: integer
           format: int64
+          description: Count of unread subscription entries associated with the subscription, present if requested
     SubscriptionEntry:
       type: object
+      description: Association of a RSS feed entry to a user subscription. The pairing of subscription ID and feed entry ID is unique.
       required:
       - subscriptionId
       - feedEntryId
@@ -2867,16 +3054,20 @@ components:
         subscriptionId:
           type: string
           format: uuid
+          description: Unique identifier of the associated subscription
         feedEntryId:
           type: string
           format: uuid
+          description: Unique identifier of the associated feed entry
         hasRead:
           type: boolean
+          description: Whether the subscription entry has been marked as read
         readAt:
           type:
           - string
           - 'null'
           format: date-time
+          description: Timestamp at which the subscription entry has been marked as read
     SubscriptionEntryBooleanField:
       type: string
       enum:
@@ -2887,13 +3078,16 @@ components:
       - publishedAt
     SubscriptionEntryDetails:
       type: object
+      description: Extended details of a subscription entry
       required:
       - subscriptionEntry
       properties:
         subscriptionEntry:
           $ref: '#/components/schemas/SubscriptionEntry'
+          description: Subscription entry itself, always present
         feedEntry:
           $ref: '#/components/schemas/FeedEntry'
+          description: Associated feed entry, present if requested
     SubscriptionEntryFilter:
       oneOf:
       - type: object
@@ -2970,19 +3164,23 @@ components:
       - tag
     SubscriptionUpdate:
       type: object
+      description: Updates to make to an existing subscription
       properties:
         title:
           type:
           - string
           - 'null'
+          description: Human-readable name for the subscription to update, cannot be empty
           minLength: 1
         description:
           type:
           - string
           - 'null'
+          description: Description for the subscription to update, cannot be empty
           minLength: 1
     Tag:
       type: object
+      description: Tag that can be attached to subscriptions and bookmarks
       required:
       - id
       - title
@@ -2992,40 +3190,52 @@ components:
         id:
           type: string
           format: uuid
+          description: Unique identifier of the tag
         title:
           type: string
+          description: Human-readable name of the tag, unique per user
         createdAt:
           type: string
           format: date-time
+          description: Timestamp at which the tag was created
         updatedAt:
           type: string
           format: date-time
+          description: Timestamp at which the tag was last modified
     TagCreate:
       type: object
+      description: Data to create a new tag
       required:
       - title
       properties:
         title:
           type: string
+          description: Human-readable name for the new tag, cannot be empty
           minLength: 1
     TagDetails:
       type: object
+      description: Extended details of a tag
       required:
       - tag
       properties:
         tag:
           $ref: '#/components/schemas/Tag'
-        feedCount:
+          description: Tag itself, always present
+        subscriptionCount:
           type: integer
           format: int64
+          description: Count of subscriptions the tag is linked to, present if requested
         bookmarkCount:
           type: integer
           format: int64
+          description: Count of bookmarks the tag is linked to, present if requested
     TagUpdate:
       type: object
+      description: Updates to make to an existing tag
       properties:
         title:
           type: string
+          description: Human-readable name for the tag to update, cannot be empty
           minLength: 1
     TextOp:
       oneOf:
@@ -3055,6 +3265,7 @@ components:
             type: string
     User:
       type: object
+      description: User account. A new user is created if the "sub" field in the OIDC access token does not match an existing user.
       required:
       - id
       - externalId
@@ -3067,28 +3278,35 @@ components:
         id:
           type: string
           format: uuid
+          description: Unique identifier of the user
         externalId:
           type: string
+          description: Unique identifier of the user from the external identity server
         email:
           type:
           - string
           - 'null'
           format: email
+          description: Email address of the user from the external identity server
         displayName:
           type:
           - string
           - 'null'
+          description: Display name of the user
         pictureUrl:
           type:
           - string
           - 'null'
           format: uri
+          description: Profile picture URL of the user
         createdAt:
           type: string
           format: date-time
+          description: Timestamp at which the user was created
         updatedAt:
           type: string
           format: date-time
+          description: Timestamp at which the user was last modified
   securitySchemes:
     bearerAuth:
       type: http

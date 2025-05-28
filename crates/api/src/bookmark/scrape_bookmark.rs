@@ -34,9 +34,11 @@ pub(super) async fn handler(
     }
 }
 
+/// Data to scrape a bookmark using
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct BookmarkScrape {
+    /// URL of a webpage to scrape
     url: Url,
 }
 
@@ -46,15 +48,21 @@ impl From<BookmarkScrape> for bookmark::BookmarkScrape {
     }
 }
 
+/// Scraped bookmark
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct BookmarkScraped {
+    /// URL of the webpage of the scraped bookmark
     link: Url,
+    /// Title of the scraped bookmark
     title: String,
+    /// Thumbnail URL of the scraped bookmark
     #[schema(required)]
     thumbnail_url: Option<Url>,
+    /// Timestamp at which the scraped bookmark was published
     #[schema(required)]
     published_at: Option<DateTime<Utc>>,
+    /// Author of the scraped bookmark
     #[schema(required)]
     author: Option<String>,
 }

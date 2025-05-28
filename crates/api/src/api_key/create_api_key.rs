@@ -38,9 +38,11 @@ pub(super) async fn handler(
     }
 }
 
+/// Data to create a new API key
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct ApiKeyCreate {
+    /// Human-readable name for the API key to create, cannot be empty
     #[schema(value_type = String, min_length = 1)]
     title: NonEmptyString,
 }
@@ -53,12 +55,17 @@ impl From<ApiKeyCreate> for api_key::ApiKeyCreate {
     }
 }
 
+/// Newly created API key, containing the full value. This value must be saved in a safe location, as subsequent GET requests will only show a preview.
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct ApiKeyCreated {
+    /// Unique identifier of the new API key
     id: Uuid,
+    /// Full value of the new API key
     value: String,
+    /// Human-readable name of the new API key
     title: String,
+    /// Timestamp at which the API key was created
     created_at: DateTime<Utc>,
 }
 

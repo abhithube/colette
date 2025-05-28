@@ -20,18 +20,26 @@ impl AuthApi {
     }
 }
 
+/// User account. A new user is created if the "sub" field in the OIDC access token does not match an existing user.
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct User {
+    /// Unique identifier of the user
     id: Uuid,
+    /// Unique identifier of the user from the external identity server
     external_id: String,
+    /// Email address of the user from the external identity server
     #[schema(required, format = "email")]
     email: Option<String>,
     #[schema(required)]
+    /// Display name of the user
     display_name: Option<String>,
     #[schema(required)]
+    /// Profile picture URL of the user
     picture_url: Option<Url>,
+    /// Timestamp at which the user was created
     created_at: DateTime<Utc>,
+    /// Timestamp at which the user was last modified
     updated_at: DateTime<Utc>,
 }
 

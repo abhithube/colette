@@ -25,7 +25,7 @@ impl TagService {
             .query(TagParams {
                 tag_type: query.tag_type,
                 user_id: Some(user_id),
-                with_feed_count: true,
+                with_subscription_count: true,
                 ..Default::default()
             })
             .await?;
@@ -41,7 +41,7 @@ impl TagService {
             .repository
             .query(TagParams {
                 ids: Some(vec![query.id]),
-                with_feed_count: query.with_feed_count,
+                with_subscription_count: query.with_subscription_count,
                 with_bookmark_count: query.with_bookmark_count,
                 ..Default::default()
             })
@@ -101,14 +101,14 @@ impl TagService {
 #[derive(Debug, Clone, Default)]
 pub struct TagListQuery {
     pub tag_type: Option<TagType>,
-    pub with_feed_count: bool,
+    pub with_subscription_count: bool,
     pub with_bookmark_count: bool,
 }
 
 #[derive(Debug, Clone)]
 pub struct TagGetQuery {
     pub id: Uuid,
-    pub with_feed_count: bool,
+    pub with_subscription_count: bool,
     pub with_bookmark_count: bool,
 }
 

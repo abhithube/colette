@@ -37,15 +37,18 @@ pub(super) async fn handler(
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub(super) struct TagListQuery {
+    /// Filter by the type of tag
     #[param(inline)]
     tag_type: Option<TagType>,
-    #[serde(default = "with_feed_count")]
-    with_feed_count: bool,
+    /// Whether to include the count of subscriptions the tag is linked to
+    #[serde(default = "with_subscription_count")]
+    with_subscription_count: bool,
+    /// Whether to include the count of bookmarks the tag is linked to
     #[serde(default = "with_bookmark_count")]
     with_bookmark_count: bool,
 }
 
-fn with_feed_count() -> bool {
+fn with_subscription_count() -> bool {
     false
 }
 
@@ -57,7 +60,7 @@ impl From<TagListQuery> for tag::TagListQuery {
     fn from(value: TagListQuery) -> Self {
         Self {
             tag_type: value.tag_type.map(Into::into),
-            with_feed_count: value.with_feed_count,
+            with_subscription_count: value.with_subscription_count,
             with_bookmark_count: value.with_bookmark_count,
         }
     }

@@ -43,9 +43,11 @@ pub(super) async fn handler(
     }
 }
 
+/// Action to link tags to a user subscription
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct LinkSubscriptionTags {
+    /// Unique identifiers of the tags to link to the subscription
     tag_ids: Vec<Uuid>,
 }
 

@@ -18,8 +18,8 @@ use crate::{
   post,
   path = "/{sid}/entries/{eid}/markAsRead",
   params(
-    ("sid" = Uuid, Path),
-    ("eid" = Uuid, Path),
+    ("sid" = Uuid, Path, description = "Unique identifier of the associated subscription"),
+    ("eid" = Uuid, Path, description = "Unique identifier of the associated feed entry"),
   ),
   responses(OkResponse, ErrResponse),
   operation_id = "markSubscriptionEntryAsRead",

@@ -42,11 +42,14 @@ pub(super) async fn handler(
     }
 }
 
+/// Updates to make to an existing subscription
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct SubscriptionUpdate {
+    /// Human-readable name for the subscription to update, cannot be empty
     #[schema(value_type = Option<String>, min_length = 1)]
     title: Option<NonEmptyString>,
+    /// Description for the subscription to update, cannot be empty
     #[serde(default, with = "serde_with::rust::double_option")]
     #[schema(value_type = Option<Option<String>>, min_length = 1)]
     description: Option<Option<NonEmptyString>>,

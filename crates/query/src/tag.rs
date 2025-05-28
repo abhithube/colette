@@ -13,7 +13,7 @@ use crate::{
     subscription_tag::SubscriptionTag,
 };
 
-const FEED_COUNT: &str = "feed_count";
+const SUBSCRIPTION_COUNT: &str = "subscription_count";
 const BOOKMARK_COUNT: &str = "bookmark_count";
 
 pub enum Tag {
@@ -63,14 +63,14 @@ impl IntoSelect for TagParams {
             .order_by((Tag::Table, Tag::CreatedAt), Order::Asc)
             .to_owned();
 
-        if self.with_feed_count || self.tag_type == Some(TagType::Feeds) {
+        if self.with_subscription_count || self.tag_type == Some(TagType::Feeds) {
             query
                 .expr_as(
                     Func::count(Expr::col((
                         SubscriptionTag::Table,
                         SubscriptionTag::SubscriptionId,
                     ))),
-                    Alias::new(FEED_COUNT),
+                    Alias::new(SUBSCRIPTION_COUNT),
                 )
                 .left_join(
                     SubscriptionTag::Table,
@@ -92,14 +92,14 @@ impl IntoSelect for TagParams {
                 );
         }
 
-        if self.with_feed_count || self.with_bookmark_count || self.tag_type.is_some() {
+        if self.with_subscription_count || self.with_bookmark_count || self.tag_type.is_some() {
             query.group_by_col((Tag::Table, Tag::Id));
         }
 
         if let Some(tag_type) = self.tag_type {
             match tag_type {
                 TagType::Feeds => {
-                    query.and_having(Expr::col(Alias::new(FEED_COUNT)).gt(Expr::val(0)));
+                    query.and_having(Expr::col(Alias::new(SUBSCRIPTION_COUNT)).gt(Expr::val(0)));
                 }
                 TagType::Bookmarks => {
                     query.and_having(Expr::col(Alias::new(BOOKMARK_COUNT)).gt(Expr::val(0)));

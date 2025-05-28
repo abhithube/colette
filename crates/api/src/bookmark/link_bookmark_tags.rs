@@ -43,9 +43,11 @@ pub(super) async fn handler(
     }
 }
 
+/// Action to link tags to a bookmark
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct LinkBookmarkTags {
+    /// Unique identifiers of the tags to link to the bookmark
     tag_ids: Vec<Uuid>,
 }
 

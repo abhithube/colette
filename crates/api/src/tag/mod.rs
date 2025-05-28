@@ -32,22 +32,31 @@ impl TagApi {
     }
 }
 
+/// Tag that can be attached to subscriptions and bookmarks
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Tag {
+    /// Unique identifier of the tag
     id: Uuid,
+    /// Human-readable name of the tag, unique per user
     title: String,
+    /// Timestamp at which the tag was created
     created_at: DateTime<Utc>,
+    /// Timestamp at which the tag was last modified
     updated_at: DateTime<Utc>,
 }
 
+/// Extended details of a tag
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct TagDetails {
+    /// Tag itself, always present
     tag: Tag,
+    /// Count of subscriptions the tag is linked to, present if requested
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    feed_count: Option<i64>,
+    subscription_count: Option<i64>,
+    /// Count of bookmarks the tag is linked to, present if requested
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     bookmark_count: Option<i64>,
@@ -66,12 +75,12 @@ impl From<colette_core::Tag> for Tag {
 
 impl From<colette_core::Tag> for TagDetails {
     fn from(value: colette_core::Tag) -> Self {
-        let feed_count = value.feed_count;
+        let subscription_count = value.subscription_count;
         let bookmark_count = value.bookmark_count;
 
         Self {
             tag: value.into(),
-            feed_count,
+            subscription_count,
             bookmark_count,
         }
     }

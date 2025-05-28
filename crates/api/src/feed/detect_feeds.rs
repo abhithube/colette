@@ -33,9 +33,11 @@ pub(super) async fn handler(
     }
 }
 
+/// Data to detect RSS feeds using
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct FeedDetect {
+    /// URL of a webpage to detect RSS feeds on
     url: Url,
 }
 
@@ -45,10 +47,13 @@ impl From<FeedDetect> for feed::FeedDetect {
     }
 }
 
+/// Detected RSS feed
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct FeedDetected {
+    /// URL of the detected RSS feed
     url: Url,
+    /// Title of the detected RSS feed
     title: String,
 }
 

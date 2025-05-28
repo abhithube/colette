@@ -38,9 +38,11 @@ pub(super) async fn handler(
     }
 }
 
+/// Updates to make to an existing tag
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct TagUpdate {
+    /// Human-readable name for the tag to update, cannot be empty
     #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
     title: Option<NonEmptyString>,
 }

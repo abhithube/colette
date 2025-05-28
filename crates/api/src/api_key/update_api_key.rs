@@ -42,9 +42,11 @@ pub(super) async fn handler(
     }
 }
 
+/// Details regarding the existing API key to update
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct ApiKeyUpdate {
+    /// Human-readable name for the API key to update, cannot be empty
     #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
     title: Option<NonEmptyString>,
 }

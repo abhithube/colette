@@ -41,15 +41,10 @@ pub(super) async fn handler(
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub(super) struct FeedEntryListQuery {
-    #[param(nullable = false)]
-    stream_id: Option<Uuid>,
+    /// Filter by the ID of the associated RSS feed
     #[param(nullable = false)]
     feed_id: Option<Uuid>,
-    #[param(nullable = false)]
-    has_read: Option<bool>,
-    #[param(nullable = false)]
-    #[serde(rename = "tag[]")]
-    tags: Option<Vec<Uuid>>,
+    /// Pagination cursor
     #[param(nullable = false)]
     cursor: Option<String>,
 }
@@ -57,10 +52,7 @@ pub(super) struct FeedEntryListQuery {
 impl From<FeedEntryListQuery> for feed_entry::FeedEntryListQuery {
     fn from(value: FeedEntryListQuery) -> Self {
         Self {
-            stream_id: value.stream_id,
             feed_id: value.feed_id,
-            has_read: value.has_read,
-            tags: value.tags,
             cursor: value.cursor,
         }
     }

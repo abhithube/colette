@@ -16,7 +16,7 @@ pub struct Tag {
     pub created_at: DateTime<Utc>,
     #[builder(default = Utc::now())]
     pub updated_at: DateTime<Utc>,
-    pub feed_count: Option<i64>,
+    pub subscription_count: Option<i64>,
     pub bookmark_count: Option<i64>,
 }
 

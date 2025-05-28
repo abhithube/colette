@@ -86,7 +86,7 @@ impl From<TagRow<'_>> for Tag {
             user_id: value.get("user_id"),
             created_at: value.get("created_at"),
             updated_at: value.get("updated_at"),
-            feed_count: value.try_get("feed_count").ok(),
+            subscription_count: value.try_get("subscription_count").ok(),
             bookmark_count: value.try_get("bookmark_count").ok(),
         }
     }

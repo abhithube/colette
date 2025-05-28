@@ -35,9 +35,11 @@ pub(super) async fn handler(
     }
 }
 
+/// Data to create a new tag
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct TagCreate {
+    /// Human-readable name for the new tag, cannot be empty
     #[schema(value_type = String, min_length = 1)]
     title: NonEmptyString,
 }

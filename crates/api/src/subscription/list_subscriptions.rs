@@ -42,15 +42,20 @@ pub(super) async fn handler(
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub(super) struct SubscriptionListQuery {
+    /// Whether to filter by tags linked to the subscription
     #[param(nullable = false)]
     filter_by_tags: Option<bool>,
+    /// Filter by the IDs of the tags linked to the subscription
     #[param(nullable = false)]
     #[serde(rename = "tag[]")]
     tags: Option<Vec<Uuid>>,
+    /// Whether to include the feed associated with the subscription
     #[serde(default = "with_feed")]
     with_feed: bool,
+    /// Whether to include the count of the unread subscription entries associated with the subscription
     #[serde(default = "with_unread_count")]
     with_unread_count: bool,
+    /// Whether to include the tags linked to the subscription
     #[serde(default = "with_tags")]
     with_tags: bool,
 }

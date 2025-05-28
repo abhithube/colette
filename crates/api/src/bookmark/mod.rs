@@ -46,28 +46,41 @@ impl BookmarkApi {
     }
 }
 
+/// Bookmark to a webpage
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct Bookmark {
+    /// Unique identifier of the bookmark
     id: Uuid,
+    /// URL of the webpage the bookmark links to
     link: Url,
+    /// Title of the bookmark
     title: String,
+    /// Thumbnail URL of the bookmark
     #[schema(required)]
     thumbnail_url: Option<Url>,
+    /// Timestamp at which the bookmark was published
     #[schema(required)]
     published_at: Option<DateTime<Utc>>,
+    /// Author of the bookmark
     #[schema(required)]
     author: Option<String>,
+    /// URL of the archived version of the bookmark's thumbnail
     #[schema(required)]
     archived_url: Option<Url>,
+    /// Timestamp at which the bookmark was created
     created_at: DateTime<Utc>,
+    /// Timestamp at which the bookmark was modified
     updated_at: DateTime<Utc>,
 }
 
+/// Extended details of a bookmark
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 struct BookmarkDetails {
+    /// Bookmark itself, always present
     bookmark: Bookmark,
     #[schema(nullable = false)]
+    /// Linked tags, present if requested
     #[serde(skip_serializing_if = "Option::is_none")]
     tags: Option<Vec<Tag>>,
 }

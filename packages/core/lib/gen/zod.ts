@@ -19,48 +19,142 @@ export const apiErrorCodeSchema = z.enum([
   'UNKNOWN',
 ])
 
-export const apiKeySchema = z.object({
-  id: z.string().uuid(),
-  title: z.string(),
-  preview: z.string(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-})
+/**
+ * @description Long-lived token linked to a user\'s account. Useful for third party client apps to access a user\'s data. The full value is returned only once, on creation.
+ */
+export const apiKeySchema = z
+  .object({
+    id: z.string().uuid().describe('Unique identifier of the API key'),
+    title: z.string().describe('Human-readable name of the API key'),
+    preview: z
+      .string()
+      .describe(
+        'Partial view of the API key value for identification purposes',
+      ),
+    createdAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the API key was created'),
+    updatedAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the API key was last modified'),
+  })
+  .describe(
+    "Long-lived token linked to a user's account. Useful for third party client apps to access a user's data. The full value is returned only once, on creation.",
+  )
 
-export const apiKeyCreateSchema = z.object({
-  title: z.string().min(1),
-})
+/**
+ * @description Data to create a new API key
+ */
+export const apiKeyCreateSchema = z
+  .object({
+    title: z
+      .string()
+      .min(1)
+      .describe(
+        'Human-readable name for the API key to create, cannot be empty',
+      ),
+  })
+  .describe('Data to create a new API key')
 
-export const apiKeyCreatedSchema = z.object({
-  id: z.string().uuid(),
-  value: z.string(),
-  title: z.string(),
-  createdAt: z.string().datetime(),
-})
+/**
+ * @description Newly created API key, containing the full value. This value must be saved in a safe location, as subsequent GET requests will only show a preview.
+ */
+export const apiKeyCreatedSchema = z
+  .object({
+    id: z.string().uuid().describe('Unique identifier of the new API key'),
+    value: z.string().describe('Full value of the new API key'),
+    title: z.string().describe('Human-readable name of the new API key'),
+    createdAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the API key was created'),
+  })
+  .describe(
+    'Newly created API key, containing the full value. This value must be saved in a safe location, as subsequent GET requests will only show a preview.',
+  )
 
-export const apiKeyUpdateSchema = z.object({
-  title: z.string().min(1).optional(),
-})
+/**
+ * @description Details regarding the existing API key to update
+ */
+export const apiKeyUpdateSchema = z
+  .object({
+    title: z
+      .string()
+      .min(1)
+      .describe(
+        'Human-readable name for the API key to update, cannot be empty',
+      )
+      .optional(),
+  })
+  .describe('Details regarding the existing API key to update')
 
-export const bookmarkSchema = z.object({
-  id: z.string().uuid(),
-  link: z.string().url(),
-  title: z.string(),
-  thumbnailUrl: z.string().url().nullable(),
-  publishedAt: z.string().datetime().nullable(),
-  author: z.string().nullable(),
-  archivedUrl: z.string().url().nullable(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-})
+/**
+ * @description Bookmark to a webpage
+ */
+export const bookmarkSchema = z
+  .object({
+    id: z.string().uuid().describe('Unique identifier of the bookmark'),
+    link: z.string().url().describe('URL of the webpage the bookmark links to'),
+    title: z.string().describe('Title of the bookmark'),
+    thumbnailUrl: z
+      .string()
+      .url()
+      .describe('Thumbnail URL of the bookmark')
+      .nullable(),
+    publishedAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the bookmark was published')
+      .nullable(),
+    author: z.string().describe('Author of the bookmark').nullable(),
+    archivedUrl: z
+      .string()
+      .url()
+      .describe("URL of the archived version of the bookmark's thumbnail")
+      .nullable(),
+    createdAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the bookmark was created'),
+    updatedAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the bookmark was modified'),
+  })
+  .describe('Bookmark to a webpage')
 
-export const bookmarkCreateSchema = z.object({
-  url: z.string().url(),
-  title: z.string().min(1),
-  thumbnailUrl: z.string().url().optional().nullable(),
-  publishedAt: z.string().datetime().optional().nullable(),
-  author: z.string().min(1).optional().nullable(),
-})
+/**
+ * @description Data to create a new bookmark
+ */
+export const bookmarkCreateSchema = z
+  .object({
+    url: z.string().url().describe('URL of the webpage the bookmark links to'),
+    title: z
+      .string()
+      .min(1)
+      .describe('Human-readable name for the new bookmark, cannot be empty'),
+    thumbnailUrl: z
+      .string()
+      .url()
+      .describe('Thumbnail URL of the new bookmark, will be archived')
+      .optional()
+      .nullable(),
+    publishedAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the bookmark was published')
+      .optional()
+      .nullable(),
+    author: z
+      .string()
+      .min(1)
+      .describe('Author for the new bookmark, cannot be empty')
+      .optional()
+      .nullable(),
+  })
+  .describe('Data to create a new bookmark')
 
 export const bookmarkDateFieldSchema = z.enum([
   'publishedAt',
@@ -68,10 +162,22 @@ export const bookmarkDateFieldSchema = z.enum([
   'updatedAt',
 ])
 
-export const bookmarkDetailsSchema = z.object({
-  bookmark: z.lazy(() => bookmarkSchema),
-  tags: z.array(z.lazy(() => tagSchema)).optional(),
-})
+/**
+ * @description Extended details of a bookmark
+ */
+export const bookmarkDetailsSchema = z
+  .object({
+    bookmark: z.lazy(() => bookmarkSchema).describe('Bookmark to a webpage'),
+    tags: z
+      .array(
+        z
+          .lazy(() => tagSchema)
+          .describe('Tag that can be attached to subscriptions and bookmarks'),
+      )
+      .describe('Linked tags, present if requested')
+      .optional(),
+  })
+  .describe('Extended details of a bookmark')
 
 export const bookmarkFilterSchema = z.union([
   z.object({
@@ -97,17 +203,38 @@ export const bookmarkFilterSchema = z.union([
   }),
 ])
 
-export const bookmarkScrapeSchema = z.object({
-  url: z.string().url(),
-})
+/**
+ * @description Data to scrape a bookmark using
+ */
+export const bookmarkScrapeSchema = z
+  .object({
+    url: z.string().url().describe('URL of a webpage to scrape'),
+  })
+  .describe('Data to scrape a bookmark using')
 
-export const bookmarkScrapedSchema = z.object({
-  link: z.string().url(),
-  title: z.string(),
-  thumbnailUrl: z.string().url().nullable(),
-  publishedAt: z.string().datetime().nullable(),
-  author: z.string().nullable(),
-})
+/**
+ * @description Scraped bookmark
+ */
+export const bookmarkScrapedSchema = z
+  .object({
+    link: z
+      .string()
+      .url()
+      .describe('URL of the webpage of the scraped bookmark'),
+    title: z.string().describe('Title of the scraped bookmark'),
+    thumbnailUrl: z
+      .string()
+      .url()
+      .describe('Thumbnail URL of the scraped bookmark')
+      .nullable(),
+    publishedAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the scraped bookmark was published')
+      .nullable(),
+    author: z.string().describe('Author of the scraped bookmark').nullable(),
+  })
+  .describe('Scraped bookmark')
 
 export const bookmarkTextFieldSchema = z.enum([
   'link',
@@ -116,12 +243,38 @@ export const bookmarkTextFieldSchema = z.enum([
   'tag',
 ])
 
-export const bookmarkUpdateSchema = z.object({
-  title: z.string().min(1).optional(),
-  thumbnailUrl: z.string().url().optional().nullable(),
-  publishedAt: z.string().datetime().optional().nullable(),
-  author: z.string().min(1).optional().nullable(),
-})
+/**
+ * @description Updates to make to an existing bookmark
+ */
+export const bookmarkUpdateSchema = z
+  .object({
+    title: z
+      .string()
+      .min(1)
+      .describe(
+        'Human-readable name for the bookmark to update, cannot be empty',
+      )
+      .optional(),
+    thumbnailUrl: z
+      .string()
+      .url()
+      .describe('Thumbnail URL of the bookmark to update, will be archived')
+      .optional()
+      .nullable(),
+    publishedAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the bookmark was published')
+      .optional()
+      .nullable(),
+    author: z
+      .string()
+      .min(1)
+      .describe('Author of the bookmark to update, cannot be empty')
+      .optional()
+      .nullable(),
+  })
+  .describe('Updates to make to an existing bookmark')
 
 export const booleanOpSchema = z.object({
   equals: z.boolean(),
@@ -145,10 +298,15 @@ export const collectionUpdateSchema = z.object({
   filter: z.union([z.lazy(() => bookmarkFilterSchema), z.null()]).optional(),
 })
 
-export const configSchema = z.object({
-  oidc: z.lazy(() => oidcConfigSchema),
-  storage: z.lazy(() => storageConfigSchema),
-})
+/**
+ * @description API config
+ */
+export const configSchema = z
+  .object({
+    oidc: z.lazy(() => oidcConfigSchema).describe('API OIDC config'),
+    storage: z.lazy(() => storageConfigSchema).describe('API storage config'),
+  })
+  .describe('API config')
 
 export const dateOpSchema = z.union([
   z.object({
@@ -168,155 +326,403 @@ export const dateOpSchema = z.union([
   }),
 ])
 
-export const feedSchema = z.object({
-  id: z.string().uuid(),
-  sourceUrl: z.string().url(),
-  link: z.string().url(),
-  title: z.string(),
-  description: z.string().nullable(),
-  refreshedAt: z.string().datetime().nullable(),
-  isCustom: z.boolean(),
-})
+/**
+ * @description RSS feed
+ */
+export const feedSchema = z
+  .object({
+    id: z.string().uuid().describe('Unique identifier of the feed'),
+    sourceUrl: z.string().url().describe('URL to scrape for feed updates'),
+    link: z.string().url().describe('URL of the webpage the feed links to'),
+    title: z.string().describe('Title of the feed'),
+    description: z.string().describe('Description of the feed').nullable(),
+    refreshedAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the feed was refreshed')
+      .nullable(),
+    isCustom: z
+      .boolean()
+      .describe('Whether the feed was scraped from a custom plugin'),
+  })
+  .describe('RSS feed')
 
-export const feedDetectSchema = z.object({
-  url: z.string().url(),
-})
+/**
+ * @description Data to detect RSS feeds using
+ */
+export const feedDetectSchema = z
+  .object({
+    url: z.string().url().describe('URL of a webpage to detect RSS feeds on'),
+  })
+  .describe('Data to detect RSS feeds using')
 
-export const feedDetectedSchema = z.object({
-  url: z.string().url(),
-  title: z.string(),
-})
+/**
+ * @description Detected RSS feed
+ */
+export const feedDetectedSchema = z
+  .object({
+    url: z.string().url().describe('URL of the detected RSS feed'),
+    title: z.string().describe('Title of the detected RSS feed'),
+  })
+  .describe('Detected RSS feed')
 
-export const feedEntrySchema = z.object({
-  id: z.string().uuid(),
-  link: z.string().url(),
-  title: z.string(),
-  publishedAt: z.string().datetime(),
-  description: z.string().nullable(),
-  author: z.string().nullable(),
-  thumbnailUrl: z.string().url().nullable(),
-  feedId: z.string().uuid(),
-})
+/**
+ * @description RSS feed entry
+ */
+export const feedEntrySchema = z
+  .object({
+    id: z.string().uuid().describe('Unique identifier of the feed entry'),
+    link: z
+      .string()
+      .url()
+      .describe('URL of the webpage the feed entry links to'),
+    title: z.string().describe('Title of the feed entry'),
+    publishedAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the feed entry was published'),
+    description: z
+      .string()
+      .describe('Description of the feed entry')
+      .nullable(),
+    author: z.string().describe('Author of the feed entry').nullable(),
+    thumbnailUrl: z
+      .string()
+      .url()
+      .describe('Thumbnail URL of the feed entry')
+      .nullable(),
+    feedId: z
+      .string()
+      .uuid()
+      .describe('Unique identifier of the associated RSS feed'),
+  })
+  .describe('RSS feed entry')
 
-export const feedScrapeSchema = z.object({
-  url: z.string().url(),
-})
+/**
+ * @description Data to scrape an RSS feed using
+ */
+export const feedScrapeSchema = z
+  .object({
+    url: z.string().url().describe('URL of an RSS feed to scrape'),
+  })
+  .describe('Data to scrape an RSS feed using')
 
-export const linkBookmarkTagsSchema = z.object({
-  tagIds: z.array(z.string().uuid()),
-})
+/**
+ * @description Action to link tags to a bookmark
+ */
+export const linkBookmarkTagsSchema = z
+  .object({
+    tagIds: z
+      .array(z.string().uuid())
+      .describe('Unique identifiers of the tags to link to the bookmark'),
+  })
+  .describe('Action to link tags to a bookmark')
 
-export const linkSubscriptionTagsSchema = z.object({
-  tagIds: z.array(z.string().uuid()),
-})
+/**
+ * @description Action to link tags to a user subscription
+ */
+export const linkSubscriptionTagsSchema = z
+  .object({
+    tagIds: z
+      .array(z.string().uuid())
+      .describe('Unique identifiers of the tags to link to the subscription'),
+  })
+  .describe('Action to link tags to a user subscription')
 
-export const oidcConfigSchema = z.object({
-  clientId: z.string(),
-  redirectUrl: z.string().url(),
-  issuerUrl: z.string().url(),
-})
+/**
+ * @description API OIDC config
+ */
+export const oidcConfigSchema = z
+  .object({
+    clientId: z.string().describe('OIDC client ID'),
+    redirectUrl: z.string().url().describe('OIDC redirect URI'),
+    issuerUrl: z.string().url().describe('OIDC issuer URL'),
+  })
+  .describe('API OIDC config')
 
-export const paginatedApiKeySchema = z.object({
-  data: z.array(
-    z.object({
-      id: z.string().uuid(),
-      title: z.string(),
-      preview: z.string(),
-      createdAt: z.string().datetime(),
-      updatedAt: z.string().datetime(),
-    }),
-  ),
-  cursor: z.string().optional(),
-})
+/**
+ * @description Paginated list of results
+ */
+export const paginatedApiKeySchema = z
+  .object({
+    data: z
+      .array(
+        z
+          .object({
+            id: z.string().uuid().describe('Unique identifier of the API key'),
+            title: z.string().describe('Human-readable name of the API key'),
+            preview: z
+              .string()
+              .describe(
+                'Partial view of the API key value for identification purposes',
+              ),
+            createdAt: z
+              .string()
+              .datetime()
+              .describe('Timestamp at which the API key was created'),
+            updatedAt: z
+              .string()
+              .datetime()
+              .describe('Timestamp at which the API key was last modified'),
+          })
+          .describe(
+            "Long-lived token linked to a user's account. Useful for third party client apps to access a user's data. The full value is returned only once, on creation.",
+          ),
+      )
+      .describe('Current set of results'),
+    cursor: z
+      .string()
+      .describe('Pagination cursor, only present if more results are available')
+      .optional(),
+  })
+  .describe('Paginated list of results')
 
-export const paginatedBookmarkDetailsSchema = z.object({
-  data: z.array(
-    z.object({
-      bookmark: z.lazy(() => bookmarkSchema),
-      tags: z.array(z.lazy(() => tagSchema)).optional(),
-    }),
-  ),
-  cursor: z.string().optional(),
-})
+/**
+ * @description Paginated list of results
+ */
+export const paginatedBookmarkDetailsSchema = z
+  .object({
+    data: z
+      .array(
+        z
+          .object({
+            bookmark: z
+              .lazy(() => bookmarkSchema)
+              .describe('Bookmark to a webpage'),
+            tags: z
+              .array(
+                z
+                  .lazy(() => tagSchema)
+                  .describe(
+                    'Tag that can be attached to subscriptions and bookmarks',
+                  ),
+              )
+              .describe('Linked tags, present if requested')
+              .optional(),
+          })
+          .describe('Extended details of a bookmark'),
+      )
+      .describe('Current set of results'),
+    cursor: z
+      .string()
+      .describe('Pagination cursor, only present if more results are available')
+      .optional(),
+  })
+  .describe('Paginated list of results')
 
-export const paginatedCollectionSchema = z.object({
-  data: z.array(
-    z.object({
-      id: z.string().uuid(),
-      title: z.string(),
-      filter: z.lazy(() => bookmarkFilterSchema),
-      createdAt: z.string().datetime(),
-      updatedAt: z.string().datetime(),
-    }),
-  ),
-  cursor: z.string().optional(),
-})
+/**
+ * @description Paginated list of results
+ */
+export const paginatedCollectionSchema = z
+  .object({
+    data: z
+      .array(
+        z.object({
+          id: z.string().uuid(),
+          title: z.string(),
+          filter: z.lazy(() => bookmarkFilterSchema),
+          createdAt: z.string().datetime(),
+          updatedAt: z.string().datetime(),
+        }),
+      )
+      .describe('Current set of results'),
+    cursor: z
+      .string()
+      .describe('Pagination cursor, only present if more results are available')
+      .optional(),
+  })
+  .describe('Paginated list of results')
 
-export const paginatedFeedEntrySchema = z.object({
-  data: z.array(
-    z.object({
-      id: z.string().uuid(),
-      link: z.string().url(),
-      title: z.string(),
-      publishedAt: z.string().datetime(),
-      description: z.string().nullable(),
-      author: z.string().nullable(),
-      thumbnailUrl: z.string().url().nullable(),
-      feedId: z.string().uuid(),
-    }),
-  ),
-  cursor: z.string().optional(),
-})
+/**
+ * @description Paginated list of results
+ */
+export const paginatedFeedEntrySchema = z
+  .object({
+    data: z
+      .array(
+        z
+          .object({
+            id: z
+              .string()
+              .uuid()
+              .describe('Unique identifier of the feed entry'),
+            link: z
+              .string()
+              .url()
+              .describe('URL of the webpage the feed entry links to'),
+            title: z.string().describe('Title of the feed entry'),
+            publishedAt: z
+              .string()
+              .datetime()
+              .describe('Timestamp at which the feed entry was published'),
+            description: z
+              .string()
+              .describe('Description of the feed entry')
+              .nullable(),
+            author: z.string().describe('Author of the feed entry').nullable(),
+            thumbnailUrl: z
+              .string()
+              .url()
+              .describe('Thumbnail URL of the feed entry')
+              .nullable(),
+            feedId: z
+              .string()
+              .uuid()
+              .describe('Unique identifier of the associated RSS feed'),
+          })
+          .describe('RSS feed entry'),
+      )
+      .describe('Current set of results'),
+    cursor: z
+      .string()
+      .describe('Pagination cursor, only present if more results are available')
+      .optional(),
+  })
+  .describe('Paginated list of results')
 
-export const paginatedStreamSchema = z.object({
-  data: z.array(
-    z.object({
-      id: z.string().uuid(),
-      title: z.string(),
-      filter: z.lazy(() => subscriptionEntryFilterSchema),
-      createdAt: z.string().datetime(),
-      updatedAt: z.string().datetime(),
-    }),
-  ),
-  cursor: z.string().optional(),
-})
+/**
+ * @description Paginated list of results
+ */
+export const paginatedStreamSchema = z
+  .object({
+    data: z
+      .array(
+        z.object({
+          id: z.string().uuid(),
+          title: z.string(),
+          filter: z.lazy(() => subscriptionEntryFilterSchema),
+          createdAt: z.string().datetime(),
+          updatedAt: z.string().datetime(),
+        }),
+      )
+      .describe('Current set of results'),
+    cursor: z
+      .string()
+      .describe('Pagination cursor, only present if more results are available')
+      .optional(),
+  })
+  .describe('Paginated list of results')
 
-export const paginatedSubscriptionDetailsSchema = z.object({
-  data: z.array(
-    z.object({
-      subscription: z.lazy(() => subscriptionSchema),
-      feed: z.lazy(() => feedSchema).optional(),
-      tags: z.array(z.lazy(() => tagSchema)).optional(),
-      unreadCount: z.number().int().optional(),
-    }),
-  ),
-  cursor: z.string().optional(),
-})
+/**
+ * @description Paginated list of results
+ */
+export const paginatedSubscriptionDetailsSchema = z
+  .object({
+    data: z
+      .array(
+        z
+          .object({
+            subscription: z
+              .lazy(() => subscriptionSchema)
+              .describe('User subscription to an RSS feed'),
+            feed: z
+              .lazy(() => feedSchema)
+              .describe('RSS feed')
+              .optional(),
+            tags: z
+              .array(
+                z
+                  .lazy(() => tagSchema)
+                  .describe(
+                    'Tag that can be attached to subscriptions and bookmarks',
+                  ),
+              )
+              .describe('Linked tags, present if requested')
+              .optional(),
+            unreadCount: z
+              .number()
+              .int()
+              .describe(
+                'Count of unread subscription entries associated with the subscription, present if requested',
+              )
+              .optional(),
+          })
+          .describe('Extended details of a user subscription'),
+      )
+      .describe('Current set of results'),
+    cursor: z
+      .string()
+      .describe('Pagination cursor, only present if more results are available')
+      .optional(),
+  })
+  .describe('Paginated list of results')
 
-export const paginatedSubscriptionEntryDetailsSchema = z.object({
-  data: z.array(
-    z.object({
-      subscriptionEntry: z.lazy(() => subscriptionEntrySchema),
-      feedEntry: z.lazy(() => feedEntrySchema).optional(),
-    }),
-  ),
-  cursor: z.string().optional(),
-})
+/**
+ * @description Paginated list of results
+ */
+export const paginatedSubscriptionEntryDetailsSchema = z
+  .object({
+    data: z
+      .array(
+        z
+          .object({
+            subscriptionEntry: z
+              .lazy(() => subscriptionEntrySchema)
+              .describe(
+                'Association of a RSS feed entry to a user subscription. The pairing of subscription ID and feed entry ID is unique.',
+              ),
+            feedEntry: z
+              .lazy(() => feedEntrySchema)
+              .describe('RSS feed entry')
+              .optional(),
+          })
+          .describe('Extended details of a subscription entry'),
+      )
+      .describe('Current set of results'),
+    cursor: z
+      .string()
+      .describe('Pagination cursor, only present if more results are available')
+      .optional(),
+  })
+  .describe('Paginated list of results')
 
-export const paginatedTagDetailsSchema = z.object({
-  data: z.array(
-    z.object({
-      tag: z.lazy(() => tagSchema),
-      feedCount: z.number().int().optional(),
-      bookmarkCount: z.number().int().optional(),
-    }),
-  ),
-  cursor: z.string().optional(),
-})
+/**
+ * @description Paginated list of results
+ */
+export const paginatedTagDetailsSchema = z
+  .object({
+    data: z
+      .array(
+        z
+          .object({
+            tag: z
+              .lazy(() => tagSchema)
+              .describe(
+                'Tag that can be attached to subscriptions and bookmarks',
+              ),
+            subscriptionCount: z
+              .number()
+              .int()
+              .describe(
+                'Count of subscriptions the tag is linked to, present if requested',
+              )
+              .optional(),
+            bookmarkCount: z
+              .number()
+              .int()
+              .describe(
+                'Count of bookmarks the tag is linked to, present if requested',
+              )
+              .optional(),
+          })
+          .describe('Extended details of a tag'),
+      )
+      .describe('Current set of results'),
+    cursor: z
+      .string()
+      .describe('Pagination cursor, only present if more results are available')
+      .optional(),
+  })
+  .describe('Paginated list of results')
 
-export const storageConfigSchema = z.object({
-  baseUrl: z.string().url(),
-})
+/**
+ * @description API storage config
+ */
+export const storageConfigSchema = z
+  .object({
+    baseUrl: z.string().url().describe('Base URL for the image storage server'),
+  })
+  .describe('API storage config')
 
 export const streamSchema = z.object({
   id: z.string().uuid(),
@@ -338,43 +744,135 @@ export const streamUpdateSchema = z.object({
     .optional(),
 })
 
-export const subscriptionSchema = z.object({
-  id: z.string().uuid(),
-  title: z.string(),
-  description: z.string().nullable(),
-  feedId: z.string().uuid(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-})
+/**
+ * @description User subscription to an RSS feed
+ */
+export const subscriptionSchema = z
+  .object({
+    id: z.string().uuid().describe('Unique identifier of the subscription'),
+    title: z.string().describe('Human-readable name of the subscription'),
+    description: z
+      .string()
+      .describe('Description of the subscription')
+      .nullable(),
+    feedId: z
+      .string()
+      .uuid()
+      .describe('Unique identifier of the associated RSS feed'),
+    createdAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the subscription was created'),
+    updatedAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the subscription was modified'),
+  })
+  .describe('User subscription to an RSS feed')
 
-export const subscriptionCreateSchema = z.object({
-  title: z.string().min(1),
-  description: z.string().min(1).optional().nullable(),
-  feedId: z.string().uuid(),
-})
+/**
+ * @description Data to create a new user subscription
+ */
+export const subscriptionCreateSchema = z
+  .object({
+    title: z
+      .string()
+      .min(1)
+      .describe(
+        'Human-readable name for the new subscription, cannot be empty',
+      ),
+    description: z
+      .string()
+      .min(1)
+      .describe('Description for the new subscription, cannot be empty')
+      .optional()
+      .nullable(),
+    feedId: z
+      .string()
+      .uuid()
+      .describe('Unique identifier of the associated RSS feed'),
+  })
+  .describe('Data to create a new user subscription')
 
-export const subscriptionDetailsSchema = z.object({
-  subscription: z.lazy(() => subscriptionSchema),
-  feed: z.lazy(() => feedSchema).optional(),
-  tags: z.array(z.lazy(() => tagSchema)).optional(),
-  unreadCount: z.number().int().optional(),
-})
+/**
+ * @description Extended details of a user subscription
+ */
+export const subscriptionDetailsSchema = z
+  .object({
+    subscription: z
+      .lazy(() => subscriptionSchema)
+      .describe('User subscription to an RSS feed'),
+    feed: z
+      .lazy(() => feedSchema)
+      .describe('RSS feed')
+      .optional(),
+    tags: z
+      .array(
+        z
+          .lazy(() => tagSchema)
+          .describe('Tag that can be attached to subscriptions and bookmarks'),
+      )
+      .describe('Linked tags, present if requested')
+      .optional(),
+    unreadCount: z
+      .number()
+      .int()
+      .describe(
+        'Count of unread subscription entries associated with the subscription, present if requested',
+      )
+      .optional(),
+  })
+  .describe('Extended details of a user subscription')
 
-export const subscriptionEntrySchema = z.object({
-  subscriptionId: z.string().uuid(),
-  feedEntryId: z.string().uuid(),
-  hasRead: z.boolean(),
-  readAt: z.string().datetime().optional().nullable(),
-})
+/**
+ * @description Association of a RSS feed entry to a user subscription. The pairing of subscription ID and feed entry ID is unique.
+ */
+export const subscriptionEntrySchema = z
+  .object({
+    subscriptionId: z
+      .string()
+      .uuid()
+      .describe('Unique identifier of the associated subscription'),
+    feedEntryId: z
+      .string()
+      .uuid()
+      .describe('Unique identifier of the associated feed entry'),
+    hasRead: z
+      .boolean()
+      .describe('Whether the subscription entry has been marked as read'),
+    readAt: z
+      .string()
+      .datetime()
+      .describe(
+        'Timestamp at which the subscription entry has been marked as read',
+      )
+      .optional()
+      .nullable(),
+  })
+  .describe(
+    'Association of a RSS feed entry to a user subscription. The pairing of subscription ID and feed entry ID is unique.',
+  )
 
 export const subscriptionEntryBooleanFieldSchema = z.enum(['hasRead'])
 
 export const subscriptionEntryDateFieldSchema = z.enum(['publishedAt'])
 
-export const subscriptionEntryDetailsSchema = z.object({
-  subscriptionEntry: z.lazy(() => subscriptionEntrySchema),
-  feedEntry: z.lazy(() => feedEntrySchema).optional(),
-})
+/**
+ * @description Extended details of a subscription entry
+ */
+export const subscriptionEntryDetailsSchema = z
+  .object({
+    subscriptionEntry: z
+      .lazy(() => subscriptionEntrySchema)
+      .describe(
+        'Association of a RSS feed entry to a user subscription. The pairing of subscription ID and feed entry ID is unique.',
+      ),
+    feedEntry: z
+      .lazy(() => feedEntrySchema)
+      .describe('RSS feed entry')
+      .optional(),
+  })
+  .describe('Extended details of a subscription entry')
 
 export const subscriptionEntryFilterSchema = z.union([
   z.object({
@@ -414,31 +912,95 @@ export const subscriptionEntryTextFieldSchema = z.enum([
   'tag',
 ])
 
-export const subscriptionUpdateSchema = z.object({
-  title: z.string().min(1).optional().nullable(),
-  description: z.string().min(1).optional().nullable(),
-})
+/**
+ * @description Updates to make to an existing subscription
+ */
+export const subscriptionUpdateSchema = z
+  .object({
+    title: z
+      .string()
+      .min(1)
+      .describe(
+        'Human-readable name for the subscription to update, cannot be empty',
+      )
+      .optional()
+      .nullable(),
+    description: z
+      .string()
+      .min(1)
+      .describe('Description for the subscription to update, cannot be empty')
+      .optional()
+      .nullable(),
+  })
+  .describe('Updates to make to an existing subscription')
 
-export const tagSchema = z.object({
-  id: z.string().uuid(),
-  title: z.string(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-})
+/**
+ * @description Tag that can be attached to subscriptions and bookmarks
+ */
+export const tagSchema = z
+  .object({
+    id: z.string().uuid().describe('Unique identifier of the tag'),
+    title: z
+      .string()
+      .describe('Human-readable name of the tag, unique per user'),
+    createdAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the tag was created'),
+    updatedAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the tag was last modified'),
+  })
+  .describe('Tag that can be attached to subscriptions and bookmarks')
 
-export const tagCreateSchema = z.object({
-  title: z.string().min(1),
-})
+/**
+ * @description Data to create a new tag
+ */
+export const tagCreateSchema = z
+  .object({
+    title: z
+      .string()
+      .min(1)
+      .describe('Human-readable name for the new tag, cannot be empty'),
+  })
+  .describe('Data to create a new tag')
 
-export const tagDetailsSchema = z.object({
-  tag: z.lazy(() => tagSchema),
-  feedCount: z.number().int().optional(),
-  bookmarkCount: z.number().int().optional(),
-})
+/**
+ * @description Extended details of a tag
+ */
+export const tagDetailsSchema = z
+  .object({
+    tag: z
+      .lazy(() => tagSchema)
+      .describe('Tag that can be attached to subscriptions and bookmarks'),
+    subscriptionCount: z
+      .number()
+      .int()
+      .describe(
+        'Count of subscriptions the tag is linked to, present if requested',
+      )
+      .optional(),
+    bookmarkCount: z
+      .number()
+      .int()
+      .describe('Count of bookmarks the tag is linked to, present if requested')
+      .optional(),
+  })
+  .describe('Extended details of a tag')
 
-export const tagUpdateSchema = z.object({
-  title: z.string().min(1).optional(),
-})
+/**
+ * @description Updates to make to an existing tag
+ */
+export const tagUpdateSchema = z
+  .object({
+    title: z
+      .string()
+      .min(1)
+      .describe('Human-readable name for the tag to update, cannot be empty')
+      .optional(),
+  })
+  .describe('Updates to make to an existing tag')
 
 export const textOpSchema = z.union([
   z.object({
@@ -455,20 +1017,47 @@ export const textOpSchema = z.union([
   }),
 ])
 
-export const userSchema = z.object({
-  id: z.string().uuid(),
-  externalId: z.string(),
-  email: z.string().email().nullable(),
-  displayName: z.string().nullable(),
-  pictureUrl: z.string().url().nullable(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
-})
+/**
+ * @description User account. A new user is created if the \"sub\" field in the OIDC access token does not match an existing user.
+ */
+export const userSchema = z
+  .object({
+    id: z.string().uuid().describe('Unique identifier of the user'),
+    externalId: z
+      .string()
+      .describe(
+        'Unique identifier of the user from the external identity server',
+      ),
+    email: z
+      .string()
+      .email()
+      .describe('Email address of the user from the external identity server')
+      .nullable(),
+    displayName: z.string().describe('Display name of the user').nullable(),
+    pictureUrl: z
+      .string()
+      .url()
+      .describe('Profile picture URL of the user')
+      .nullable(),
+    createdAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the user was created'),
+    updatedAt: z
+      .string()
+      .datetime()
+      .describe('Timestamp at which the user was last modified'),
+  })
+  .describe(
+    'User account. A new user is created if the "sub" field in the OIDC access token does not match an existing user.',
+  )
 
 /**
  * @description Paginated list of API keys
  */
-export const listApiKeys200Schema = z.lazy(() => paginatedApiKeySchema)
+export const listApiKeys200Schema = z
+  .lazy(() => paginatedApiKeySchema)
+  .describe('Paginated list of results')
 
 /**
  * @description User not authenticated
@@ -485,7 +1074,11 @@ export const listApiKeysQueryResponseSchema = z.lazy(() => listApiKeys200Schema)
 /**
  * @description Created API key
  */
-export const createApiKey201Schema = z.lazy(() => apiKeyCreatedSchema)
+export const createApiKey201Schema = z
+  .lazy(() => apiKeyCreatedSchema)
+  .describe(
+    'Newly created API key, containing the full value. This value must be saved in a safe location, as subsequent GET requests will only show a preview.',
+  )
 
 /**
  * @description User not authenticated
@@ -502,22 +1095,26 @@ export const createApiKey422Schema = z.lazy(() => apiErrorSchema)
  */
 export const createApiKeyErrorSchema = z.lazy(() => apiErrorSchema)
 
-export const createApiKeyMutationRequestSchema = z.lazy(
-  () => apiKeyCreateSchema,
-)
+export const createApiKeyMutationRequestSchema = z
+  .lazy(() => apiKeyCreateSchema)
+  .describe('Data to create a new API key')
 
 export const createApiKeyMutationResponseSchema = z.lazy(
   () => createApiKey201Schema,
 )
 
 export const getApiKeyPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
  * @description API key by ID
  */
-export const getApiKey200Schema = z.lazy(() => apiKeySchema)
+export const getApiKey200Schema = z
+  .lazy(() => apiKeySchema)
+  .describe(
+    "Long-lived token linked to a user's account. Useful for third party client apps to access a user's data. The full value is returned only once, on creation.",
+  )
 
 /**
  * @description User not authenticated
@@ -542,7 +1139,7 @@ export const getApiKeyErrorSchema = z.lazy(() => apiErrorSchema)
 export const getApiKeyQueryResponseSchema = z.lazy(() => getApiKey200Schema)
 
 export const deleteApiKeyPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
@@ -575,13 +1172,17 @@ export const deleteApiKeyMutationResponseSchema = z.lazy(
 )
 
 export const updateApiKeyPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
  * @description Updated API key
  */
-export const updateApiKey200Schema = z.lazy(() => apiKeySchema)
+export const updateApiKey200Schema = z
+  .lazy(() => apiKeySchema)
+  .describe(
+    "Long-lived token linked to a user's account. Useful for third party client apps to access a user's data. The full value is returned only once, on creation.",
+  )
 
 /**
  * @description User not authenticated
@@ -608,9 +1209,9 @@ export const updateApiKey422Schema = z.lazy(() => apiErrorSchema)
  */
 export const updateApiKeyErrorSchema = z.lazy(() => apiErrorSchema)
 
-export const updateApiKeyMutationRequestSchema = z.lazy(
-  () => apiKeyUpdateSchema,
-)
+export const updateApiKeyMutationRequestSchema = z
+  .lazy(() => apiKeyUpdateSchema)
+  .describe('Details regarding the existing API key to update')
 
 export const updateApiKeyMutationResponseSchema = z.lazy(
   () => updateApiKey200Schema,
@@ -619,7 +1220,11 @@ export const updateApiKeyMutationResponseSchema = z.lazy(
 /**
  * @description Active user
  */
-export const getActiveUser200Schema = z.lazy(() => userSchema)
+export const getActiveUser200Schema = z
+  .lazy(() => userSchema)
+  .describe(
+    'User account. A new user is created if the "sub" field in the OIDC access token does not match an existing user.',
+  )
 
 /**
  * @description User not authenticated
@@ -637,20 +1242,35 @@ export const getActiveUserQueryResponseSchema = z.lazy(
 
 export const listBookmarksQueryParamsSchema = z
   .object({
-    collectionId: z.string().uuid().optional(),
-    filterByTags: z.boolean().optional(),
-    'tag[]': z.array(z.string().uuid()).optional(),
-    cursor: z.string().optional(),
-    withTags: z.boolean().optional(),
+    collectionId: z
+      .string()
+      .uuid()
+      .describe(
+        'Filter by the ID of a collection whose filters may apply to the bookmark',
+      )
+      .optional(),
+    filterByTags: z
+      .boolean()
+      .describe('Whether to filter by tags linked to the bookmark')
+      .optional(),
+    'tag[]': z
+      .array(z.string().uuid())
+      .describe('Filter by the IDs of the tags linked to the bookmark')
+      .optional(),
+    cursor: z.string().describe('Pagination cursor').optional(),
+    withTags: z
+      .boolean()
+      .describe('Whether to include the tags linked to the bookmark')
+      .optional(),
   })
   .optional()
 
 /**
  * @description Paginated list of bookmarks
  */
-export const listBookmarks200Schema = z.lazy(
-  () => paginatedBookmarkDetailsSchema,
-)
+export const listBookmarks200Schema = z
+  .lazy(() => paginatedBookmarkDetailsSchema)
+  .describe('Paginated list of results')
 
 /**
  * @description User not authenticated
@@ -669,7 +1289,9 @@ export const listBookmarksQueryResponseSchema = z.lazy(
 /**
  * @description Created bookmark
  */
-export const createBookmark201Schema = z.lazy(() => bookmarkSchema)
+export const createBookmark201Schema = z
+  .lazy(() => bookmarkSchema)
+  .describe('Bookmark to a webpage')
 
 /**
  * @description User not authenticated
@@ -691,28 +1313,33 @@ export const createBookmark422Schema = z.lazy(() => apiErrorSchema)
  */
 export const createBookmarkErrorSchema = z.lazy(() => apiErrorSchema)
 
-export const createBookmarkMutationRequestSchema = z.lazy(
-  () => bookmarkCreateSchema,
-)
+export const createBookmarkMutationRequestSchema = z
+  .lazy(() => bookmarkCreateSchema)
+  .describe('Data to create a new bookmark')
 
 export const createBookmarkMutationResponseSchema = z.lazy(
   () => createBookmark201Schema,
 )
 
 export const getBookmarkPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 export const getBookmarkQueryParamsSchema = z
   .object({
-    withTags: z.boolean().optional(),
+    withTags: z
+      .boolean()
+      .describe('Whether to include the tags linked to the bookmark')
+      .optional(),
   })
   .optional()
 
 /**
  * @description Bookmark by ID
  */
-export const getBookmark200Schema = z.lazy(() => bookmarkDetailsSchema)
+export const getBookmark200Schema = z
+  .lazy(() => bookmarkDetailsSchema)
+  .describe('Extended details of a bookmark')
 
 /**
  * @description User not authenticated
@@ -737,7 +1364,7 @@ export const getBookmarkErrorSchema = z.lazy(() => apiErrorSchema)
 export const getBookmarkQueryResponseSchema = z.lazy(() => getBookmark200Schema)
 
 export const deleteBookmarkPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
@@ -770,13 +1397,15 @@ export const deleteBookmarkMutationResponseSchema = z.lazy(
 )
 
 export const updateBookmarkPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
  * @description Updated bookmark
  */
-export const updateBookmark200Schema = z.lazy(() => bookmarkSchema)
+export const updateBookmark200Schema = z
+  .lazy(() => bookmarkSchema)
+  .describe('Bookmark to a webpage')
 
 /**
  * @description User not authenticated
@@ -803,16 +1432,16 @@ export const updateBookmark422Schema = z.lazy(() => apiErrorSchema)
  */
 export const updateBookmarkErrorSchema = z.lazy(() => apiErrorSchema)
 
-export const updateBookmarkMutationRequestSchema = z.lazy(
-  () => bookmarkUpdateSchema,
-)
+export const updateBookmarkMutationRequestSchema = z
+  .lazy(() => bookmarkUpdateSchema)
+  .describe('Updates to make to an existing bookmark')
 
 export const updateBookmarkMutationResponseSchema = z.lazy(
   () => updateBookmark200Schema,
 )
 
 export const linkBookmarkTagsPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
@@ -845,9 +1474,9 @@ export const linkBookmarkTags422Schema = z.lazy(() => apiErrorSchema)
  */
 export const linkBookmarkTagsErrorSchema = z.lazy(() => apiErrorSchema)
 
-export const linkBookmarkTagsMutationRequestSchema = z.lazy(
-  () => linkBookmarkTagsSchema,
-)
+export const linkBookmarkTagsMutationRequestSchema = z
+  .lazy(() => linkBookmarkTagsSchema)
+  .describe('Action to link tags to a bookmark')
 
 export const linkBookmarkTagsMutationResponseSchema = z.lazy(
   () => linkBookmarkTags204Schema,
@@ -856,7 +1485,9 @@ export const linkBookmarkTagsMutationResponseSchema = z.lazy(
 /**
  * @description Scraped bookmark
  */
-export const scrapeBookmark201Schema = z.lazy(() => bookmarkScrapedSchema)
+export const scrapeBookmark201Schema = z
+  .lazy(() => bookmarkScrapedSchema)
+  .describe('Scraped bookmark')
 
 /**
  * @description User not authenticated
@@ -878,9 +1509,9 @@ export const scrapeBookmark502Schema = z.lazy(() => apiErrorSchema)
  */
 export const scrapeBookmarkErrorSchema = z.lazy(() => apiErrorSchema)
 
-export const scrapeBookmarkMutationRequestSchema = z.lazy(
-  () => bookmarkScrapeSchema,
-)
+export const scrapeBookmarkMutationRequestSchema = z
+  .lazy(() => bookmarkScrapeSchema)
+  .describe('Data to scrape a bookmark using')
 
 export const scrapeBookmarkMutationResponseSchema = z.lazy(
   () => scrapeBookmark201Schema,
@@ -931,7 +1562,9 @@ export const exportBookmarksMutationResponseSchema = z.lazy(
 /**
  * @description Paginated list of collections
  */
-export const listCollections200Schema = z.lazy(() => paginatedCollectionSchema)
+export const listCollections200Schema = z
+  .lazy(() => paginatedCollectionSchema)
+  .describe('Paginated list of results')
 
 /**
  * @description User not authenticated
@@ -981,7 +1614,7 @@ export const createCollectionMutationResponseSchema = z.lazy(
 )
 
 export const getCollectionPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
@@ -1014,7 +1647,7 @@ export const getCollectionQueryResponseSchema = z.lazy(
 )
 
 export const deleteCollectionPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
@@ -1047,7 +1680,7 @@ export const deleteCollectionMutationResponseSchema = z.lazy(
 )
 
 export const updateCollectionPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
@@ -1091,24 +1724,29 @@ export const updateCollectionMutationResponseSchema = z.lazy(
 /**
  * @description API config
  */
-export const getConfig200Schema = z.lazy(() => configSchema)
+export const getConfig200Schema = z
+  .lazy(() => configSchema)
+  .describe('API config')
 
 export const getConfigQueryResponseSchema = z.lazy(() => getConfig200Schema)
 
 export const listFeedEntriesQueryParamsSchema = z
   .object({
-    streamId: z.string().uuid().optional(),
-    feedId: z.string().uuid().optional(),
-    hasRead: z.boolean().optional(),
-    'tag[]': z.array(z.string().uuid()).optional(),
-    cursor: z.string().optional(),
+    feedId: z
+      .string()
+      .uuid()
+      .describe('Filter by the ID of the associated RSS feed')
+      .optional(),
+    cursor: z.string().describe('Pagination cursor').optional(),
   })
   .optional()
 
 /**
  * @description Paginated list of feed entries
  */
-export const listFeedEntries200Schema = z.lazy(() => paginatedFeedEntrySchema)
+export const listFeedEntries200Schema = z
+  .lazy(() => paginatedFeedEntrySchema)
+  .describe('Paginated list of results')
 
 /**
  * @description User not authenticated
@@ -1125,13 +1763,15 @@ export const listFeedEntriesQueryResponseSchema = z.lazy(
 )
 
 export const getFeedEntryPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
  * @description Feed entry by ID
  */
-export const getFeedEntry200Schema = z.lazy(() => feedEntrySchema)
+export const getFeedEntry200Schema = z
+  .lazy(() => feedEntrySchema)
+  .describe('RSS feed entry')
 
 /**
  * @description User not authenticated
@@ -1160,7 +1800,9 @@ export const getFeedEntryQueryResponseSchema = z.lazy(
 /**
  * @description List of detected feeds
  */
-export const detectFeeds201Schema = z.array(z.lazy(() => feedDetectedSchema))
+export const detectFeeds201Schema = z.array(
+  z.lazy(() => feedDetectedSchema).describe('Detected RSS feed'),
+)
 
 /**
  * @description User not authenticated
@@ -1182,7 +1824,9 @@ export const detectFeeds502Schema = z.lazy(() => apiErrorSchema)
  */
 export const detectFeedsErrorSchema = z.lazy(() => apiErrorSchema)
 
-export const detectFeedsMutationRequestSchema = z.lazy(() => feedDetectSchema)
+export const detectFeedsMutationRequestSchema = z
+  .lazy(() => feedDetectSchema)
+  .describe('Data to detect RSS feeds using')
 
 export const detectFeedsMutationResponseSchema = z.lazy(
   () => detectFeeds201Schema,
@@ -1191,7 +1835,7 @@ export const detectFeedsMutationResponseSchema = z.lazy(
 /**
  * @description Scraped feed
  */
-export const scrapeFeed201Schema = z.lazy(() => feedSchema)
+export const scrapeFeed201Schema = z.lazy(() => feedSchema).describe('RSS feed')
 
 /**
  * @description User not authenticated
@@ -1213,7 +1857,9 @@ export const scrapeFeed502Schema = z.lazy(() => apiErrorSchema)
  */
 export const scrapeFeedErrorSchema = z.lazy(() => apiErrorSchema)
 
-export const scrapeFeedMutationRequestSchema = z.lazy(() => feedScrapeSchema)
+export const scrapeFeedMutationRequestSchema = z
+  .lazy(() => feedScrapeSchema)
+  .describe('Data to scrape an RSS feed using')
 
 export const scrapeFeedMutationResponseSchema = z.lazy(
   () => scrapeFeed201Schema,
@@ -1222,7 +1868,9 @@ export const scrapeFeedMutationResponseSchema = z.lazy(
 /**
  * @description Paginated list of streams
  */
-export const listStreams200Schema = z.lazy(() => paginatedStreamSchema)
+export const listStreams200Schema = z
+  .lazy(() => paginatedStreamSchema)
+  .describe('Paginated list of results')
 
 /**
  * @description User not authenticated
@@ -1270,7 +1918,7 @@ export const createStreamMutationResponseSchema = z.lazy(
 )
 
 export const getStreamPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
@@ -1301,7 +1949,7 @@ export const getStreamErrorSchema = z.lazy(() => apiErrorSchema)
 export const getStreamQueryResponseSchema = z.lazy(() => getStream200Schema)
 
 export const deleteStreamPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
@@ -1334,7 +1982,7 @@ export const deleteStreamMutationResponseSchema = z.lazy(
 )
 
 export const updateStreamPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
@@ -1377,20 +2025,37 @@ export const updateStreamMutationResponseSchema = z.lazy(
 
 export const listSubscriptionsQueryParamsSchema = z
   .object({
-    filterByTags: z.boolean().optional(),
-    'tag[]': z.array(z.string().uuid()).optional(),
-    withFeed: z.boolean().optional(),
-    withUnreadCount: z.boolean().optional(),
-    withTags: z.boolean().optional(),
+    filterByTags: z
+      .boolean()
+      .describe('Whether to filter by tags linked to the subscription')
+      .optional(),
+    'tag[]': z
+      .array(z.string().uuid())
+      .describe('Filter by the IDs of the tags linked to the subscription')
+      .optional(),
+    withFeed: z
+      .boolean()
+      .describe('Whether to include the feed associated with the subscription')
+      .optional(),
+    withUnreadCount: z
+      .boolean()
+      .describe(
+        'Whether to include the count of the unread subscription entries associated with the subscription',
+      )
+      .optional(),
+    withTags: z
+      .boolean()
+      .describe('Whether to include the tags linked to the subscription')
+      .optional(),
   })
   .optional()
 
 /**
  * @description Paginated list of subscriptions
  */
-export const listSubscriptions200Schema = z.lazy(
-  () => paginatedSubscriptionDetailsSchema,
-)
+export const listSubscriptions200Schema = z
+  .lazy(() => paginatedSubscriptionDetailsSchema)
+  .describe('Paginated list of results')
 
 /**
  * @description User not authenticated
@@ -1409,7 +2074,9 @@ export const listSubscriptionsQueryResponseSchema = z.lazy(
 /**
  * @description Created subscription
  */
-export const createSubscription201Schema = z.lazy(() => subscriptionSchema)
+export const createSubscription201Schema = z
+  .lazy(() => subscriptionSchema)
+  .describe('User subscription to an RSS feed')
 
 /**
  * @description User not authenticated
@@ -1431,30 +2098,43 @@ export const createSubscription422Schema = z.lazy(() => apiErrorSchema)
  */
 export const createSubscriptionErrorSchema = z.lazy(() => apiErrorSchema)
 
-export const createSubscriptionMutationRequestSchema = z.lazy(
-  () => subscriptionCreateSchema,
-)
+export const createSubscriptionMutationRequestSchema = z
+  .lazy(() => subscriptionCreateSchema)
+  .describe('Data to create a new user subscription')
 
 export const createSubscriptionMutationResponseSchema = z.lazy(
   () => createSubscription201Schema,
 )
 
 export const getSubscriptionPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 export const getSubscriptionQueryParamsSchema = z
   .object({
-    withFeed: z.boolean().optional(),
-    withUnreadCount: z.boolean().optional(),
-    withTags: z.boolean().optional(),
+    withFeed: z
+      .boolean()
+      .describe('Whether to include the feed associated with the subscription')
+      .optional(),
+    withUnreadCount: z
+      .boolean()
+      .describe(
+        'Whether to include the count of the unread subscription entries associated with the subscription',
+      )
+      .optional(),
+    withTags: z
+      .boolean()
+      .describe('Whether to include the tags linked to the subscription')
+      .optional(),
   })
   .optional()
 
 /**
  * @description Subscription by ID
  */
-export const getSubscription200Schema = z.lazy(() => subscriptionDetailsSchema)
+export const getSubscription200Schema = z
+  .lazy(() => subscriptionDetailsSchema)
+  .describe('Extended details of a user subscription')
 
 /**
  * @description User not authenticated
@@ -1481,7 +2161,7 @@ export const getSubscriptionQueryResponseSchema = z.lazy(
 )
 
 export const deleteSubscriptionPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
@@ -1514,13 +2194,15 @@ export const deleteSubscriptionMutationResponseSchema = z.lazy(
 )
 
 export const updateSubscriptionPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
  * @description Updated subscription
  */
-export const updateSubscription200Schema = z.lazy(() => subscriptionSchema)
+export const updateSubscription200Schema = z
+  .lazy(() => subscriptionSchema)
+  .describe('User subscription to an RSS feed')
 
 /**
  * @description User not authenticated
@@ -1547,16 +2229,16 @@ export const updateSubscription422Schema = z.lazy(() => apiErrorSchema)
  */
 export const updateSubscriptionErrorSchema = z.lazy(() => apiErrorSchema)
 
-export const updateSubscriptionMutationRequestSchema = z.lazy(
-  () => subscriptionUpdateSchema,
-)
+export const updateSubscriptionMutationRequestSchema = z
+  .lazy(() => subscriptionUpdateSchema)
+  .describe('Updates to make to an existing subscription')
 
 export const updateSubscriptionMutationResponseSchema = z.lazy(
   () => updateSubscription200Schema,
 )
 
 export const linkSubscriptionTagsPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
@@ -1589,25 +2271,33 @@ export const linkSubscriptionTags422Schema = z.lazy(() => apiErrorSchema)
  */
 export const linkSubscriptionTagsErrorSchema = z.lazy(() => apiErrorSchema)
 
-export const linkSubscriptionTagsMutationRequestSchema = z.lazy(
-  () => linkSubscriptionTagsSchema,
-)
+export const linkSubscriptionTagsMutationRequestSchema = z
+  .lazy(() => linkSubscriptionTagsSchema)
+  .describe('Action to link tags to a user subscription')
 
 export const linkSubscriptionTagsMutationResponseSchema = z.lazy(
   () => linkSubscriptionTags204Schema,
 )
 
 export const markSubscriptionEntryAsReadPathParamsSchema = z.object({
-  sid: z.string().uuid(),
-  eid: z.string().uuid(),
+  sid: z
+    .string()
+    .uuid()
+    .describe('Unique identifier of the associated subscription'),
+  eid: z
+    .string()
+    .uuid()
+    .describe('Unique identifier of the associated feed entry'),
 })
 
 /**
  * @description Updated subscription entry
  */
-export const markSubscriptionEntryAsRead200Schema = z.lazy(
-  () => subscriptionEntrySchema,
-)
+export const markSubscriptionEntryAsRead200Schema = z
+  .lazy(() => subscriptionEntrySchema)
+  .describe(
+    'Association of a RSS feed entry to a user subscription. The pairing of subscription ID and feed entry ID is unique.',
+  )
 
 /**
  * @description User not authenticated
@@ -1641,16 +2331,24 @@ export const markSubscriptionEntryAsReadMutationResponseSchema = z.lazy(
 )
 
 export const markSubscriptionEntryAsUnreadPathParamsSchema = z.object({
-  sid: z.string().uuid(),
-  eid: z.string().uuid(),
+  sid: z
+    .string()
+    .uuid()
+    .describe('Unique identifier of the associated subscription'),
+  eid: z
+    .string()
+    .uuid()
+    .describe('Unique identifier of the associated feed entry'),
 })
 
 /**
  * @description Updated subscription entry
  */
-export const markSubscriptionEntryAsUnread200Schema = z.lazy(
-  () => subscriptionEntrySchema,
-)
+export const markSubscriptionEntryAsUnread200Schema = z
+  .lazy(() => subscriptionEntrySchema)
+  .describe(
+    'Association of a RSS feed entry to a user subscription. The pairing of subscription ID and feed entry ID is unique.',
+  )
 
 /**
  * @description User not authenticated
@@ -1735,20 +2433,43 @@ export const exportSubscriptionsMutationResponseSchema = z.lazy(
 
 export const listSubscriptionEntriesQueryParamsSchema = z
   .object({
-    streamId: z.string().uuid().optional(),
-    subscriptionId: z.string().uuid().optional(),
-    hasRead: z.boolean().optional(),
-    'tag[]': z.array(z.string().uuid()).optional(),
-    cursor: z.string().optional(),
+    streamId: z
+      .string()
+      .uuid()
+      .describe(
+        'Filter by the ID of a stream whose filters may apply to the subscription entry',
+      )
+      .optional(),
+    subscriptionId: z
+      .string()
+      .uuid()
+      .describe('Filter by the ID of the associated subscription')
+      .optional(),
+    hasRead: z
+      .boolean()
+      .describe(
+        'Filter by whether the subscription entry has been marked as read',
+      )
+      .optional(),
+    'tag[]': z
+      .array(z.string().uuid())
+      .describe(
+        'Filter by the IDs of the tags linked to the associated subscription',
+      )
+      .optional(),
+    cursor: z
+      .string()
+      .describe('Pagination cursor from the previous set of results')
+      .optional(),
   })
   .optional()
 
 /**
  * @description Paginated list of subscription entries
  */
-export const listSubscriptionEntries200Schema = z.lazy(
-  () => paginatedSubscriptionEntryDetailsSchema,
-)
+export const listSubscriptionEntries200Schema = z
+  .lazy(() => paginatedSubscriptionEntryDetailsSchema)
+  .describe('Paginated list of results')
 
 /**
  * @description User not authenticated
@@ -1766,16 +2487,31 @@ export const listSubscriptionEntriesQueryResponseSchema = z.lazy(
 
 export const listTagsQueryParamsSchema = z
   .object({
-    tagType: z.enum(['bookmarks', 'feeds']).optional(),
-    withFeedCount: z.boolean().optional(),
-    withBookmarkCount: z.boolean().optional(),
+    tagType: z
+      .enum(['bookmarks', 'feeds'])
+      .describe('Filter by the type of tag')
+      .optional(),
+    withSubscriptionCount: z
+      .boolean()
+      .describe(
+        'Whether to include the count of subscriptions the tag is linked to',
+      )
+      .optional(),
+    withBookmarkCount: z
+      .boolean()
+      .describe(
+        'Whether to include the count of bookmarks the tag is linked to',
+      )
+      .optional(),
   })
   .optional()
 
 /**
  * @description Paginated list of tags
  */
-export const listTags200Schema = z.lazy(() => paginatedTagDetailsSchema)
+export const listTags200Schema = z
+  .lazy(() => paginatedTagDetailsSchema)
+  .describe('Paginated list of results')
 
 /**
  * @description User not authenticated
@@ -1792,7 +2528,9 @@ export const listTagsQueryResponseSchema = z.lazy(() => listTags200Schema)
 /**
  * @description Created tag
  */
-export const createTag201Schema = z.lazy(() => tagSchema)
+export const createTag201Schema = z
+  .lazy(() => tagSchema)
+  .describe('Tag that can be attached to subscriptions and bookmarks')
 
 /**
  * @description User not authenticated
@@ -1814,25 +2552,39 @@ export const createTag422Schema = z.lazy(() => apiErrorSchema)
  */
 export const createTagErrorSchema = z.lazy(() => apiErrorSchema)
 
-export const createTagMutationRequestSchema = z.lazy(() => tagCreateSchema)
+export const createTagMutationRequestSchema = z
+  .lazy(() => tagCreateSchema)
+  .describe('Data to create a new tag')
 
 export const createTagMutationResponseSchema = z.lazy(() => createTag201Schema)
 
 export const getTagPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 export const getTagQueryParamsSchema = z
   .object({
-    withFeedCount: z.boolean().optional(),
-    withBookmarkCount: z.boolean().optional(),
+    withSubscriptionCount: z
+      .boolean()
+      .describe(
+        'Whether to include the count of subscriptions the tag is linked to',
+      )
+      .optional(),
+    withBookmarkCount: z
+      .boolean()
+      .describe(
+        'Whether to include the count of bookmarks the tag is linked to',
+      )
+      .optional(),
   })
   .optional()
 
 /**
  * @description Tag by ID
  */
-export const getTag200Schema = z.lazy(() => tagDetailsSchema)
+export const getTag200Schema = z
+  .lazy(() => tagDetailsSchema)
+  .describe('Extended details of a tag')
 
 /**
  * @description User not authenticated
@@ -1857,7 +2609,7 @@ export const getTagErrorSchema = z.lazy(() => apiErrorSchema)
 export const getTagQueryResponseSchema = z.lazy(() => getTag200Schema)
 
 export const deleteTagPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
@@ -1888,13 +2640,15 @@ export const deleteTagErrorSchema = z.lazy(() => apiErrorSchema)
 export const deleteTagMutationResponseSchema = z.lazy(() => deleteTag204Schema)
 
 export const updateTagPathParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().uuid().describe('Unique identifier of the resource'),
 })
 
 /**
  * @description Updated tag
  */
-export const updateTag200Schema = z.lazy(() => tagSchema)
+export const updateTag200Schema = z
+  .lazy(() => tagSchema)
+  .describe('Tag that can be attached to subscriptions and bookmarks')
 
 /**
  * @description User not authenticated
@@ -1921,6 +2675,8 @@ export const updateTag422Schema = z.lazy(() => apiErrorSchema)
  */
 export const updateTagErrorSchema = z.lazy(() => apiErrorSchema)
 
-export const updateTagMutationRequestSchema = z.lazy(() => tagUpdateSchema)
+export const updateTagMutationRequestSchema = z
+  .lazy(() => tagUpdateSchema)
+  .describe('Updates to make to an existing tag')
 
 export const updateTagMutationResponseSchema = z.lazy(() => updateTag200Schema)

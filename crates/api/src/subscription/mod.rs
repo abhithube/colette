@@ -50,28 +50,40 @@ impl SubscriptionApi {
     }
 }
 
+/// User subscription to an RSS feed
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct Subscription {
+    /// Unique identifier of the subscription
     id: Uuid,
+    /// Human-readable name of the subscription
     title: String,
+    /// Description of the subscription
     #[schema(required)]
     description: Option<String>,
+    /// Unique identifier of the associated RSS feed
     feed_id: Uuid,
+    /// Timestamp at which the subscription was created
     created_at: DateTime<Utc>,
+    /// Timestamp at which the subscription was modified
     updated_at: DateTime<Utc>,
 }
 
+/// Extended details of a user subscription
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct SubscriptionDetails {
+    /// Subscription itself, always present
     subscription: Subscription,
+    /// Associated RSS feed, present if requested
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     feed: Option<Feed>,
+    /// Linked tags, present if requested
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     tags: Option<Vec<Tag>>,
+    /// Count of unread subscription entries associated with the subscription, present if requested
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     unread_count: Option<i64>,

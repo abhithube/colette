@@ -27,24 +27,33 @@ use colette_core::{
 use url::Url;
 use uuid::Uuid;
 
+/// API config
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
+    /// OIDC config
     pub oidc: OidcConfig,
+    /// Storage config
     pub storage: StorageConfig,
 }
 
+/// API OIDC config
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct OidcConfig {
+    /// OIDC client ID
     pub client_id: String,
+    /// OIDC redirect URI
     pub redirect_url: Url,
+    /// OIDC issuer URL
     pub issuer_url: Url,
 }
 
+/// API storage config
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct StorageConfig {
+    /// Base URL for the image storage server
     pub base_url: Url,
 }
 
@@ -78,7 +87,10 @@ pub(crate) struct Json<T>(pub(crate) T);
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[into_params(names("id"))]
-pub(crate) struct Id(pub(crate) Uuid);
+pub(crate) struct Id(
+    /// Unique identifier of the resource
+    pub(crate) Uuid,
+);
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(try_from = "String", into = "String")]
@@ -108,10 +120,13 @@ pub(crate) enum ValidationError {
     Empty,
 }
 
+/// Paginated list of results
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Paginated<T: utoipa::ToSchema> {
+    /// Current set of results
     pub(crate) data: Vec<T>,
+    /// Pagination cursor, only present if more results are available
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) cursor: Option<String>,
