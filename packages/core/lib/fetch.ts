@@ -25,6 +25,8 @@ export type ResponseConfig<TData = unknown> = {
   headers: Headers
 }
 
+export type ResponseErrorConfig<TError = unknown> = TError
+
 let _config: Partial<RequestConfig> = {}
 
 const getConfig = () => _config
@@ -33,8 +35,6 @@ const setConfig = (config: Partial<RequestConfig>) => {
   _config = config
   return getConfig()
 }
-
-export type ResponseErrorConfig<TError = unknown> = TError
 
 const refreshToken = async (
   oidcConfig: oidcClient.Configuration,
@@ -56,6 +56,25 @@ const refreshToken = async (
   }
 
   return null
+}
+
+let _refreshPromise: Promise<string | null> | null = null
+
+const getOrRefreshToken = async (
+  oidcConfig: oidcClient.Configuration,
+): Promise<string | null> => {
+  if (_refreshPromise) {
+    return _refreshPromise
+  }
+
+  _refreshPromise = refreshToken(oidcConfig)
+
+  try {
+    const token = await _refreshPromise
+    return token
+  } finally {
+    _refreshPromise = null
+  }
 }
 
 export const client = async <TData, TError = unknown, TVariables = unknown>(
@@ -95,7 +114,7 @@ export const client = async <TData, TError = unknown, TVariables = unknown>(
   let res = await makeRequest()
 
   if (res.status === 401 && config.oidcConfig) {
-    const newToken = await refreshToken(config.oidcConfig)
+    const newToken = await getOrRefreshToken(config.oidcConfig)
     if (newToken) {
       res = await makeRequest()
     }
