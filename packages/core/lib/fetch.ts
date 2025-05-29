@@ -111,6 +111,10 @@ export const client = async <TData, TError = unknown, TVariables = unknown>(
   const makeRequest = async () => {
     const headers = new Headers(config.headers)
 
+    if (!headers.has('Content-Type') && config.data) {
+      headers.set('Content-Type', 'application/json')
+    }
+
     if (config.tokenConfig) {
       const accessToken = config.tokenConfig.accessManager.get()
       if (accessToken) {
