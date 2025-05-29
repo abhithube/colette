@@ -15,7 +15,18 @@ export type RequestConfig<TData = unknown> = {
     | 'stream'
   signal?: AbortSignal
   headers?: HeadersInit
+  tokenConfig?: TokenConfig
   oidcConfig?: oidcClient.Configuration
+}
+
+type TokenConfig = {
+  accessManager: TokenManager
+  refreshManager: TokenManager
+}
+
+interface TokenManager {
+  get: () => string | null
+  set: (token: string) => void
 }
 
 export type ResponseConfig<TData = unknown> = {
@@ -38,16 +49,17 @@ const setConfig = (config: Partial<RequestConfig>) => {
 
 const refreshToken = async (
   oidcConfig: oidcClient.Configuration,
+  tokenConfig: TokenConfig,
 ): Promise<string | null> => {
-  const refreshToken = localStorage.getItem('colette-refresh-token')
+  const refreshToken = tokenConfig.refreshManager.get()
   if (!refreshToken) return null
 
   try {
-    const res = await oidcClient.refreshTokenGrant(oidcConfig, refreshToken, {})
+    const res = await oidcClient.refreshTokenGrant(oidcConfig, refreshToken)
 
-    localStorage.setItem('colette-access-token', res.access_token)
+    tokenConfig.accessManager.set(res.access_token)
     if (res.refresh_token) {
-      localStorage.setItem('colette-refresh-token', res.refresh_token)
+      tokenConfig.refreshManager.set(res.refresh_token)
     }
 
     return res.access_token
@@ -62,12 +74,13 @@ let _refreshPromise: Promise<string | null> | null = null
 
 const getOrRefreshToken = async (
   oidcConfig: oidcClient.Configuration,
+  tokenConfig: TokenConfig,
 ): Promise<string | null> => {
   if (_refreshPromise) {
     return _refreshPromise
   }
 
-  _refreshPromise = refreshToken(oidcConfig)
+  _refreshPromise = refreshToken(oidcConfig, tokenConfig)
 
   try {
     const token = await _refreshPromise
@@ -96,11 +109,13 @@ export const client = async <TData, TError = unknown, TVariables = unknown>(
   }
 
   const makeRequest = async () => {
-    const token = localStorage.getItem('colette-access-token')
-
     const headers = new Headers(config.headers)
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`)
+
+    if (config.tokenConfig) {
+      const accessToken = config.tokenConfig.accessManager.get()
+      if (accessToken) {
+        headers.set('Authorization', `Bearer ${accessToken}`)
+      }
     }
 
     return fetch(targetUrl, {
@@ -113,8 +128,11 @@ export const client = async <TData, TError = unknown, TVariables = unknown>(
 
   let res = await makeRequest()
 
-  if (res.status === 401 && config.oidcConfig) {
-    const newToken = await getOrRefreshToken(config.oidcConfig)
+  if (res.status === 401 && config.oidcConfig && config.tokenConfig) {
+    const newToken = await getOrRefreshToken(
+      config.oidcConfig,
+      config.tokenConfig,
+    )
     if (newToken) {
       res = await makeRequest()
     }

@@ -26,6 +26,16 @@ import ReactDOM from 'react-dom/client'
 
 client.setConfig({
   baseURL: import.meta.env.DEV ? import.meta.env.VITE_BACKEND_URL : '/api',
+  tokenConfig: {
+    accessManager: {
+      get: () => localStorage.getItem('colette-access-token'),
+      set: (token) => localStorage.setItem('colette-access-token', token),
+    },
+    refreshManager: {
+      get: () => localStorage.getItem('colette-refresh-token'),
+      set: (token) => localStorage.setItem('colette-refresh-token', token),
+    },
+  },
 })
 
 const queryClient = new QueryClient()
