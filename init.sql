@@ -1,0 +1,3 @@
+CREATE DATABASE colette;
+
+CREATE DATABASE zitadel;
