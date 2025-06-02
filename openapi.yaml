@@ -3308,6 +3308,10 @@ components:
           format: date-time
           description: Timestamp at which the user was last modified
   securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-Api-Key
     bearerAuth:
       type: http
       scheme: bearer

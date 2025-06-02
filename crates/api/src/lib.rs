@@ -23,7 +23,7 @@ use utoipa::{
     Modify, OpenApi,
     openapi::{
         Server,
-        security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
+        security::{ApiKey, ApiKeyValue, HttpAuthScheme, HttpBuilder, SecurityScheme},
     },
 };
 use utoipa_scalar::{Scalar, Servable};
@@ -82,7 +82,12 @@ impl Modify for Security {
                         .bearer_format("JWT")
                         .build(),
                 ),
-            )
+            );
+
+            components.add_security_scheme(
+                "apiKey",
+                SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("X-Api-Key"))),
+            );
         }
     }
 }
