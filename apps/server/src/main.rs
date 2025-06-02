@@ -42,7 +42,6 @@ use tokio_postgres::NoTls;
 use tower::{ServiceBuilder, ServiceExt};
 use tower_http::services::ServeDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use url::Url;
 use worker::{CronWorker, JobWorker};
 
 mod config;
@@ -56,8 +55,9 @@ embed_migrations!("../../migrations");
 
 #[derive(Debug, Clone, serde::Deserialize)]
 struct OidcProviderMetadata {
-    userinfo_endpoint: Url,
-    jwks_uri: Url,
+    issuer: String,
+    userinfo_endpoint: String,
+    jwks_uri: String,
 }
 
 #[tokio::main]
@@ -144,20 +144,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let http_client = ReqwestClient::new(reqwest_client.clone());
 
     let oidc_config = {
-        let discovery_url = format!(
-            "{}/.well-known/openid-configuration",
-            app_config.oidc.issuer_url.as_str()
-        )
-        .parse::<Url>()?;
-        let data = http_client.get(&discovery_url).await?;
+        let data = http_client.get(&app_config.oidc.discovery_endpoint).await?;
         let metadata = serde_json::from_slice::<OidcProviderMetadata>(&data)?;
 
-        let data = http_client.get(&metadata.jwks_uri).await?;
+        let data = http_client.get(&metadata.jwks_uri.parse()?).await?;
         let jwk_set = serde_json::from_slice::<JwkSet>(&data)?;
 
         OidcConfig {
-            jwk_set,
+            client_id: app_config.oidc.client_id.clone(),
+            issuer: metadata.issuer,
             userinfo_endpoint: metadata.userinfo_endpoint,
+            jwk_set,
         }
     };
 
@@ -256,6 +253,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         api_key_service: Arc::new(ApiKeyService::new(PostgresApiKeyRepository::new(
             pool.clone(),
         ))),
+        auth_service: Arc::new(AuthService::new(
+            PostgresUserRepository::new(pool.clone()),
+            http_client,
+            oidc_config.clone(),
+        )),
         bookmark_service: bookmark_service.clone(),
         collection_service: Arc::new(CollectionService::new(collection_repository)),
         feed_service: feed_service.clone(),
@@ -270,16 +272,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
             stream_repository,
         )),
         tag_service: Arc::new(TagService::new(tag_repository)),
-        auth_service: Arc::new(AuthService::new(
-            PostgresUserRepository::new(pool.clone()),
-            http_client,
-            oidc_config,
-        )),
         config: ApiConfig {
             oidc: ApiOidcConfig {
-                client_id: app_config.oidc.client_id,
-                redirect_url: app_config.oidc.redirect_url,
-                issuer_url: app_config.oidc.issuer_url,
+                client_id: oidc_config.client_id,
+                redirect_uri: app_config.oidc.redirect_uri.into(),
+                issuer: oidc_config.issuer,
             },
             storage: ApiStorageConfig {
                 base_url: image_base_url,

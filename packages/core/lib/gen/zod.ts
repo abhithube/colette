@@ -435,8 +435,8 @@ export const linkSubscriptionTagsSchema = z
 export const oidcConfigSchema = z
   .object({
     clientId: z.string().describe('OIDC client ID'),
-    redirectUrl: z.string().url().describe('OIDC redirect URI'),
-    issuerUrl: z.string().url().describe('OIDC issuer URL'),
+    issuer: z.string().url().describe('OIDC issuer URL'),
+    redirectUri: z.string().url().describe('OIDC redirect URI'),
   })
   .describe('API OIDC config')
 

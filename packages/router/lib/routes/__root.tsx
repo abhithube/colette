@@ -12,7 +12,7 @@ export const rootRoute = createRootRouteWithContext<{
     const config = await context.queryClient.ensureQueryData(getConfigOptions())
 
     const clientConfig = await oidcClient.discovery(
-      new URL(config.oidc.issuerUrl),
+      new URL(config.oidc.issuer),
       config.oidc.clientId,
       undefined,
       undefined,
@@ -35,7 +35,7 @@ export const rootRoute = createRootRouteWithContext<{
         user,
         oidcConfig: {
           clientConfig,
-          redirectUri: config.oidc.redirectUrl,
+          redirectUri: config.oidc.redirectUri,
         },
       }
     } catch (error) {
@@ -44,7 +44,7 @@ export const rootRoute = createRootRouteWithContext<{
       return {
         oidcConfig: {
           clientConfig,
-          redirectUri: config.oidc.redirectUrl,
+          redirectUri: config.oidc.redirectUri,
         },
       }
     }

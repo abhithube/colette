@@ -43,10 +43,12 @@ pub struct Config {
 pub struct OidcConfig {
     /// OIDC client ID
     pub client_id: String,
-    /// OIDC redirect URI
-    pub redirect_url: Url,
     /// OIDC issuer URL
-    pub issuer_url: Url,
+    #[schema(value_type = Url)]
+    pub issuer: String,
+    /// OIDC redirect URI
+    #[schema(value_type = Url)]
+    pub redirect_uri: String,
 }
 
 /// API storage config
@@ -60,6 +62,7 @@ pub struct StorageConfig {
 #[derive(Clone, axum::extract::FromRef)]
 pub struct ApiState {
     pub api_key_service: Arc<ApiKeyService>,
+    pub auth_service: Arc<AuthService>,
     pub bookmark_service: Arc<BookmarkService>,
     pub collection_service: Arc<CollectionService>,
     pub feed_service: Arc<FeedService>,
@@ -69,7 +72,6 @@ pub struct ApiState {
     pub subscription_service: Arc<SubscriptionService>,
     pub subscription_entry_service: Arc<SubscriptionEntryService>,
     pub tag_service: Arc<TagService>,
-    pub auth_service: Arc<AuthService>,
     pub config: Config,
 }
 

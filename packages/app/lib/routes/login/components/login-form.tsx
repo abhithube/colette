@@ -13,6 +13,7 @@ export const LoginForm = (props: { loggedOut?: boolean }) => {
 
     const url = client.buildAuthorizationUrl(oidcConfig.clientConfig, {
       redirect_uri: oidcConfig.redirectUri,
+      scope: 'openid,email,profile',
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',
     })

@@ -597,15 +597,15 @@ export type OidcConfig = {
    */
   clientId: string
   /**
-   * @description OIDC redirect URI
-   * @type string, uri
-   */
-  redirectUrl: string
-  /**
    * @description OIDC issuer URL
    * @type string, uri
    */
-  issuerUrl: string
+  issuer: string
+  /**
+   * @description OIDC redirect URI
+   * @type string, uri
+   */
+  redirectUri: string
 }
 
 /**

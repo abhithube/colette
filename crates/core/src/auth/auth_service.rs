@@ -38,7 +38,8 @@ impl AuthService {
 
             let decoding_key = DecodingKey::from_jwk(jwk)?;
             let mut validation = Validation::new(jwt_header.alg);
-            validation.set_audience(&["account"]);
+            validation.set_issuer(&[&self.oidc_config.issuer]);
+            validation.set_audience(&[&self.oidc_config.client_id]);
 
             let token_data =
                 jsonwebtoken::decode::<Claims>(access_token, &decoding_key, &validation)?;
@@ -106,7 +107,9 @@ impl AuthService {
 
 #[derive(Debug, Clone)]
 pub struct OidcConfig {
-    pub userinfo_endpoint: Url,
+    pub client_id: String,
+    pub issuer: String,
+    pub userinfo_endpoint: String,
     pub jwk_set: JwkSet,
 }
 

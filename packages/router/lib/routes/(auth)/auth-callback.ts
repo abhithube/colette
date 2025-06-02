@@ -9,10 +9,10 @@ export const authCallbackRoute = createRoute({
   path: 'auth-callback',
   validateSearch: zodValidator(
     z.object({
-      state: z.string(),
-      session_state: z.string(),
-      iss: z.string().url(),
       code: z.string(),
+      state: z.string(),
+      iss: z.string().url().optional(),
+      session_state: z.string().optional(),
     }),
   ),
   beforeLoad: async ({ context }) => {

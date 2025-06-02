@@ -2619,20 +2619,20 @@ components:
       description: API OIDC config
       required:
       - clientId
-      - redirectUrl
-      - issuerUrl
+      - issuer
+      - redirectUri
       properties:
         clientId:
           type: string
           description: OIDC client ID
-        redirectUrl:
-          type: string
-          format: uri
-          description: OIDC redirect URI
-        issuerUrl:
+        issuer:
           type: string
           format: uri
           description: OIDC issuer URL
+        redirectUri:
+          type: string
+          format: uri
+          description: OIDC redirect URI
     Paginated_ApiKey:
       type: object
       description: Paginated list of results

@@ -36,8 +36,8 @@ impl Default for ServerConfig {
 #[derive(Debug, Clone)]
 pub struct OidcConfig {
     pub client_id: String,
-    pub redirect_url: Url,
-    pub issuer_url: Url,
+    pub discovery_endpoint: Url,
+    pub redirect_uri: Url,
 }
 
 #[derive(Debug, Clone)]
@@ -97,8 +97,8 @@ struct RawConfig {
     server_port: Option<u32>,
     database_url: String,
     oidc_client_id: String,
-    oidc_redirect_url: Url,
-    oidc_issuer_url: Url,
+    oidc_discovery_endpoint: Url,
+    oidc_redirect_uri: Url,
     #[serde(default = "QueueBackend::default")]
     queue_backend: QueueBackend,
     #[serde(default = "StorageBackend::default")]
@@ -199,8 +199,8 @@ impl TryFrom<RawConfig> for Config {
             database_url: value.database_url,
             oidc: OidcConfig {
                 client_id: value.oidc_client_id,
-                redirect_url: value.oidc_redirect_url,
-                issuer_url: value.oidc_issuer_url,
+                redirect_uri: value.oidc_redirect_uri,
+                discovery_endpoint: value.oidc_discovery_endpoint,
             },
             queue,
             storage,
