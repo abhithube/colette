@@ -4,9 +4,8 @@ import {
   getStream,
   listStreams,
   updateStream,
-  type StreamCreate,
-  type StreamUpdate,
-} from '@colette/core'
+} from '@colette/core/http'
+import { StreamCreate, StreamUpdate } from '@colette/core/types'
 import {
   queryOptions,
   useMutation,

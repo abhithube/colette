@@ -1,6 +1,7 @@
-import { client as fetchClient, User } from '@colette/core'
+import { client as fetchClient } from '@colette/core/client'
+import { User } from '@colette/core/types'
 import { getActiveUserOptions, getConfigOptions } from '@colette/query'
-import type { QueryClient } from '@tanstack/react-query'
+import { QueryClient } from '@tanstack/react-query'
 import { Link, createRootRouteWithContext } from '@tanstack/react-router'
 import * as oidcClient from 'openid-client'
 

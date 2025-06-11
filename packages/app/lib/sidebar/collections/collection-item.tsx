@@ -1,4 +1,4 @@
-import { Collection } from '@colette/core'
+import { Collection } from '@colette/core/types'
 import { Link } from '@colette/router'
 import { Sidebar } from '@colette/ui'
 import { Library } from 'lucide-react'

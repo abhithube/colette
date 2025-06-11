@@ -1,4 +1,4 @@
-import { getActiveUser } from '@colette/core'
+import { getActiveUser } from '@colette/core/http'
 import { queryOptions } from '@tanstack/react-query'
 
 const AUTH_PREFIX = 'auth'

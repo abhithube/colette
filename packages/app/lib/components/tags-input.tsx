@@ -1,7 +1,7 @@
 import { listTagsOptions } from '@colette/query'
 import { Badge, Button, Combobox, Popover } from '@colette/ui'
 import { cn, createListCollection } from '@colette/ui/utils'
-import { type FieldState, type Updater } from '@tanstack/react-form'
+import { FieldState, Updater } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
 import { Check, ChevronsUpDown, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'

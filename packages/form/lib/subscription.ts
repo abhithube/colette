@@ -1,4 +1,4 @@
-import { Feed, FeedDetected, Subscription, Tag } from '@colette/core'
+import { Feed, FeedDetected, Subscription, Tag } from '@colette/core/types'
 import { formOptions } from '@tanstack/react-form'
 import { z } from 'zod'
 

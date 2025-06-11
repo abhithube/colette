@@ -1,16 +1,18 @@
 import {
-  BookmarkCreate,
-  BookmarkScrape,
-  BookmarkUpdate,
   createBookmark,
   deleteBookmark,
   linkBookmarkTags,
-  LinkBookmarkTags,
   listBookmarks,
-  ListBookmarksQueryParams,
   scrapeBookmark,
   updateBookmark,
-} from '@colette/core'
+} from '@colette/core/http'
+import {
+  BookmarkCreate,
+  BookmarkScrape,
+  BookmarkUpdate,
+  LinkBookmarkTags,
+  ListBookmarksQueryParams,
+} from '@colette/core/types'
 import {
   infiniteQueryOptions,
   useMutation,

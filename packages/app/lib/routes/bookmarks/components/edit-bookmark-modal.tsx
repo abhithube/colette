@@ -1,4 +1,4 @@
-import { Bookmark } from '@colette/core'
+import { Bookmark } from '@colette/core/types'
 import { UPDATE_BOOKMARK_FORM, updateBookmarkFormOptions } from '@colette/form'
 import { useUpdateBookmarkMutation } from '@colette/query'
 import { Button, Dialog, Field } from '@colette/ui'

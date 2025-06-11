@@ -14,17 +14,17 @@ export type RequestConfig<TData = unknown> = {
     | 'text'
     | 'stream'
   signal?: AbortSignal
-  headers?: HeadersInit
+  headers?: Headers | Record<string, string>
   tokenConfig?: TokenConfig
   oidcConfig?: oidcClient.Configuration
 }
 
-type TokenConfig = {
+export type TokenConfig = {
   accessManager: TokenManager
   refreshManager: TokenManager
 }
 
-interface TokenManager {
+export interface TokenManager {
   get: () => string | null
   set: (token: string) => void
 }
@@ -146,7 +146,7 @@ export const client = async <TData, TError = unknown, TVariables = unknown>(
     [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json()
 
   return {
-    data,
+    data: data as TData,
     status: res.status,
     statusText: res.statusText,
     headers: res.headers,

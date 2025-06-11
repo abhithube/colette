@@ -1,4 +1,4 @@
-import { getConfig } from '@colette/core'
+import { getConfig } from '@colette/core/http'
 import { queryOptions } from '@tanstack/react-query'
 
 const CONFIG_PREFIX = 'config'

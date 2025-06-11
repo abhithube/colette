@@ -1,5 +1,5 @@
 import { EntryCard } from './entry-card'
-import type { SubscriptionEntryDetails } from '@colette/core'
+import { SubscriptionEntryDetails } from '@colette/core/types'
 import { Separator } from '@colette/ui'
 import { useIntersectionObserver } from '@colette/util'
 

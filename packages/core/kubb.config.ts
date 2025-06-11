@@ -12,6 +12,7 @@ export default defineConfig(() => {
     output: {
       path: './lib/gen',
       clean: true,
+      barrelType: false,
     },
     hooks: {
       done: 'npm run format',
@@ -27,15 +28,15 @@ export default defineConfig(() => {
       }),
       pluginZod({
         output: {
-          path: 'zod.ts',
+          path: 'schemas.ts',
         },
       }),
       pluginClient({
         output: {
-          path: 'client.ts',
+          path: 'http.ts',
         },
         parser: 'zod',
-        importPath: '../fetch.ts',
+        importPath: '../client.ts',
       }),
     ],
   }

@@ -1,9 +1,12 @@
 {
   "name": "@colette/core",
-  "module": "./lib/index.ts",
-  "exports": [
-    "./lib/index.ts"
-  ],
+  "type": "module",
+  "exports": {
+    "./client": "./lib/client.ts",
+    "./http": "./lib/gen/http.ts",
+    "./schemas": "./lib/gen/schemas.ts",
+    "./types": "./lib/gen/types.ts"
+  },
   "scripts": {
     "generate": "kubb generate",
     "format": "prettier --write ./lib/gen"

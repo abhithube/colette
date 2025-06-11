@@ -1,5 +1,6 @@
 {
   "name": "@colette/form",
+  "type": "module",
   "module": "./lib/index.ts",
   "exports": [
     "./lib/index.ts"

@@ -1,5 +1,5 @@
 import { Thumbnail } from '../../../components/thumbnail'
-import type { SubscriptionEntryDetails } from '@colette/core'
+import { SubscriptionEntryDetails } from '@colette/core/types'
 import { Card, Separator, Favicon, Menu, Button } from '@colette/ui'
 import { formatRelativeDate } from '@colette/util'
 import { ExternalLink, MoreHorizontal, Square, SquareCheck } from 'lucide-react'

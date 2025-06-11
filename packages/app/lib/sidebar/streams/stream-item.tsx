@@ -1,4 +1,4 @@
-import { Stream } from '@colette/core'
+import { Stream } from '@colette/core/types'
 import { Link } from '@colette/router'
 import { Sidebar } from '@colette/ui'
 import { Podcast } from 'lucide-react'

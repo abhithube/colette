@@ -1,4 +1,4 @@
-import { BookmarkScraped } from '@colette/core'
+import { BookmarkScraped } from '@colette/core/types'
 import { createBookmarkFormOptions } from '@colette/form'
 import { useCreateBookmarkMutation } from '@colette/query'
 import { Field } from '@colette/ui'

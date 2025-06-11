@@ -1,7 +1,7 @@
 import { EditSubscriptionModal } from './edit-subscription-modal'
 import { EditSubscriptionTagsModal } from './edit-subscription-tags-modal'
 import { UnsubscribeAlert } from './unsubscribe-alert'
-import { SubscriptionDetails } from '@colette/core'
+import { SubscriptionDetails } from '@colette/core/types'
 import { Button, Card, Dialog, Favicon } from '@colette/ui'
 import { ExternalLink, Pencil, Tag, Trash2 } from 'lucide-react'
 

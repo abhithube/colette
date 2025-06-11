@@ -1,7 +1,7 @@
 import { Thumbnail } from '../../../components/thumbnail'
 import { EditBookmarkModal } from './edit-bookmark-modal'
 import { EditBookmarkTagsModal } from './edit-bookmark-tags-modal'
-import type { BookmarkDetails } from '@colette/core'
+import { BookmarkDetails } from '@colette/core/types'
 import { Button, Card, Dialog, Favicon, Menu } from '@colette/ui'
 import { Separator } from '@colette/ui'
 import { formatRelativeDate } from '@colette/util'

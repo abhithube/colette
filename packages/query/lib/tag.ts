@@ -1,14 +1,16 @@
 import {
-  type TagCreate,
-  type GetTagQueryParams,
-  type ListTagsQueryParams,
-  type TagUpdate,
   listTags,
   getTag,
   createTag,
   updateTag,
   deleteTag,
-} from '@colette/core'
+} from '@colette/core/http'
+import {
+  TagCreate,
+  GetTagQueryParams,
+  ListTagsQueryParams,
+  TagUpdate,
+} from '@colette/core/types'
 import {
   queryOptions,
   useMutation,

@@ -1,5 +1,6 @@
 {
   "name": "@colette/query",
+  "type": "module",
   "module": "./lib/index.ts",
   "exports": [
     "./lib/index.ts"

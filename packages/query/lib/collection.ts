@@ -4,9 +4,8 @@ import {
   getCollection,
   listCollections,
   updateCollection,
-  type CollectionCreate,
-  type CollectionUpdate,
-} from '@colette/core'
+} from '@colette/core/http'
+import { CollectionCreate, CollectionUpdate } from '@colette/core/types'
 import {
   queryOptions,
   useMutation,

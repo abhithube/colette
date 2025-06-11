@@ -1,2 +1,1 @@
-export * from './gen'
-export * from './fetch'
+export * from './client'

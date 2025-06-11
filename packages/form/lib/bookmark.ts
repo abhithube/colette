@@ -1,4 +1,4 @@
-import { Bookmark, BookmarkScraped, Tag } from '@colette/core'
+import { Bookmark, BookmarkScraped, Tag } from '@colette/core/types'
 import { formOptions } from '@tanstack/react-form'
 import { z } from 'zod'
 

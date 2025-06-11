@@ -9,7 +9,7 @@ import {
   SubscriptionPage,
   SubscriptionsPage,
 } from '@colette/app'
-import { client } from '@colette/core'
+import { client } from '@colette/core/client'
 import {
   buildRouter,
   getRouteApi,
