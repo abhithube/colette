@@ -8,7 +8,7 @@ use bytes::Bytes;
 use super::BOOKMARKS_TAG;
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser},
+    common::{ApiError, Auth},
 };
 
 #[utoipa::path(
@@ -23,12 +23,12 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
     bytes: Bytes,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .bookmark_service
-        .import_bookmarks(bytes, user.id)
+        .import_bookmarks(bytes, user_id)
         .await
     {
         Ok(_) => Ok(OkResponse),

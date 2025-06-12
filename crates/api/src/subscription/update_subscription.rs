@@ -8,7 +8,7 @@ use colette_core::subscription;
 use super::{SUBSCRIPTIONS_TAG, Subscription};
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser, Id, Json, NonEmptyString, Path},
+    common::{ApiError, Auth, Id, Json, NonEmptyString, Path},
 };
 
 #[utoipa::path(
@@ -25,12 +25,12 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
     Json(body): Json<SubscriptionUpdate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .subscription_service
-        .update_subscription(id, body.into(), user.id)
+        .update_subscription(id, body.into(), user_id)
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),

@@ -10,7 +10,7 @@ use url::Url;
 use super::{BOOKMARKS_TAG, Bookmark};
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser, Json, NonEmptyString},
+    common::{ApiError, Auth, Json, NonEmptyString},
 };
 
 #[utoipa::path(
@@ -25,12 +25,12 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
     Json(body): Json<BookmarkCreate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .bookmark_service
-        .create_bookmark(body.into(), user.id)
+        .create_bookmark(body.into(), user_id)
         .await
     {
         Ok(data) => Ok(OkResponse(

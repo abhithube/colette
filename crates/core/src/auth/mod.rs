@@ -1,30 +1,19 @@
 pub use auth_service::*;
-use chrono::{DateTime, Utc};
-use url::Url;
-pub use user_repository::*;
-use uuid::Uuid;
+
+use crate::{account, user};
 
 mod auth_service;
-mod user_repository;
-
-#[derive(Debug, Clone, serde::Deserialize, bon::Builder)]
-pub struct User {
-    #[builder(default = Uuid::new_v4())]
-    pub id: Uuid,
-    pub external_id: String,
-    pub email: Option<String>,
-    pub display_name: Option<String>,
-    pub picture_url: Option<Url>,
-    #[builder(default = Utc::now())]
-    pub created_at: DateTime<Utc>,
-    #[builder(default = Utc::now())]
-    pub updated_at: DateTime<Utc>,
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
-    NotFound(NotFoundError),
+    User(user::Error),
+
+    #[error(transparent)]
+    Account(account::Error),
+
+    #[error("user not authenticated")]
+    NotAuthenticated,
 
     #[error("Missing JWT key ID")]
     MissingKid,
@@ -34,6 +23,9 @@ pub enum Error {
 
     #[error(transparent)]
     Jwt(#[from] jsonwebtoken::errors::Error),
+
+    #[error(transparent)]
+    Argon2(#[from] colette_util::Argon2Error),
 
     #[error(transparent)]
     Http(#[from] colette_http::Error),
@@ -48,11 +40,14 @@ pub enum Error {
     Pool(#[from] deadpool_postgres::PoolError),
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum NotFoundError {
-    #[error("user not found with ID: {0}")]
-    Id(Uuid),
+impl From<user::Error> for Error {
+    fn from(value: user::Error) -> Self {
+        Error::User(value)
+    }
+}
 
-    #[error("user not found with external ID: {0}")]
-    ExternalId(String),
+impl From<account::Error> for Error {
+    fn from(value: account::Error) -> Self {
+        Error::Account(value)
+    }
 }

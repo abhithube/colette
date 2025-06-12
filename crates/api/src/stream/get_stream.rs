@@ -9,7 +9,7 @@ use colette_core::stream;
 use super::{STREAMS_TAG, Stream};
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser, Id, Path},
+    common::{ApiError, Auth, Id, Path},
 };
 
 #[utoipa::path(
@@ -25,9 +25,9 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.stream_service.get_stream(id, user.id).await {
+    match state.stream_service.get_stream(id, user_id).await {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
             stream::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),

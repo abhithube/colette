@@ -8,7 +8,7 @@ use colette_core::subscription;
 use super::SUBSCRIPTIONS_TAG;
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser, Id, Path},
+    common::{ApiError, Auth, Id, Path},
 };
 
 #[utoipa::path(
@@ -24,11 +24,11 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .subscription_service
-        .delete_subscription(id, user.id)
+        .delete_subscription(id, user_id)
         .await
     {
         Ok(()) => Ok(OkResponse),

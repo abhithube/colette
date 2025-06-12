@@ -9,7 +9,7 @@ use colette_core::tag::{self};
 use super::{TAGS_TAG, TagDetails};
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser, Id, Path, Query},
+    common::{ApiError, Auth, Id, Path, Query},
 };
 
 #[utoipa::path(
@@ -26,7 +26,7 @@ pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     Query(query): Query<TagGetQuery>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .tag_service
@@ -36,7 +36,7 @@ pub(super) async fn handler(
                 with_subscription_count: query.with_subscription_count,
                 with_bookmark_count: query.with_bookmark_count,
             },
-            user.id,
+            user_id,
         )
         .await
     {

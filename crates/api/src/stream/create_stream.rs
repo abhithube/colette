@@ -8,7 +8,7 @@ use colette_core::stream;
 use super::{STREAMS_TAG, Stream};
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser, Json, NonEmptyString},
+    common::{ApiError, Auth, Json, NonEmptyString},
     subscription_entry::SubscriptionEntryFilter,
 };
 
@@ -24,12 +24,12 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
     Json(body): Json<StreamCreate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .stream_service
-        .create_stream(body.into(), user.id)
+        .create_stream(body.into(), user_id)
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),

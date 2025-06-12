@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use chrono::Duration;
 use url::Url;
 
 const APP_NAME: &str = "colette";
@@ -15,9 +16,10 @@ pub fn from_env() -> Result<Config, envy::Error> {
 pub struct Config {
     pub server: ServerConfig,
     pub database_url: String,
-    pub oidc: OidcConfig,
+    pub jwt: JwtConfig,
     pub queue: QueueConfig,
     pub storage: StorageConfig,
+    pub oidc: Option<OidcConfig>,
     pub cron: Option<CronConfig>,
     pub cors: Option<CorsConfig>,
 }
@@ -34,10 +36,12 @@ impl Default for ServerConfig {
 }
 
 #[derive(Debug, Clone)]
-pub struct OidcConfig {
-    pub client_id: String,
-    pub discovery_endpoint: Url,
-    pub redirect_uri: Url,
+pub struct JwtConfig {
+    pub secret: String,
+    pub issuer: String,
+    pub audience: String,
+    pub access_duration: Duration,
+    pub refresh_duration: Duration,
 }
 
 #[derive(Debug, Clone)]
@@ -74,6 +78,13 @@ pub enum S3RequestStyle {
 }
 
 #[derive(Debug, Clone)]
+pub struct OidcConfig {
+    pub client_id: String,
+    pub discovery_endpoint: String,
+    pub redirect_uri: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct CronConfig {
     pub schedule: String,
 }
@@ -96,9 +107,15 @@ struct RawConfig {
     data_dir: Option<PathBuf>,
     server_port: Option<u32>,
     database_url: String,
-    oidc_client_id: String,
-    oidc_discovery_endpoint: Url,
-    oidc_redirect_uri: Url,
+    jwt_secret: String,
+    jwt_issuer: Option<String>,
+    #[serde(default = "jwt_access_duration")]
+    jwt_access_duration: Duration,
+    #[serde(default = "jwt_refresh_duration")]
+    jwt_refresh_duration: Duration,
+    oidc_client_id: Option<String>,
+    oidc_discovery_endpoint: Option<String>,
+    oidc_redirect_uri: Option<String>,
     #[serde(default = "QueueBackend::default")]
     queue_backend: QueueBackend,
     #[serde(default = "StorageBackend::default")]
@@ -132,6 +149,16 @@ impl TryFrom<RawConfig> for Config {
         if let Some(port) = value.server_port {
             server.port = port;
         }
+
+        let jwt = JwtConfig {
+            secret: value.jwt_secret,
+            issuer: value
+                .jwt_issuer
+                .unwrap_or_else(|| format!("http://0.0.0.0:{}", server.port)),
+            audience: APP_NAME.into(),
+            access_duration: value.jwt_access_duration,
+            refresh_duration: value.jwt_refresh_duration,
+        };
 
         let queue = match value.queue_backend {
             QueueBackend::Local => QueueConfig::Local,
@@ -194,16 +221,26 @@ impl TryFrom<RawConfig> for Config {
             cors = Some(config);
         }
 
+        let mut oidc = None::<OidcConfig>;
+        if let (Some(client_id), Some(redirect_uri), Some(discovery_endpoint)) = (
+            value.oidc_client_id,
+            value.oidc_redirect_uri,
+            value.oidc_discovery_endpoint,
+        ) {
+            oidc = Some(OidcConfig {
+                client_id,
+                redirect_uri,
+                discovery_endpoint,
+            })
+        }
+
         Ok(Self {
             server,
             database_url: value.database_url,
-            oidc: OidcConfig {
-                client_id: value.oidc_client_id,
-                redirect_uri: value.oidc_redirect_uri,
-                discovery_endpoint: value.oidc_discovery_endpoint,
-            },
+            jwt,
             queue,
             storage,
+            oidc,
             cron,
             cors,
         })
@@ -223,6 +260,14 @@ pub enum StorageBackend {
     #[default]
     Fs,
     S3,
+}
+
+fn jwt_access_duration() -> Duration {
+    Duration::minutes(15)
+}
+
+fn jwt_refresh_duration() -> Duration {
+    Duration::days(7)
 }
 
 fn s3_path_style_enabled() -> bool {

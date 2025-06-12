@@ -1,11 +1,15 @@
 use axum::{
     Json,
+    extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
 
 use super::{AUTH_TAG, User};
-use crate::common::{ApiError, AuthUser};
+use crate::{
+    ApiState,
+    common::{ApiError, Auth},
+};
 
 #[utoipa::path(
   get,
@@ -16,8 +20,14 @@ use crate::common::{ApiError, AuthUser};
   tag = AUTH_TAG
 )]
 #[axum::debug_handler]
-pub(super) async fn handler(AuthUser(user): AuthUser) -> Result<OkResponse, ErrResponse> {
-    Ok(OkResponse(user.into()))
+pub(super) async fn handler(
+    State(state): State<ApiState>,
+    Auth { user_id }: Auth,
+) -> Result<OkResponse, ErrResponse> {
+    match state.auth_service.get_user(user_id).await {
+        Ok(user) => Ok(OkResponse(user.into())),
+        Err(e) => Err(ErrResponse::InternalServerError(e.into())),
+    }
 }
 
 #[derive(utoipa::IntoResponses)]

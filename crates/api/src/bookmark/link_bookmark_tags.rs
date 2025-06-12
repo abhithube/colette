@@ -9,7 +9,7 @@ use uuid::Uuid;
 use super::BOOKMARKS_TAG;
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser, Id, Json, Path},
+    common::{ApiError, Auth, Id, Json, Path},
 };
 
 #[utoipa::path(
@@ -26,12 +26,12 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
     Json(body): Json<LinkBookmarkTags>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .bookmark_service
-        .link_bookmark_tags(id, body.into(), user.id)
+        .link_bookmark_tags(id, body.into(), user_id)
         .await
     {
         Ok(_) => Ok(OkResponse),

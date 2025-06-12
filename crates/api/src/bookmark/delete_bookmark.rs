@@ -8,7 +8,7 @@ use colette_core::bookmark;
 use super::BOOKMARKS_TAG;
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser, Id, Path},
+    common::{ApiError, Auth, Id, Path},
 };
 
 #[utoipa::path(
@@ -24,9 +24,9 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.bookmark_service.delete_bookmark(id, user.id).await {
+    match state.bookmark_service.delete_bookmark(id, user_id).await {
         Ok(()) => Ok(OkResponse),
         Err(e) => match e {
             bookmark::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),

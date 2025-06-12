@@ -210,6 +210,80 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+  /auth/register:
+    post:
+      tags:
+      - Auth
+      description: Register a new user account
+      operationId: registerUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterPayload'
+        required: true
+      responses:
+        '200':
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/login:
+    post:
+      tags:
+      - Auth
+      description: Login to a user account
+      operationId: loginUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginPayload'
+        required: true
+      responses:
+        '200':
+          description: Access token for autheticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenData'
+        '401':
+          description: Bad credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
   /auth/@me:
     get:
       tags:
@@ -225,6 +299,95 @@ paths:
                 $ref: '#/components/schemas/User'
         '401':
           description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/token:
+    post:
+      tags:
+      - Auth
+      description: Generate a new access token, and rotate the refresh token
+      operationId: refreshToken
+      responses:
+        '200':
+          description: Access token for autheticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenData'
+        '401':
+          description: Bad credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/logout:
+    post:
+      tags:
+      - Auth
+      description: Logout the active user
+      operationId: logoutUser
+      responses:
+        '204':
+          description: Successfully logged out
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/code:
+    post:
+      tags:
+      - Auth
+      description: Log in, and optionally register, a user from an OAuth authorization code
+      operationId: exchangeCode
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CodePayload'
+        required: true
+      responses:
+        '200':
+          description: Access token for autheticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenData'
+        '401':
+          description: Bad credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
           content:
             application/json:
               schema:
@@ -2372,6 +2535,19 @@ components:
         properties:
           equals:
             type: boolean
+    CodePayload:
+      type: object
+      required:
+      - code
+      - codeVerifier
+      - nonce
+      properties:
+        code:
+          type: string
+        codeVerifier:
+          type: string
+        nonce:
+          type: string
     Collection:
       type: object
       required:
@@ -2419,12 +2595,13 @@ components:
       type: object
       description: API config
       required:
-      - oidc
       - storage
       properties:
         oidc:
-          $ref: '#/components/schemas/OidcConfig'
-          description: OIDC config
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/OidcConfig'
+            description: OIDC config
         storage:
           $ref: '#/components/schemas/StorageConfig'
           description: Storage config
@@ -2614,6 +2791,18 @@ components:
             type: string
             format: uuid
           description: Unique identifiers of the tags to link to the subscription
+    LoginPayload:
+      type: object
+      required:
+      - email
+      - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
     OidcConfig:
       type: object
       description: API OIDC config
@@ -2913,6 +3102,28 @@ components:
         cursor:
           type: string
           description: Pagination cursor, only present if more results are available
+    RegisterPayload:
+      type: object
+      required:
+      - email
+      - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+        displayName:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+        imageUrl:
+          type:
+          - string
+          - 'null'
+          format: uri
     StorageConfig:
       type: object
       description: API storage config
@@ -3263,15 +3474,32 @@ components:
         properties:
           endsWith:
             type: string
+    TokenData:
+      type: object
+      required:
+      - accessToken
+      - tokenType
+      - expiresIn
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          $ref: '#/components/schemas/TokenType'
+        expiresIn:
+          type: integer
+          format: int64
+    TokenType:
+      type: string
+      enum:
+      - bearer
     User:
       type: object
-      description: User account. A new user is created if the "sub" field in the OIDC access token does not match an existing user.
+      description: User account. Supports email/password and OIDC.
       required:
       - id
-      - externalId
       - email
       - displayName
-      - pictureUrl
+      - imageUrl
       - createdAt
       - updatedAt
       properties:
@@ -3279,26 +3507,19 @@ components:
           type: string
           format: uuid
           description: Unique identifier of the user
-        externalId:
-          type: string
-          description: Unique identifier of the user from the external identity server
         email:
-          type:
-          - string
-          - 'null'
+          type: string
           format: email
-          description: Email address of the user from the external identity server
+          description: Email address of the user
         displayName:
           type:
           - string
           - 'null'
-          description: Display name of the user
-        pictureUrl:
+        imageUrl:
           type:
           - string
           - 'null'
           format: uri
-          description: Profile picture URL of the user
         createdAt:
           type: string
           format: date-time

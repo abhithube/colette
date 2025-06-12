@@ -8,7 +8,7 @@ use colette_core::api_key;
 use super::API_KEYS_TAG;
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser, Id, Path},
+    common::{ApiError, Auth, Id, Path},
 };
 
 #[utoipa::path(
@@ -24,9 +24,9 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.api_key_service.delete_api_key(id, user.id).await {
+    match state.api_key_service.delete_api_key(id, user_id).await {
         Ok(()) => Ok(OkResponse),
         Err(e) => match e {
             api_key::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),

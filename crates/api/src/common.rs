@@ -9,20 +9,10 @@ use axum::{
 use axum_extra::headers::{Authorization, HeaderMapExt, authorization::Bearer};
 use chrono::{DateTime, Utc};
 use colette_core::{
-    User,
-    api_key::ApiKeyService,
-    auth::{AuthService, UserGetQuery},
-    bookmark::BookmarkService,
-    collection::CollectionService,
-    common,
-    feed::FeedService,
-    feed_entry::FeedEntryService,
-    filter,
-    job::JobService,
-    stream::StreamService,
-    subscription::SubscriptionService,
-    subscription_entry::SubscriptionEntryService,
-    tag::TagService,
+    User, api_key::ApiKeyService, auth::AuthService, bookmark::BookmarkService,
+    collection::CollectionService, common, feed::FeedService, feed_entry::FeedEntryService, filter,
+    job::JobService, stream::StreamService, subscription::SubscriptionService,
+    subscription_entry::SubscriptionEntryService, tag::TagService,
 };
 use url::Url;
 use uuid::Uuid;
@@ -32,7 +22,7 @@ use uuid::Uuid;
 #[serde(rename_all = "camelCase")]
 pub struct Config {
     /// OIDC config
-    pub oidc: OidcConfig,
+    pub oidc: Option<OidcConfig>,
     /// Storage config
     pub storage: StorageConfig,
 }
@@ -154,14 +144,18 @@ pub(crate) async fn add_user_extension(
     req.extensions_mut().insert(None::<User>);
 
     if let Some(Authorization(bearer)) = req.headers().typed_get::<Authorization<Bearer>>() {
-        let user = state
+        let claims = state
             .auth_service
             .validate_access_token(bearer.token())
             .await
             .map_err(|_| ApiError::not_authenticated())?;
 
-        req.extensions_mut().insert(user.clone());
-        req.extensions_mut().insert(Some(user));
+        let auth = Auth {
+            user_id: claims.sub,
+        };
+
+        req.extensions_mut().insert(auth.clone());
+        req.extensions_mut().insert(Some(auth));
     } else if let Some(header) = req.headers().get("X-Api-Key").and_then(|e| e.to_str().ok()) {
         let Ok(api_key) = state.api_key_service.validate_api_key(header.into()).await else {
             tracing::debug!("invalid API key");
@@ -169,40 +163,35 @@ pub(crate) async fn add_user_extension(
             return Err(ApiError::not_authenticated());
         };
 
-        let Ok(user) = state
-            .auth_service
-            .get_user(UserGetQuery::Id(api_key.user_id))
-            .await
-        else {
+        let Ok(user) = state.auth_service.get_user(api_key.user_id).await else {
             tracing::debug!("user not found");
 
             return Err(ApiError::not_authenticated());
         };
 
-        req.extensions_mut().insert(user.clone());
-        req.extensions_mut().insert(Some(user));
+        let auth = Auth { user_id: user.id };
+
+        req.extensions_mut().insert(auth.clone());
+        req.extensions_mut().insert(Some(auth));
     }
 
     Ok(next.run(req).await)
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct AuthUser(pub(crate) User);
+pub(crate) struct Auth {
+    pub(crate) user_id: Uuid,
+}
 
-impl<S: Send + Sync> FromRequestParts<S> for AuthUser {
+impl<S: Send + Sync> FromRequestParts<S> for Auth {
     type Rejection = ApiError;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        parts
-            .extensions
-            .get::<User>()
-            .cloned()
-            .map(AuthUser)
-            .ok_or_else(|| {
-                tracing::debug!("failed to extract authenticated user");
+        parts.extensions.get::<Auth>().cloned().ok_or_else(|| {
+            tracing::debug!("failed to extract authenticated user");
 
-                ApiError::not_authenticated()
-            })
+            ApiError::not_authenticated()
+        })
     }
 }
 
@@ -358,10 +347,24 @@ impl<E: std::error::Error> From<E> for ApiError {
 }
 
 impl ApiError {
+    pub(crate) fn bad_credentials() -> Self {
+        Self {
+            code: ApiErrorCode::NotAuthenticated,
+            message: "bad credentials".into(),
+        }
+    }
+
     pub(crate) fn not_authenticated() -> Self {
         Self {
             code: ApiErrorCode::NotAuthenticated,
             message: "user not authenticated".into(),
+        }
+    }
+
+    pub(crate) fn forbidden() -> Self {
+        Self {
+            code: ApiErrorCode::NotAuthorized,
+            message: "user not authorized".into(),
         }
     }
 

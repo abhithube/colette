@@ -10,7 +10,7 @@ use uuid::Uuid;
 use super::{SUBSCRIPTIONS_TAG, SubscriptionDetails};
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser, Paginated, Query},
+    common::{ApiError, Auth, Paginated, Query},
 };
 
 #[utoipa::path(
@@ -26,11 +26,11 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Query(query): Query<SubscriptionListQuery>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .subscription_service
-        .list_subscriptions(query.into(), user.id)
+        .list_subscriptions(query.into(), user_id)
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),

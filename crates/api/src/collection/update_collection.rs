@@ -9,7 +9,7 @@ use super::{COLLECTIONS_TAG, Collection};
 use crate::{
     ApiState,
     bookmark::BookmarkFilter,
-    common::{ApiError, AuthUser, Id, Json, NonEmptyString, Path},
+    common::{ApiError, Auth, Id, Json, NonEmptyString, Path},
 };
 
 #[utoipa::path(
@@ -26,12 +26,12 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
     Json(body): Json<CollectionUpdate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .collection_service
-        .update_collection(id, body.into(), user.id)
+        .update_collection(id, body.into(), user_id)
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),

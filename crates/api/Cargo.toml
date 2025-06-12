@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 axum.workspace = true
 axum-extra = { version = "0.10.0", default-features = false, features = [
+  "cookie",
   "query",
   "tracing",
   "typed-header",

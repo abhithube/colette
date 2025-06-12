@@ -10,7 +10,7 @@ use uuid::Uuid;
 use super::SUBSCRIPTIONS_TAG;
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser, Path},
+    common::{ApiError, Auth, Path},
     subscription_entry::SubscriptionEntry,
 };
 
@@ -30,11 +30,11 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path((subscription_id, feed_entry_id)): Path<(Uuid, Uuid)>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .subscription_service
-        .mark_subscription_entry_as_unread(subscription_id, feed_entry_id, user.id)
+        .mark_subscription_entry_as_unread(subscription_id, feed_entry_id, user_id)
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),

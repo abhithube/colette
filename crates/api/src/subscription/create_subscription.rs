@@ -9,7 +9,7 @@ use uuid::Uuid;
 use super::{SUBSCRIPTIONS_TAG, Subscription};
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser, Json, NonEmptyString},
+    common::{ApiError, Auth, Json, NonEmptyString},
 };
 
 #[utoipa::path(
@@ -24,12 +24,12 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
     Json(body): Json<SubscriptionCreate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .subscription_service
-        .create_subscription(body.into(), user.id)
+        .create_subscription(body.into(), user_id)
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),

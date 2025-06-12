@@ -8,7 +8,7 @@ use bytes::Bytes;
 use super::SUBSCRIPTIONS_TAG;
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser},
+    common::{ApiError, Auth},
 };
 
 #[utoipa::path(
@@ -23,12 +23,12 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
     bytes: Bytes,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .subscription_service
-        .import_subscriptions(bytes, user.id)
+        .import_subscriptions(bytes, user_id)
         .await
     {
         Ok(_) => Ok(OkResponse),

@@ -1,6 +1,6 @@
 #![feature(bufreader_peek)]
+pub use account::Account;
 pub use api_key::ApiKey;
-pub use auth::User;
 pub use bookmark::Bookmark;
 pub use collection::Collection;
 pub use feed::Feed;
@@ -9,7 +9,9 @@ pub use stream::Stream;
 pub use subscription::Subscription;
 pub use subscription_entry::SubscriptionEntry;
 pub use tag::Tag;
+pub use user::User;
 
+pub mod account;
 pub mod api_key;
 pub mod auth;
 pub mod bookmark;
@@ -23,3 +25,4 @@ pub mod stream;
 pub mod subscription;
 pub mod subscription_entry;
 pub mod tag;
+pub mod user;

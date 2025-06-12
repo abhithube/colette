@@ -8,7 +8,7 @@ use axum::{
 use super::{STREAMS_TAG, Stream};
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser, Paginated},
+    common::{ApiError, Auth, Paginated},
 };
 
 #[utoipa::path(
@@ -22,9 +22,9 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.stream_service.list_streams(user.id).await {
+    match state.stream_service.list_streams(user_id).await {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }

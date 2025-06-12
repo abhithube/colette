@@ -7,7 +7,7 @@ use axum::{
 use super::BOOKMARKS_TAG;
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser},
+    common::{ApiError, Auth},
 };
 
 #[utoipa::path(
@@ -21,9 +21,9 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.bookmark_service.export_bookmarks(user.id).await {
+    match state.bookmark_service.export_bookmarks(user_id).await {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }

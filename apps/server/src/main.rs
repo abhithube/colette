@@ -4,7 +4,7 @@ use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{ApiConfig, ApiOidcConfig, ApiState, ApiStorageConfig};
 use colette_core::{
     api_key::ApiKeyService,
-    auth::{AuthService, OidcConfig},
+    auth::{AuthConfig, AuthService, JwtConfig, OidcConfig},
     bookmark::BookmarkService,
     collection::CollectionService,
     feed::FeedService,
@@ -25,16 +25,16 @@ use colette_migration::PostgresMigrator;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::{JobConsumerAdapter, JobProducerAdapter, LocalQueue};
 use colette_repository::postgres::{
-    PostgresApiKeyRepository, PostgresBookmarkRepository, PostgresCollectionRepository,
-    PostgresFeedEntryRepository, PostgresFeedRepository, PostgresJobRepository,
-    PostgresStreamRepository, PostgresSubscriptionEntryRepository, PostgresSubscriptionRepository,
-    PostgresTagRepository, PostgresUserRepository,
+    PostgresAccountRepository, PostgresApiKeyRepository, PostgresBookmarkRepository,
+    PostgresCollectionRepository, PostgresFeedEntryRepository, PostgresFeedRepository,
+    PostgresJobRepository, PostgresStreamRepository, PostgresSubscriptionEntryRepository,
+    PostgresSubscriptionRepository, PostgresTagRepository, PostgresUserRepository,
 };
 use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
 use colette_storage::{FsStorageClient, S3StorageClient, StorageAdapter};
 use config::{QueueConfig, S3RequestStyle, StorageConfig};
 use deadpool_postgres::{Manager, ManagerConfig, Pool};
-use jsonwebtoken::jwk::JwkSet;
+use jsonwebtoken::{DecodingKey, EncodingKey, jwk::JwkSet};
 use refinery::embed_migrations;
 use s3::{Bucket, Region, creds::Credentials};
 use tokio::{net::TcpListener, sync::Mutex};
@@ -56,6 +56,7 @@ embed_migrations!("../../migrations");
 #[derive(Debug, Clone, serde::Deserialize)]
 struct OidcProviderMetadata {
     issuer: String,
+    token_endpoint: String,
     userinfo_endpoint: String,
     jwks_uri: String,
 }
@@ -142,21 +143,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let reqwest_client = reqwest::Client::builder().build()?;
     let http_client = ReqwestClient::new(reqwest_client.clone());
-
-    let oidc_config = {
-        let data = http_client.get(&app_config.oidc.discovery_endpoint).await?;
-        let metadata = serde_json::from_slice::<OidcProviderMetadata>(&data)?;
-
-        let data = http_client.get(&metadata.jwks_uri.parse()?).await?;
-        let jwk_set = serde_json::from_slice::<JwkSet>(&data)?;
-
-        OidcConfig {
-            client_id: app_config.oidc.client_id.clone(),
-            issuer: metadata.issuer,
-            userinfo_endpoint: metadata.userinfo_endpoint,
-            jwk_set,
-        }
-    };
 
     let (scrape_feed_producer, scrape_feed_consumer) = match &app_config.queue {
         QueueConfig::Local => {
@@ -249,14 +235,43 @@ async fn main() -> Result<(), Box<dyn Error>> {
         import_subscriptions_producer.clone(),
     ));
 
+    let mut oidc_config = None::<OidcConfig>;
+    if let Some(config) = app_config.oidc {
+        let data = http_client.get(&config.discovery_endpoint.parse()?).await?;
+        let metadata = serde_json::from_slice::<OidcProviderMetadata>(&data)?;
+
+        let data = http_client.get(&metadata.jwks_uri.parse()?).await?;
+        let jwk_set = serde_json::from_slice::<JwkSet>(&data)?;
+
+        oidc_config = Some(OidcConfig {
+            client_id: config.client_id,
+            issuer: metadata.issuer,
+            token_endpoint: metadata.token_endpoint,
+            userinfo_endpoint: metadata.userinfo_endpoint,
+            redirect_uri: config.redirect_uri,
+            jwk_set,
+        })
+    }
+
     let api_state = ApiState {
         api_key_service: Arc::new(ApiKeyService::new(PostgresApiKeyRepository::new(
             pool.clone(),
         ))),
         auth_service: Arc::new(AuthService::new(
             PostgresUserRepository::new(pool.clone()),
+            PostgresAccountRepository::new(pool.clone()),
             http_client,
-            oidc_config.clone(),
+            AuthConfig {
+                jwt: JwtConfig {
+                    issuer: app_config.jwt.issuer,
+                    audience: vec![app_config.jwt.audience],
+                    encoding_key: EncodingKey::from_secret(app_config.jwt.secret.as_bytes()),
+                    decoding_key: DecodingKey::from_secret(app_config.jwt.secret.as_bytes()),
+                    access_duration: app_config.jwt.access_duration,
+                    refresh_duration: app_config.jwt.refresh_duration,
+                },
+                oidc: oidc_config.clone(),
+            },
         )),
         bookmark_service: bookmark_service.clone(),
         collection_service: Arc::new(CollectionService::new(collection_repository)),
@@ -273,11 +288,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )),
         tag_service: Arc::new(TagService::new(tag_repository)),
         config: ApiConfig {
-            oidc: ApiOidcConfig {
-                client_id: oidc_config.client_id,
-                redirect_uri: app_config.oidc.redirect_uri.into(),
-                issuer: oidc_config.issuer,
-            },
+            oidc: oidc_config.map(|e| ApiOidcConfig {
+                client_id: e.client_id,
+                redirect_uri: e.redirect_uri,
+                issuer: e.issuer,
+            }),
             storage: ApiStorageConfig {
                 base_url: image_base_url,
             },

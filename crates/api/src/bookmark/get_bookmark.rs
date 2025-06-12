@@ -9,7 +9,7 @@ use colette_core::bookmark;
 use super::{BOOKMARKS_TAG, BookmarkDetails};
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser, Id, Path, Query},
+    common::{ApiError, Auth, Id, Path, Query},
 };
 
 #[utoipa::path(
@@ -26,7 +26,7 @@ pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     Query(query): Query<BookmarkGetQuery>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .bookmark_service
@@ -35,7 +35,7 @@ pub(super) async fn handler(
                 id,
                 with_tags: query.with_tags,
             },
-            user.id,
+            user_id,
         )
         .await
     {

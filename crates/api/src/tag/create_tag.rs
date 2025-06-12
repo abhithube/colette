@@ -8,7 +8,7 @@ use colette_core::tag;
 use super::{TAGS_TAG, Tag};
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser, Json, NonEmptyString},
+    common::{ApiError, Auth, Json, NonEmptyString},
 };
 
 #[utoipa::path(
@@ -23,10 +23,10 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
     Json(body): Json<TagCreate>,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.tag_service.create_tag(body.into(), user.id).await {
+    match state.tag_service.create_tag(body.into(), user_id).await {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
             tag::Error::Conflict(_) => Err(ErrResponse::Conflict(e.into())),

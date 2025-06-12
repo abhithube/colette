@@ -8,7 +8,7 @@ use colette_core::collection;
 use super::COLLECTIONS_TAG;
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser, Id, Path},
+    common::{ApiError, Auth, Id, Path},
 };
 
 #[utoipa::path(
@@ -24,11 +24,11 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user): AuthUser,
+    Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .collection_service
-        .delete_collection(id, user.id)
+        .delete_collection(id, user_id)
         .await
     {
         Ok(()) => Ok(OkResponse),

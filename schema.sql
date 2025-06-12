@@ -1,11 +1,21 @@
 CREATE TABLE users (
   id uuid NOT NULL PRIMARY KEY,
-  external_id TEXT NOT NULL UNIQUE,
-  email TEXT,
+  email TEXT NOT NULL UNIQUE,
   display_name TEXT,
-  picture_url TEXT,
+  image_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE accounts (
+  id uuid NOT NULL PRIMARY KEY,
+  sub TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  password_hash TEXT,
+  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (provider, sub)
 );
 
 CREATE TABLE api_keys (
