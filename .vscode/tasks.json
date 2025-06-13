@@ -1,0 +1,26 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Setup",
+      "dependsOrder": "parallel",
+      "dependsOn": ["Backend", "Frontend"]
+    },
+    {
+      "label": "Backend",
+      "type": "shell",
+      "command": "cargo make dev",
+      "presentation": {
+        "clear": true
+      }
+    },
+    {
+      "label": "Frontend",
+      "type": "shell",
+      "command": "npm run dev",
+      "presentation": {
+        "clear": true
+      }
+    }
+  ]
+}
