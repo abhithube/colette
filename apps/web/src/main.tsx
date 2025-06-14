@@ -1,3 +1,6 @@
+// sort-imports-ignore
+import { scan } from 'react-scan'
+
 import './index.css'
 import {
   CollectionPage,
@@ -23,6 +26,10 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import React, { JSX } from 'react'
 import ReactDOM from 'react-dom/client'
+
+scan({
+  enabled: process.env.NODE_ENV === 'development',
+})
 
 client.setConfig({
   baseURL: import.meta.env.DEV ? import.meta.env.VITE_BACKEND_URL : '/api',
