@@ -36,8 +36,7 @@ pub(super) async fn handler(
             Ok((
                 [(header::SET_COOKIE, cookie.to_string())],
                 OkResponse(tokens.into()),
-            )
-                .into_response())
+            ))
         }
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
@@ -56,7 +55,7 @@ impl IntoResponse for OkResponse {
 #[allow(dead_code)]
 #[derive(utoipa::IntoResponses)]
 pub(super) enum ErrResponse {
-    #[response(status = StatusCode::UNAUTHORIZED, description = "Bad credentials")]
+    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
     Unauthorized(ApiError),
 
     #[response(status = StatusCode::UNPROCESSABLE_ENTITY, description = "Invalid input")]
@@ -70,7 +69,7 @@ impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Unauthorized(_) => {
-                (StatusCode::UNAUTHORIZED, ApiError::bad_credentials()).into_response()
+                (StatusCode::UNAUTHORIZED, ApiError::not_authenticated()).into_response()
             }
             Self::InternalServerError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()

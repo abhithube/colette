@@ -7,7 +7,7 @@ use axum::{
 };
 use bookmark::BookmarkApi;
 use collection::CollectionApi;
-use common::{ApiError, BooleanOp, DateOp, TextOp, add_user_extension};
+use common::{ApiError, BooleanOp, DateOp, TextOp, verify_auth_extension};
 pub use common::{
     ApiState, Config as ApiConfig, OidcConfig as ApiOidcConfig, StorageConfig as ApiStorageConfig,
 };
@@ -119,7 +119,7 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> R
         .nest("/tags", TagApi::router())
         .layer(middleware::from_fn_with_state(
             api_state.clone(),
-            add_user_extension,
+            verify_auth_extension,
         ));
 
     let mut router = Router::new()

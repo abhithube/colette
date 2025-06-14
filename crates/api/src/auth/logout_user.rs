@@ -31,8 +31,7 @@ pub(super) async fn handler(jar: CookieJar) -> Result<impl IntoResponse, ErrResp
     Ok((
         [(header::SET_COOKIE, removal_cookie.to_string())],
         OkResponse,
-    )
-        .into_response())
+    ))
 }
 
 #[derive(utoipa::IntoResponses)]

@@ -32,8 +32,7 @@ pub(super) async fn handler(
             Ok((
                 [(header::SET_COOKIE, cookie.to_string())],
                 OkResponse(tokens.into()),
-            )
-                .into_response())
+            ))
         }
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }

@@ -9,7 +9,7 @@ use axum::{
 use axum_extra::headers::{Authorization, HeaderMapExt, authorization::Bearer};
 use chrono::{DateTime, Utc};
 use colette_core::{
-    User, api_key::ApiKeyService, auth::AuthService, bookmark::BookmarkService,
+    api_key::ApiKeyService, auth::AuthService, bookmark::BookmarkService,
     collection::CollectionService, common, feed::FeedService, feed_entry::FeedEntryService, filter,
     job::JobService, stream::StreamService, subscription::SubscriptionService,
     subscription_entry::SubscriptionEntryService, tag::TagService,
@@ -136,13 +136,11 @@ where
     }
 }
 
-pub(crate) async fn add_user_extension(
+pub(crate) async fn verify_auth_extension(
     State(state): State<ApiState>,
     mut req: Request,
     next: Next,
 ) -> Result<Response, ApiError> {
-    req.extensions_mut().insert(None::<User>);
-
     if let Some(Authorization(bearer)) = req.headers().typed_get::<Authorization<Bearer>>() {
         let claims = state
             .auth_service
@@ -150,12 +148,9 @@ pub(crate) async fn add_user_extension(
             .await
             .map_err(|_| ApiError::not_authenticated())?;
 
-        let auth = Auth {
+        req.extensions_mut().insert(Auth {
             user_id: claims.sub,
-        };
-
-        req.extensions_mut().insert(auth.clone());
-        req.extensions_mut().insert(Some(auth));
+        });
     } else if let Some(header) = req.headers().get("X-Api-Key").and_then(|e| e.to_str().ok()) {
         let Ok(api_key) = state.api_key_service.validate_api_key(header.into()).await else {
             tracing::debug!("invalid API key");
@@ -169,10 +164,7 @@ pub(crate) async fn add_user_extension(
             return Err(ApiError::not_authenticated());
         };
 
-        let auth = Auth { user_id: user.id };
-
-        req.extensions_mut().insert(auth.clone());
-        req.extensions_mut().insert(Some(auth));
+        req.extensions_mut().insert(Auth { user_id: user.id });
     }
 
     Ok(next.run(req).await)
