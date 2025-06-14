@@ -102,25 +102,32 @@ pub fn create_openapi() -> utoipa::openapi::OpenApi {
 pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> Router {
     let openapi = create_openapi();
 
-    let mut api = Router::new()
+    let public_router = Router::new()
+        .nest("/auth", AuthApi::public())
+        .nest("/config", ConfigApi::router());
+
+    let authenticated_router = Router::new()
+        .nest("/apiKeys", ApiKeyApi::router())
+        .nest("/auth", AuthApi::authenticated())
+        .nest("/bookmarks", BookmarkApi::router())
+        .nest("/collections", CollectionApi::router())
+        .nest("/feedEntries", FeedEntryApi::router())
+        .nest("/feeds", FeedApi::router())
+        .nest("/streams", StreamApi::router())
+        .nest("/subscriptionEntries", SubscriptionEntryApi::router())
+        .nest("/subscriptions", SubscriptionApi::router())
+        .nest("/tags", TagApi::router())
+        .layer(middleware::from_fn_with_state(
+            api_state.clone(),
+            add_user_extension,
+        ));
+
+    let mut router = Router::new()
         .nest(
             API_PREFIX,
             Router::new()
-                .nest("/apiKeys", ApiKeyApi::router())
-                .nest("/auth", AuthApi::router())
-                .nest("/bookmarks", BookmarkApi::router())
-                .nest("/collections", CollectionApi::router())
-                .nest("/feedEntries", FeedEntryApi::router())
-                .nest("/feeds", FeedApi::router())
-                .nest("/streams", StreamApi::router())
-                .nest("/subscriptionEntries", SubscriptionEntryApi::router())
-                .nest("/subscriptions", SubscriptionApi::router())
-                .nest("/tags", TagApi::router())
-                .layer(middleware::from_fn_with_state(
-                    api_state.clone(),
-                    add_user_extension,
-                ))
-                .nest("/config", ConfigApi::router()),
+                .merge(public_router)
+                .merge(authenticated_router),
         )
         .merge(Scalar::with_url(
             format!("{API_PREFIX}/doc"),
@@ -139,7 +146,7 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> R
             .filter_map(|e| e.parse::<HeaderValue>().ok())
             .collect::<Vec<_>>();
 
-        api = api.layer(
+        router = router.layer(
             CorsLayer::new()
                 .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
                 .allow_origin(origins)
@@ -147,5 +154,5 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> R
         )
     }
 
-    api
+    router
 }

@@ -39,14 +39,18 @@ const REFRESH_COOKIE: &str = "colette_refresh";
 pub(crate) struct AuthApi;
 
 impl AuthApi {
-    pub(crate) fn router() -> Router<ApiState> {
+    pub(crate) fn public() -> Router<ApiState> {
         Router::new()
             .route("/register", routing::post(register_user::handler))
             .route("/login", routing::post(login_user::handler))
-            .route("/@me", routing::get(get_active_user::handler))
-            .route("/token", routing::post(refresh_token::handler))
-            .route("/logout", routing::post(logout_user::handler))
             .route("/code", routing::post(exchange_code::handler))
+            .route("/token", routing::post(refresh_token::handler))
+    }
+
+    pub(crate) fn authenticated() -> Router<ApiState> {
+        Router::new()
+            .route("/@me", routing::get(get_active_user::handler))
+            .route("/logout", routing::post(logout_user::handler))
     }
 }
 
