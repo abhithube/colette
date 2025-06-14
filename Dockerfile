@@ -26,7 +26,7 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then echo "x86_64-unknown-linux-mu
     fi
 RUN TARGET=$(cat /tmp/target) && cargo chef cook --release --recipe-path recipe.json --target $TARGET -p colette-server
 COPY . .
-COPY --from=web /app/apps/web/dist /app/web/dist
+COPY --from=web /app/apps/web/dist /app/apps/web/dist
 RUN TARGET=$(cat /tmp/target) && cargo build --release --target $TARGET -p colette-server
 RUN TARGET=$(cat /tmp/target) && mkdir -p /app/linux && cp target/$TARGET/release/colette-server /app/$TARGETPLATFORM
 
