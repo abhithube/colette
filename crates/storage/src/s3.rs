@@ -1,5 +1,3 @@
-use std::io::ErrorKind;
-
 use s3::Bucket;
 
 use crate::StorageClient;
@@ -21,7 +19,7 @@ impl StorageClient for S3StorageClient {
         self.bucket
             .put_object(path, &data)
             .await
-            .map_err(|e| std::io::Error::new(ErrorKind::Other, e.to_string()))?;
+            .map_err(std::io::Error::other)?;
 
         Ok(())
     }
@@ -31,7 +29,7 @@ impl StorageClient for S3StorageClient {
             .bucket
             .get_object(path)
             .await
-            .map_err(|e| std::io::Error::new(ErrorKind::Other, e.to_string()))?;
+            .map_err(std::io::Error::other)?;
 
         Ok(data.to_vec())
     }
@@ -40,7 +38,7 @@ impl StorageClient for S3StorageClient {
         self.bucket
             .delete_object(path)
             .await
-            .map_err(|e| std::io::Error::new(ErrorKind::Other, e.to_string()))?;
+            .map_err(std::io::Error::other)?;
 
         Ok(())
     }
@@ -49,6 +47,6 @@ impl StorageClient for S3StorageClient {
         self.bucket
             .object_exists(path)
             .await
-            .map_err(|e| std::io::Error::new(ErrorKind::Other, e.to_string()))
+            .map_err(std::io::Error::other)
     }
 }

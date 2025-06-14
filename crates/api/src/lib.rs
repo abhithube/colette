@@ -123,11 +123,11 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> R
                 .nest("/config", ConfigApi::router()),
         )
         .merge(Scalar::with_url(
-            format!("{}/doc", API_PREFIX),
+            format!("{API_PREFIX}/doc"),
             openapi.clone(),
         ))
         .route(
-            &format!("{}/openapi.yaml", API_PREFIX),
+            &format!("{API_PREFIX}/openapi.yaml"),
             routing::get(|| async move { openapi.to_yaml().unwrap() }),
         )
         .layer(TraceLayer::new_for_http())

@@ -45,7 +45,7 @@ impl Display for JobStatus {
             Self::Failed => "failed",
         };
 
-        write!(f, "{}", value)
+        write!(f, "{value}")
     }
 }
 

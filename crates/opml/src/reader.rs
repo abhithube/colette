@@ -77,13 +77,13 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, Error> {
                 }
             }
             Ok(Event::End(e)) => {
-                if e.name().as_ref() == b"outline" {
-                    if let Some(outline) = outline_stack.pop() {
-                        if let Some(parent) = outline_stack.last_mut() {
-                            parent.outline.push(outline);
-                        } else {
-                            opml.body.outlines.push(outline);
-                        }
+                if e.name().as_ref() == b"outline"
+                    && let Some(outline) = outline_stack.pop()
+                {
+                    if let Some(parent) = outline_stack.last_mut() {
+                        parent.outline.push(outline);
+                    } else {
+                        opml.body.outlines.push(outline);
                     }
                 }
             }

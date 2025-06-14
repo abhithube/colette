@@ -74,16 +74,16 @@ impl SubscriptionEntryService {
         if subscription_entries.len() > limit {
             subscription_entries = subscription_entries.into_iter().take(limit).collect();
 
-            if let Some(last) = subscription_entries.last() {
-                if let Some(ref entry) = last.feed_entry {
-                    let c = Cursor {
-                        published_at: entry.published_at,
-                        id: entry.id,
-                    };
-                    let encoded = colette_util::base64_encode(&c)?;
+            if let Some(last) = subscription_entries.last()
+                && let Some(ref entry) = last.feed_entry
+            {
+                let c = Cursor {
+                    published_at: entry.published_at,
+                    id: entry.id,
+                };
+                let encoded = colette_util::base64_encode(&c)?;
 
-                    cursor = Some(encoded);
-                }
+                cursor = Some(encoded);
             }
         }
 

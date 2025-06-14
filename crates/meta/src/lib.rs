@@ -47,17 +47,16 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, Error> {
                         metadata.handle_basic(name, content);
                     }
                 } else if let Some(property) = tag.attributes.remove("property".as_bytes()) {
-                    if let Some(content) = tag.attributes.remove("content".as_bytes()) {
-                        if property.as_slice().starts_with(b"og:") {
-                            let property = str::from_utf8(&property).map_err(ParseError::Utf)?;
-                            let content = String::from_utf8(content.0)
-                                .map_err(|e| e.utf8_error())
-                                .map_err(ParseError::Utf)?;
+                    if let Some(content) = tag.attributes.remove("content".as_bytes())
+                        && property.as_slice().starts_with(b"og:")
+                    {
+                        let property = str::from_utf8(&property).map_err(ParseError::Utf)?;
+                        let content = String::from_utf8(content.0)
+                            .map_err(|e| e.utf8_error())
+                            .map_err(ParseError::Utf)?;
 
-                            let open_graph =
-                                metadata.open_graph.get_or_insert_with(OpenGraph::default);
-                            handle_open_graph(open_graph, property, content);
-                        }
+                        let open_graph = metadata.open_graph.get_or_insert_with(OpenGraph::default);
+                        handle_open_graph(open_graph, property, content);
                     }
                 } else if let Some(r#type) = tag.attributes.remove("type".as_bytes()) {
                     if tag.name.as_slice() == b"link" && r#type.as_slice() == b"application/rss+xml"
@@ -106,19 +105,19 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, Error> {
                     };
 
                     schema_stack.push(schema);
-                } else if let Some(itemprop) = tag.attributes.remove("itemprop".as_bytes()) {
-                    if let Some(content) = tag.attributes.remove("content".as_bytes()) {
-                        let itemprop = String::from_utf8(itemprop.0)
-                            .map_err(|e| e.utf8_error())
-                            .map_err(ParseError::Utf)?;
-                        let content = String::from_utf8(content.0)
-                            .map_err(|e| e.utf8_error())
-                            .map_err(ParseError::Utf)?;
+                } else if let Some(itemprop) = tag.attributes.remove("itemprop".as_bytes())
+                    && let Some(content) = tag.attributes.remove("content".as_bytes())
+                {
+                    let itemprop = String::from_utf8(itemprop.0)
+                        .map_err(|e| e.utf8_error())
+                        .map_err(ParseError::Utf)?;
+                    let content = String::from_utf8(content.0)
+                        .map_err(|e| e.utf8_error())
+                        .map_err(ParseError::Utf)?;
 
-                        current_itemprop = Some(itemprop.clone());
-                        if let Some(schema_org) = schema_stack.last_mut() {
-                            handle_microdata(schema_org, itemprop, content);
-                        }
+                    current_itemprop = Some(itemprop.clone());
+                    if let Some(schema_org) = schema_stack.last_mut() {
+                        handle_microdata(schema_org, itemprop, content);
                     }
                 }
             }

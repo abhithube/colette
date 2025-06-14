@@ -86,10 +86,10 @@ impl TryFrom<ExtractedBookmark> for ProcessedBookmark {
             return Err(PostprocessorError::Title);
         };
 
-        if let Some(t) = &value.thumbnail {
-            if t.starts_with("//") {
-                value.thumbnail = Some(format!("https:{t}"));
-            }
+        if let Some(t) = &value.thumbnail
+            && t.starts_with("//")
+        {
+            value.thumbnail = Some(format!("https:{t}"));
         }
 
         let bookmark = ProcessedBookmark {

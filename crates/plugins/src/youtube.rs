@@ -20,7 +20,7 @@ impl YouTubeFeedPlugin {
 impl FeedPlugin for YouTubeFeedPlugin {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, FeedError> {
         if let Some((_, channel_id)) = regex_captures!(r#"/channel/(UC[\w_-]+)"#, url.as_str()) {
-            url.set_query(Some(&format!("channel_id={}", channel_id)));
+            url.set_query(Some(&format!("channel_id={channel_id}")));
             url.set_path("feeds/videos.xml");
         }
 

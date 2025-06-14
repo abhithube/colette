@@ -49,8 +49,6 @@ impl AccountRepository for PostgresAccountRepository {
             .into_insert()
             .build_postgres(PostgresQueryBuilder);
 
-            println!("{}", sql);
-
             let stmt = tx.prepare_cached(&sql).await?;
             tx.execute(&stmt, &values.as_params()).await?;
         }

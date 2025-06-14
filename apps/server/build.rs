@@ -7,7 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let raw = openapi.to_yaml()?;
 
     let crate_path = std::env::var("CARGO_MANIFEST_DIR")?;
-    let out_dir = PathBuf::from(format!("{}/../../", crate_path));
+    let out_dir = PathBuf::from(format!("{crate_path}/../../"));
 
     fs::create_dir_all(&out_dir)?;
 

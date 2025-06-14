@@ -5,7 +5,7 @@ use crate::{Error, Opml, Outline};
 const HEADER: &str = r#"<?xml version="1.0" encoding="UTF-8"?>"#;
 
 pub fn to_writer<W: Write>(mut writer: W, opml: Opml) -> Result<(), Error> {
-    writeln!(writer, "{}", HEADER)?;
+    writeln!(writer, "{HEADER}")?;
 
     writeln!(writer, r#"<opml version="{}">"#, opml.version)?;
 
@@ -37,30 +37,30 @@ fn write_outlines<W: Write>(
     for outline in outlines {
         let mut attributes: Vec<String> = Vec::new();
         if let Some(r#type) = &outline.r#type {
-            attributes.push(format!(r#"type="{}""#, r#type));
+            attributes.push(format!(r#"type="{type}""#));
         }
         attributes.push(format!(r#"text="{}""#, outline.text));
         if let Some(xml_url) = &outline.xml_url {
-            attributes.push(format!(r#"xmlUrl="{}""#, xml_url));
+            attributes.push(format!(r#"xmlUrl="{xml_url}""#));
         }
         if let Some(title) = &outline.title {
-            attributes.push(format!(r#"title="{}""#, title));
+            attributes.push(format!(r#"title="{title}""#));
         }
         if let Some(html_url) = &outline.html_url {
-            attributes.push(format!(r#"htmlUrl="{}""#, html_url));
+            attributes.push(format!(r#"htmlUrl="{html_url}""#));
         }
 
         let attributes_str = attributes.join(" ");
         let indent_str = " ".repeat(4).repeat(level);
 
         if !outline.outline.is_empty() {
-            writeln!(writer, "{}<outline {}>", indent_str, attributes_str)?;
+            writeln!(writer, "{indent_str}<outline {attributes_str}>")?;
 
             write_outlines(writer, &outline.outline, level + 1)?;
 
-            writeln!(writer, "{}</outline>", indent_str)?;
+            writeln!(writer, "{indent_str}</outline>")?;
         } else {
-            writeln!(writer, r#"{}<outline {}/>"#, indent_str, attributes_str)?;
+            writeln!(writer, r#"{indent_str}<outline {attributes_str}/>"#)?;
         }
     }
 

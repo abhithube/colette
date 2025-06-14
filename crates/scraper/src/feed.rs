@@ -210,19 +210,19 @@ impl From<AtomEntry> for ExtractedFeedEntry {
         let mut description = value.summary.or(value.content).map(|e| e.text);
         let mut thumbnail = Option::<String>::None;
 
-        if let Some(extension) = value.extension {
-            if let Some(mut media_group) = extension.media_group {
-                if let Some(media_title) = media_group.media_title {
-                    title = media_title;
-                }
-                if media_group.media_description.is_some() {
-                    description = media_group.media_description;
-                }
+        if let Some(extension) = value.extension
+            && let Some(mut media_group) = extension.media_group
+        {
+            if let Some(media_title) = media_group.media_title {
+                title = media_title;
+            }
+            if media_group.media_description.is_some() {
+                description = media_group.media_description;
+            }
 
-                if !media_group.media_thumbnail.is_empty() {
-                    let media_thumbnail = media_group.media_thumbnail.swap_remove(0);
-                    thumbnail = Some(media_thumbnail.url);
-                }
+            if !media_group.media_thumbnail.is_empty() {
+                let media_thumbnail = media_group.media_thumbnail.swap_remove(0);
+                thumbnail = Some(media_thumbnail.url);
             }
         }
 

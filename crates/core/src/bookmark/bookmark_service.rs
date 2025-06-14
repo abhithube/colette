@@ -219,29 +219,29 @@ impl BookmarkService {
         bookmark.updated_at = Utc::now();
         self.bookmark_repository.save(&bookmark).await?;
 
-        if let Some(thumbnail_url) = new_thumbnail {
-            if thumbnail_url == bookmark.thumbnail_url {
-                let data = serde_json::to_value(&ArchiveThumbnailJobData {
-                    operation: if let Some(thumbnail_url) = thumbnail_url {
-                        ThumbnailOperation::Upload(thumbnail_url)
-                    } else {
-                        ThumbnailOperation::Delete
-                    },
-                    archived_path: bookmark.archived_path.clone(),
-                    bookmark_id: bookmark.id,
-                })?;
+        if let Some(thumbnail_url) = new_thumbnail
+            && thumbnail_url == bookmark.thumbnail_url
+        {
+            let data = serde_json::to_value(&ArchiveThumbnailJobData {
+                operation: if let Some(thumbnail_url) = thumbnail_url {
+                    ThumbnailOperation::Upload(thumbnail_url)
+                } else {
+                    ThumbnailOperation::Delete
+                },
+                archived_path: bookmark.archived_path.clone(),
+                bookmark_id: bookmark.id,
+            })?;
 
-                let job = Job::builder()
-                    .job_type("archive_thumbnail".into())
-                    .data(data)
-                    .build();
+            let job = Job::builder()
+                .job_type("archive_thumbnail".into())
+                .data(data)
+                .build();
 
-                self.job_repository.save(&job).await?;
+            self.job_repository.save(&job).await?;
 
-                let mut producer = self.archive_thumbnail_producer.lock().await;
+            let mut producer = self.archive_thumbnail_producer.lock().await;
 
-                producer.push(job.id).await?;
-            }
+            producer.push(job.id).await?;
         }
 
         Ok(bookmark)
@@ -358,7 +358,7 @@ impl BookmarkService {
                 let format = image::guess_format(&body)?;
                 let extension = format.extensions_str()[0];
 
-                let object_path = format!("{}/{}.{}", THUMBNAILS_DIR, file_name, extension);
+                let object_path = format!("{THUMBNAILS_DIR}/{file_name}.{extension}");
 
                 self.storage_client
                     .upload(&object_path, body.into())

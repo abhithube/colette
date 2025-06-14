@@ -43,7 +43,7 @@ impl fmt::Display for Version {
             Self::V2 => "2.0",
         };
 
-        write!(f, "{}", raw)
+        write!(f, "{raw}")
     }
 }
 
@@ -98,7 +98,7 @@ impl fmt::Display for OutlineType {
             Self::Rss => "rss",
         };
 
-        write!(f, "{}", raw)
+        write!(f, "{raw}")
     }
 }
 

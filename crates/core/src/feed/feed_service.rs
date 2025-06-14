@@ -68,7 +68,7 @@ impl FeedService {
         Ok(feed)
     }
 
-    pub async fn stream(&self) -> Result<BoxStream<Result<Url, Error>>, Error> {
+    pub async fn stream(&'_ self) -> Result<BoxStream<'_, Result<Url, Error>>, Error> {
         self.repository.stream().await
     }
 }

@@ -1,5 +1,6 @@
 use crate::util::Value;
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(untagged)]
 pub(crate) enum SchemaOrg {
@@ -10,6 +11,7 @@ pub(crate) enum SchemaOrg {
     Single(SchemaObjectOrValue),
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(untagged)]
 pub enum SchemaObjectOrValue {

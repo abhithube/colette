@@ -15,9 +15,9 @@ impl ToSql for (Expr, TextOp) {
 
         match op {
             TextOp::Equals(value) => column.eq(value),
-            TextOp::Contains(value) => column.like(format!("%{}%", value)),
-            TextOp::StartsWith(value) => column.like(format!("{}%", value)),
-            TextOp::EndsWith(value) => column.like(format!("%{}", value)),
+            TextOp::Contains(value) => column.like(format!("%{value}%")),
+            TextOp::StartsWith(value) => column.like(format!("{value}%")),
+            TextOp::EndsWith(value) => column.like(format!("%{value}")),
         }
     }
 }
