@@ -46,6 +46,12 @@ impl IntoSelect for AccountParams {
             .apply_if(self.id, |query, id| {
                 query.and_where(Expr::col((Account::Table, Account::Id)).eq(id));
             })
+            .apply_if(self.sub, |query, sub| {
+                query.and_where(Expr::col((Account::Table, Account::Sub)).eq(sub));
+            })
+            .apply_if(self.provider, |query, provider| {
+                query.and_where(Expr::col((Account::Table, Account::Provider)).eq(provider));
+            })
             .to_owned()
     }
 }
