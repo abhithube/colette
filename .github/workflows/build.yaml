@@ -10,6 +10,9 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
 
+    permissions:
+      contents: write
+
     env:
       app_name: colette-server
 
