@@ -90,7 +90,7 @@ const getOrRefreshToken = async (
   }
 }
 
-export const client = async <TData, TError = unknown, TVariables = unknown>(
+export const client = async <TData, _TError = unknown, TVariables = unknown>(
   paramsConfig: RequestConfig<TVariables>,
 ): Promise<ResponseConfig<TData>> => {
   const globalConfig = getConfig()

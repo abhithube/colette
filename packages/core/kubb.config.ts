@@ -30,6 +30,7 @@ export default defineConfig(() => {
         output: {
           path: 'schemas.ts',
         },
+        typed: true,
       }),
       pluginClient({
         output: {
