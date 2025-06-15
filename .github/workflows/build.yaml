@@ -80,17 +80,25 @@ jobs:
 
       - name: Package (Unix)
         if: matrix.os != 'windows-latest'
-        run: tar czf ${{ env.app_name }}-${{ matrix.target }}.tar.gz target/${{ matrix.target }}/release/${{ env.app_name }}
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/${{ env.app_name }} dist/
+          cd dist
+          tar czf ${{ env.app_name }}-${{ matrix.target }}.tar.gz ${{ env.app_name }}
 
       - name: Package (Windows)
         if: matrix.os == 'windows-latest'
         shell: bash
-        run: 7z a ${{ env.app_name }}-${{ matrix.target }}.zip target/${{ matrix.target }}/release/${{ env.app_name }}.exe
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/${{ env.app_name }}.exe dist/
+          cd dist
+          7z a ${{ env.app_name }}-${{ matrix.target }}.zip ${{ env.app_name }}.exe
 
       - name: Release
         uses: softprops/action-gh-release@v2
         if: github.ref_type == 'tag'
         with:
           files: |
-            *.tar.gz
-            *.zip
+            dist/*.tar.gz
+            dist/*.zip
