@@ -27,17 +27,3 @@ args = [
   "--dev-url",
   "docker://postgres/17-alpine/dev",
 ]
-
-[tasks.build-docker]
-command = "docker"
-args = ["build", "--platform", "linux/amd64", "-t", "colette-server", "."]
-
-[tasks.build-docker-arm64]
-command = "docker"
-args = [
-  "build",
-  "--build-arg=TARGET=aarch64-unknown-linux-musl",
-  "-t",
-  "colette-server",
-  ".",
-]

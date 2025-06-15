@@ -167,7 +167,7 @@ impl TryFrom<RawConfig> for Config {
         let storage = match value.storage_backend {
             StorageBackend::Fs => {
                 let config = FsStorageConfig {
-                    path: data_dir.join("storage"),
+                    path: data_dir.join("fs"),
                 };
                 if !std::fs::exists(&config.path).unwrap() {
                     let _ = std::fs::create_dir(&config.path);
