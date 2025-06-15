@@ -1,0 +1,75 @@
+name: Release Binaries
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      app_name: colette-server
+
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+          - x86_64-pc-windows-msvc
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Build web
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install cross
+        run: cargo install --locked cross
+
+      - name: Build
+        run: cross build --release --target ${{ matrix.target }} -p $app_name
+
+      - name: Package
+        run: |
+          name="$app_name-${{ matrix.target }}"
+          mkdir -p dist
+          if [[ "${{ matrix.target }}" == *"windows"* ]]; then
+            cp target/${{ matrix.target }}/release/$app_name.exe dist/
+            cd dist && zip -r ${name}.zip $app_name.exe
+          else
+            cp target/${{ matrix.target }}/release/$app_name dist/
+            cd dist && tar czf ${name}.tar.gz $app_name
+          fi
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
