@@ -1,5 +1,4 @@
 import { client as fetchClient } from '@colette/core/client'
-import { User } from '@colette/core/types'
 import { getActiveUserOptions, getConfigOptions } from '@colette/query'
 import { QueryClient } from '@tanstack/react-query'
 import { Link, createRootRouteWithContext } from '@tanstack/react-router'
@@ -7,25 +6,35 @@ import * as oidcClient from 'openid-client'
 
 export const rootRoute = createRootRouteWithContext<{
   queryClient: QueryClient
-  user?: User
 }>()({
   beforeLoad: async ({ context }) => {
     const config = await context.queryClient.ensureQueryData(getConfigOptions())
 
-    const clientConfig = await oidcClient.discovery(
-      new URL(config.oidc.issuer),
-      config.oidc.clientId,
-      undefined,
-      undefined,
-      {
-        execute: [oidcClient.allowInsecureRequests],
-      },
-    )
+    let oidcConfig:
+      | { clientConfig: oidcClient.Configuration; redirectUri: string }
+      | undefined
 
-    fetchClient.setConfig({
-      ...fetchClient.getConfig(),
-      oidcConfig: clientConfig,
-    })
+    if (config.oidc) {
+      const clientConfig = await oidcClient.discovery(
+        new URL(config.oidc.issuer),
+        config.oidc.clientId,
+        undefined,
+        undefined,
+        {
+          execute: [oidcClient.allowInsecureRequests],
+        },
+      )
+
+      fetchClient.setConfig({
+        ...fetchClient.getConfig(),
+        oidcConfig: clientConfig,
+      })
+
+      oidcConfig = {
+        clientConfig,
+        redirectUri: config.oidc.redirectUri,
+      }
+    }
 
     try {
       const user = await context.queryClient.ensureQueryData(
@@ -34,19 +43,13 @@ export const rootRoute = createRootRouteWithContext<{
 
       return {
         user,
-        oidcConfig: {
-          clientConfig,
-          redirectUri: config.oidc.redirectUri,
-        },
+        oidcConfig,
       }
     } catch (error) {
       console.error(error)
 
       return {
-        oidcConfig: {
-          clientConfig,
-          redirectUri: config.oidc.redirectUri,
-        },
+        oidcConfig,
       }
     }
   },

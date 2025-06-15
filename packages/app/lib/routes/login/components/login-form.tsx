@@ -7,6 +7,8 @@ export const LoginForm = (props: { loggedOut?: boolean }) => {
   const oidcConfig = useOIDCConfig()
 
   async function handleClick() {
+    if (!oidcConfig) return
+
     const codeVerifier = client.randomPKCECodeVerifier()
     const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier)
     sessionStorage.setItem('colette-code-verifier', codeVerifier)

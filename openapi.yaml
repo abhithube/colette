@@ -2598,10 +2598,8 @@ components:
       - storage
       properties:
         oidc:
-          oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/OidcConfig'
-            description: OIDC config
+          $ref: '#/components/schemas/OidcConfig'
+          description: OIDC config
         storage:
           $ref: '#/components/schemas/StorageConfig'
           description: Storage config

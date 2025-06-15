@@ -12,7 +12,15 @@ import {
   deleteApiKeyMutationResponseSchema,
   updateApiKeyMutationResponseSchema,
   updateApiKeyMutationRequestSchema,
+  registerUserMutationResponseSchema,
+  registerUserMutationRequestSchema,
+  loginUserMutationResponseSchema,
+  loginUserMutationRequestSchema,
   getActiveUserQueryResponseSchema,
+  refreshTokenMutationResponseSchema,
+  logoutUserMutationResponseSchema,
+  exchangeCodeMutationResponseSchema,
+  exchangeCodeMutationRequestSchema,
   listBookmarksQueryResponseSchema,
   createBookmarkMutationResponseSchema,
   createBookmarkMutationRequestSchema,
@@ -95,8 +103,25 @@ import type {
   UpdateApiKey403,
   UpdateApiKey404,
   UpdateApiKey422,
+  RegisterUserMutationRequest,
+  RegisterUserMutationResponse,
+  RegisterUser409,
+  RegisterUser422,
+  LoginUserMutationRequest,
+  LoginUserMutationResponse,
+  LoginUser401,
+  LoginUser422,
   GetActiveUserQueryResponse,
   GetActiveUser401,
+  RefreshTokenMutationResponse,
+  RefreshToken401,
+  RefreshToken422,
+  LogoutUserMutationResponse,
+  LogoutUser401,
+  ExchangeCodeMutationRequest,
+  ExchangeCodeMutationResponse,
+  ExchangeCode401,
+  ExchangeCode422,
   ListBookmarksQueryResponse,
   ListBookmarksQueryParams,
   ListBookmarks401,
@@ -426,6 +451,64 @@ export async function updateApiKey(
   return updateApiKeyMutationResponseSchema.parse(res.data)
 }
 
+function getRegisterUserUrl() {
+  return `/auth/register` as const
+}
+
+/**
+ * @description Register a new user account
+ * {@link /auth/register}
+ */
+export async function registerUser(
+  data: RegisterUserMutationRequest,
+  config: Partial<RequestConfig<RegisterUserMutationRequest>> & {
+    client?: typeof client
+  } = {},
+) {
+  const { client: request = client, ...requestConfig } = config
+
+  const res = await request<
+    RegisterUserMutationResponse,
+    ResponseErrorConfig<RegisterUser409 | RegisterUser422>,
+    RegisterUserMutationRequest
+  >({
+    method: 'POST',
+    url: getRegisterUserUrl().toString(),
+    data: registerUserMutationRequestSchema.parse(data),
+    ...requestConfig,
+  })
+  return registerUserMutationResponseSchema.parse(res.data)
+}
+
+function getLoginUserUrl() {
+  return `/auth/login` as const
+}
+
+/**
+ * @description Login to a user account
+ * {@link /auth/login}
+ */
+export async function loginUser(
+  data: LoginUserMutationRequest,
+  config: Partial<RequestConfig<LoginUserMutationRequest>> & {
+    client?: typeof client
+  } = {},
+) {
+  const { client: request = client, ...requestConfig } = config
+
+  const res = await request<
+    LoginUserMutationResponse,
+    ResponseErrorConfig<LoginUser401 | LoginUser422>,
+    LoginUserMutationRequest
+  >({
+    method: 'POST',
+    url: getLoginUserUrl().toString(),
+    data: loginUserMutationRequestSchema.parse(data),
+    ...requestConfig,
+  })
+  return loginUserMutationResponseSchema.parse(res.data)
+}
+
 function getGetActiveUserUrl() {
   return `/auth/@me` as const
 }
@@ -449,6 +532,85 @@ export async function getActiveUser(
     ...requestConfig,
   })
   return getActiveUserQueryResponseSchema.parse(res.data)
+}
+
+function getRefreshTokenUrl() {
+  return `/auth/token` as const
+}
+
+/**
+ * @description Generate a new access token, and rotate the refresh token
+ * {@link /auth/token}
+ */
+export async function refreshToken(
+  config: Partial<RequestConfig> & { client?: typeof client } = {},
+) {
+  const { client: request = client, ...requestConfig } = config
+
+  const res = await request<
+    RefreshTokenMutationResponse,
+    ResponseErrorConfig<RefreshToken401 | RefreshToken422>,
+    unknown
+  >({
+    method: 'POST',
+    url: getRefreshTokenUrl().toString(),
+    ...requestConfig,
+  })
+  return refreshTokenMutationResponseSchema.parse(res.data)
+}
+
+function getLogoutUserUrl() {
+  return `/auth/logout` as const
+}
+
+/**
+ * @description Logout the active user
+ * {@link /auth/logout}
+ */
+export async function logoutUser(
+  config: Partial<RequestConfig> & { client?: typeof client } = {},
+) {
+  const { client: request = client, ...requestConfig } = config
+
+  const res = await request<
+    LogoutUserMutationResponse,
+    ResponseErrorConfig<LogoutUser401>,
+    unknown
+  >({
+    method: 'POST',
+    url: getLogoutUserUrl().toString(),
+    ...requestConfig,
+  })
+  return logoutUserMutationResponseSchema.parse(res.data)
+}
+
+function getExchangeCodeUrl() {
+  return `/auth/code` as const
+}
+
+/**
+ * @description Log in, and optionally register, a user from an OAuth authorization code
+ * {@link /auth/code}
+ */
+export async function exchangeCode(
+  data: ExchangeCodeMutationRequest,
+  config: Partial<RequestConfig<ExchangeCodeMutationRequest>> & {
+    client?: typeof client
+  } = {},
+) {
+  const { client: request = client, ...requestConfig } = config
+
+  const res = await request<
+    ExchangeCodeMutationResponse,
+    ResponseErrorConfig<ExchangeCode401 | ExchangeCode422>,
+    ExchangeCodeMutationRequest
+  >({
+    method: 'POST',
+    url: getExchangeCodeUrl().toString(),
+    data: exchangeCodeMutationRequestSchema.parse(data),
+    ...requestConfig,
+  })
+  return exchangeCodeMutationResponseSchema.parse(res.data)
 }
 
 function getListBookmarksUrl() {

@@ -22,6 +22,8 @@ use uuid::Uuid;
 #[serde(rename_all = "camelCase")]
 pub struct Config {
     /// OIDC config
+    #[schema(nullable = false)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub oidc: Option<OidcConfig>,
     /// Storage config
     pub storage: StorageConfig,

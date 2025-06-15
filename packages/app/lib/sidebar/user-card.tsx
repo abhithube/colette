@@ -8,6 +8,8 @@ export const UserCard = () => {
   const user = useUser()
 
   async function onLogout() {
+    if (!oidcConfig) return
+
     const refreshToken = localStorage.getItem('colette-refresh-token')
     if (refreshToken) {
       await client.tokenRevocation(oidcConfig.clientConfig, refreshToken, {
@@ -34,9 +36,7 @@ export const UserCard = () => {
                 <User className="size-4" />
               </div>
               <span className="font-semibold">
-                {user.displayName ??
-                  user.email?.split('@')[0] ??
-                  user.externalId}
+                {user.displayName ?? user.email?.split('@')[0]}
               </span>
               <ChevronsUpDown className="ml-auto" />
             </Sidebar.MenuButton>

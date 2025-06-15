@@ -351,6 +351,21 @@ export type BooleanOp = {
   equals: boolean
 }
 
+export type CodePayload = {
+  /**
+   * @type string
+   */
+  code: string
+  /**
+   * @type string
+   */
+  codeVerifier: string
+  /**
+   * @type string
+   */
+  nonce: string
+}
+
 export type Collection = {
   /**
    * @type string, uuid
@@ -395,9 +410,9 @@ export type CollectionUpdate = {
 export type Config = {
   /**
    * @description API OIDC config
-   * @type object
+   * @type object | undefined
    */
-  oidc: OidcConfig
+  oidc?: OidcConfig
   /**
    * @description API storage config
    * @type object
@@ -585,6 +600,18 @@ export type LinkSubscriptionTags = {
    * @type array
    */
   tagIds: string[]
+}
+
+export type LoginPayload = {
+  /**
+   * @type string, email
+   */
+  email: string
+  /**
+   * @minLength 1
+   * @type string
+   */
+  password: string
 }
 
 /**
@@ -896,6 +923,27 @@ export type PaginatedTagDetails = {
    * @type string | undefined
    */
   cursor?: string
+}
+
+export type RegisterPayload = {
+  /**
+   * @type string, email
+   */
+  email: string
+  /**
+   * @minLength 1
+   * @type string
+   */
+  password: string
+  /**
+   * @minLength 1
+   * @type string,null | undefined
+   */
+  displayName?: string | null
+  /**
+   * @type string,null | undefined, uri
+   */
+  imageUrl?: string | null
 }
 
 /**
@@ -1273,8 +1321,31 @@ export type TextOp =
       endsWith: string
     }
 
+export type TokenData = {
+  /**
+   * @type string
+   */
+  accessToken: string
+  /**
+   * @type string
+   */
+  tokenType: TokenType
+  /**
+   * @type integer, int64
+   */
+  expiresIn: number
+}
+
+export const tokenTypeEnum = {
+  bearer: 'bearer',
+} as const
+
+export type TokenTypeEnum = (typeof tokenTypeEnum)[keyof typeof tokenTypeEnum]
+
+export type TokenType = TokenTypeEnum
+
 /**
- * @description User account. A new user is created if the \"sub\" field in the OIDC access token does not match an existing user.
+ * @description User account. Supports email/password and OIDC.
  */
 export type User = {
   /**
@@ -1283,25 +1354,18 @@ export type User = {
    */
   id: string
   /**
-   * @description Unique identifier of the user from the external identity server
-   * @type string
+   * @description Email address of the user
+   * @type string, email
    */
-  externalId: string
+  email: string
   /**
-   * @description Email address of the user from the external identity server
-   * @type string,null, email
-   */
-  email: string | null
-  /**
-   * @description Display name of the user
    * @type string,null
    */
   displayName: string | null
   /**
-   * @description Profile picture URL of the user
    * @type string,null, uri
    */
-  pictureUrl: string | null
+  imageUrl: string | null
   /**
    * @description Timestamp at which the user was created
    * @type string, date-time
@@ -1498,6 +1562,66 @@ export type UpdateApiKeyMutation = {
 }
 
 /**
+ * @description Created user
+ */
+export type RegisterUser200 = User
+
+/**
+ * @description Email already registered
+ */
+export type RegisterUser409 = ApiError
+
+/**
+ * @description Invalid input
+ */
+export type RegisterUser422 = ApiError
+
+/**
+ * @description Unknown error
+ */
+export type RegisterUserError = ApiError
+
+export type RegisterUserMutationRequest = RegisterPayload
+
+export type RegisterUserMutationResponse = RegisterUser200
+
+export type RegisterUserMutation = {
+  Response: RegisterUser200
+  Request: RegisterUserMutationRequest
+  Errors: RegisterUser409 | RegisterUser422
+}
+
+/**
+ * @description Access token for autheticated user
+ */
+export type LoginUser200 = TokenData
+
+/**
+ * @description Bad credentials
+ */
+export type LoginUser401 = ApiError
+
+/**
+ * @description Invalid input
+ */
+export type LoginUser422 = ApiError
+
+/**
+ * @description Unknown error
+ */
+export type LoginUserError = ApiError
+
+export type LoginUserMutationRequest = LoginPayload
+
+export type LoginUserMutationResponse = LoginUser200
+
+export type LoginUserMutation = {
+  Response: LoginUser200
+  Request: LoginUserMutationRequest
+  Errors: LoginUser401 | LoginUser422
+}
+
+/**
  * @description Active user
  */
 export type GetActiveUser200 = User
@@ -1517,6 +1641,85 @@ export type GetActiveUserQueryResponse = GetActiveUser200
 export type GetActiveUserQuery = {
   Response: GetActiveUser200
   Errors: GetActiveUser401
+}
+
+/**
+ * @description Access token for autheticated user
+ */
+export type RefreshToken200 = TokenData
+
+/**
+ * @description User not authenticated
+ */
+export type RefreshToken401 = ApiError
+
+/**
+ * @description Invalid input
+ */
+export type RefreshToken422 = ApiError
+
+/**
+ * @description Unknown error
+ */
+export type RefreshTokenError = ApiError
+
+export type RefreshTokenMutationResponse = RefreshToken200
+
+export type RefreshTokenMutation = {
+  Response: RefreshToken200
+  Errors: RefreshToken401 | RefreshToken422
+}
+
+/**
+ * @description Successfully logged out
+ */
+export type LogoutUser204 = any
+
+/**
+ * @description User not authenticated
+ */
+export type LogoutUser401 = ApiError
+
+/**
+ * @description Unknown error
+ */
+export type LogoutUserError = ApiError
+
+export type LogoutUserMutationResponse = LogoutUser204
+
+export type LogoutUserMutation = {
+  Response: LogoutUser204
+  Errors: LogoutUser401
+}
+
+/**
+ * @description Access token for autheticated user
+ */
+export type ExchangeCode200 = TokenData
+
+/**
+ * @description Bad credentials
+ */
+export type ExchangeCode401 = ApiError
+
+/**
+ * @description Invalid input
+ */
+export type ExchangeCode422 = ApiError
+
+/**
+ * @description Unknown error
+ */
+export type ExchangeCodeError = ApiError
+
+export type ExchangeCodeMutationRequest = CodePayload
+
+export type ExchangeCodeMutationResponse = ExchangeCode200
+
+export type ExchangeCodeMutation = {
+  Response: ExchangeCode200
+  Request: ExchangeCodeMutationRequest
+  Errors: ExchangeCode401 | ExchangeCode422
 }
 
 export type ListBookmarksQueryParams = {

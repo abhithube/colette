@@ -280,6 +280,12 @@ export const booleanOpSchema = z.object({
   equals: z.boolean(),
 })
 
+export const codePayloadSchema = z.object({
+  code: z.string(),
+  codeVerifier: z.string(),
+  nonce: z.string(),
+})
+
 export const collectionSchema = z.object({
   id: z.string().uuid(),
   title: z.string(),
@@ -303,7 +309,10 @@ export const collectionUpdateSchema = z.object({
  */
 export const configSchema = z
   .object({
-    oidc: z.lazy(() => oidcConfigSchema).describe('API OIDC config'),
+    oidc: z
+      .lazy(() => oidcConfigSchema)
+      .describe('API OIDC config')
+      .optional(),
     storage: z.lazy(() => storageConfigSchema).describe('API storage config'),
   })
   .describe('API config')
@@ -428,6 +437,11 @@ export const linkSubscriptionTagsSchema = z
       .describe('Unique identifiers of the tags to link to the subscription'),
   })
   .describe('Action to link tags to a user subscription')
+
+export const loginPayloadSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+})
 
 /**
  * @description API OIDC config
@@ -714,6 +728,13 @@ export const paginatedTagDetailsSchema = z
       .optional(),
   })
   .describe('Paginated list of results')
+
+export const registerPayloadSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+  displayName: z.string().min(1).optional().nullable(),
+  imageUrl: z.string().url().optional().nullable(),
+})
 
 /**
  * @description API storage config
@@ -1017,28 +1038,23 @@ export const textOpSchema = z.union([
   }),
 ])
 
+export const tokenDataSchema = z.object({
+  accessToken: z.string(),
+  tokenType: z.lazy(() => tokenTypeSchema),
+  expiresIn: z.number().int(),
+})
+
+export const tokenTypeSchema = z.enum(['bearer'])
+
 /**
- * @description User account. A new user is created if the \"sub\" field in the OIDC access token does not match an existing user.
+ * @description User account. Supports email/password and OIDC.
  */
 export const userSchema = z
   .object({
     id: z.string().uuid().describe('Unique identifier of the user'),
-    externalId: z
-      .string()
-      .describe(
-        'Unique identifier of the user from the external identity server',
-      ),
-    email: z
-      .string()
-      .email()
-      .describe('Email address of the user from the external identity server')
-      .nullable(),
-    displayName: z.string().describe('Display name of the user').nullable(),
-    pictureUrl: z
-      .string()
-      .url()
-      .describe('Profile picture URL of the user')
-      .nullable(),
+    email: z.string().email().describe('Email address of the user'),
+    displayName: z.string().nullable(),
+    imageUrl: z.string().url().nullable(),
     createdAt: z
       .string()
       .datetime()
@@ -1048,9 +1064,7 @@ export const userSchema = z
       .datetime()
       .describe('Timestamp at which the user was last modified'),
   })
-  .describe(
-    'User account. A new user is created if the "sub" field in the OIDC access token does not match an existing user.',
-  )
+  .describe('User account. Supports email/password and OIDC.')
 
 /**
  * @description Paginated list of API keys
@@ -1218,13 +1232,65 @@ export const updateApiKeyMutationResponseSchema = z.lazy(
 )
 
 /**
+ * @description Created user
+ */
+export const registerUser200Schema = z
+  .lazy(() => userSchema)
+  .describe('User account. Supports email/password and OIDC.')
+
+/**
+ * @description Email already registered
+ */
+export const registerUser409Schema = z.lazy(() => apiErrorSchema)
+
+/**
+ * @description Invalid input
+ */
+export const registerUser422Schema = z.lazy(() => apiErrorSchema)
+
+/**
+ * @description Unknown error
+ */
+export const registerUserErrorSchema = z.lazy(() => apiErrorSchema)
+
+export const registerUserMutationRequestSchema = z.lazy(
+  () => registerPayloadSchema,
+)
+
+export const registerUserMutationResponseSchema = z.lazy(
+  () => registerUser200Schema,
+)
+
+/**
+ * @description Access token for autheticated user
+ */
+export const loginUser200Schema = z.lazy(() => tokenDataSchema)
+
+/**
+ * @description Bad credentials
+ */
+export const loginUser401Schema = z.lazy(() => apiErrorSchema)
+
+/**
+ * @description Invalid input
+ */
+export const loginUser422Schema = z.lazy(() => apiErrorSchema)
+
+/**
+ * @description Unknown error
+ */
+export const loginUserErrorSchema = z.lazy(() => apiErrorSchema)
+
+export const loginUserMutationRequestSchema = z.lazy(() => loginPayloadSchema)
+
+export const loginUserMutationResponseSchema = z.lazy(() => loginUser200Schema)
+
+/**
  * @description Active user
  */
 export const getActiveUser200Schema = z
   .lazy(() => userSchema)
-  .describe(
-    'User account. A new user is created if the "sub" field in the OIDC access token does not match an existing user.',
-  )
+  .describe('User account. Supports email/password and OIDC.')
 
 /**
  * @description User not authenticated
@@ -1238,6 +1304,75 @@ export const getActiveUserErrorSchema = z.lazy(() => apiErrorSchema)
 
 export const getActiveUserQueryResponseSchema = z.lazy(
   () => getActiveUser200Schema,
+)
+
+/**
+ * @description Access token for autheticated user
+ */
+export const refreshToken200Schema = z.lazy(() => tokenDataSchema)
+
+/**
+ * @description User not authenticated
+ */
+export const refreshToken401Schema = z.lazy(() => apiErrorSchema)
+
+/**
+ * @description Invalid input
+ */
+export const refreshToken422Schema = z.lazy(() => apiErrorSchema)
+
+/**
+ * @description Unknown error
+ */
+export const refreshTokenErrorSchema = z.lazy(() => apiErrorSchema)
+
+export const refreshTokenMutationResponseSchema = z.lazy(
+  () => refreshToken200Schema,
+)
+
+/**
+ * @description Successfully logged out
+ */
+export const logoutUser204Schema = z.any()
+
+/**
+ * @description User not authenticated
+ */
+export const logoutUser401Schema = z.lazy(() => apiErrorSchema)
+
+/**
+ * @description Unknown error
+ */
+export const logoutUserErrorSchema = z.lazy(() => apiErrorSchema)
+
+export const logoutUserMutationResponseSchema = z.lazy(
+  () => logoutUser204Schema,
+)
+
+/**
+ * @description Access token for autheticated user
+ */
+export const exchangeCode200Schema = z.lazy(() => tokenDataSchema)
+
+/**
+ * @description Bad credentials
+ */
+export const exchangeCode401Schema = z.lazy(() => apiErrorSchema)
+
+/**
+ * @description Invalid input
+ */
+export const exchangeCode422Schema = z.lazy(() => apiErrorSchema)
+
+/**
+ * @description Unknown error
+ */
+export const exchangeCodeErrorSchema = z.lazy(() => apiErrorSchema)
+
+export const exchangeCodeMutationRequestSchema = z.lazy(() => codePayloadSchema)
+
+export const exchangeCodeMutationResponseSchema = z.lazy(
+  () => exchangeCode200Schema,
 )
 
 export const listBookmarksQueryParamsSchema = z

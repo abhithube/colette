@@ -56,7 +56,7 @@ const routerMap = {
     const context = getRouteApi('__root__').useRouteContext()
 
     return (
-      <OIDCConfigProvider oidcConfig={context.oidcConfig}>
+      <OIDCConfigProvider oidcConfig={context.oidcConfig ?? null}>
         <ThemeProvider>
           <QueryClientProvider client={context.queryClient}>
             <Outlet />

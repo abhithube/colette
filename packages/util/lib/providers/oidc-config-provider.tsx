@@ -6,10 +6,12 @@ export type OidcConfig = {
   redirectUri: string
 }
 
-const OIDCConfigContext = createContext<OidcConfig | undefined>(undefined)
+const OIDCConfigContext = createContext<OidcConfig | null | undefined>(
+  undefined,
+)
 
 export const OIDCConfigProvider = (
-  props: PropsWithChildren<{ oidcConfig: OidcConfig }>,
+  props: PropsWithChildren<{ oidcConfig: OidcConfig | null }>,
 ) => {
   return (
     <OIDCConfigContext.Provider value={props.oidcConfig}>
@@ -18,9 +20,9 @@ export const OIDCConfigProvider = (
   )
 }
 
-export function useOIDCConfig(): OidcConfig {
+export function useOIDCConfig(): OidcConfig | null {
   const oidcConfig = useContext(OIDCConfigContext)
-  if (!oidcConfig) {
+  if (oidcConfig === undefined) {
     throw new Error('useOIDCConfig must be used within an OIDCConfigProvider')
   }
 

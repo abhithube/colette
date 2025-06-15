@@ -16,6 +16,13 @@ export const authCallbackRoute = createRoute({
     }),
   ),
   beforeLoad: async ({ context }) => {
+    if (!context.oidcConfig) {
+      throw redirect({
+        to: '/',
+        replace: true,
+      })
+    }
+
     if (!context.user) {
       const codeVerifier =
         sessionStorage.getItem('colette-code-verifier') ?? undefined
