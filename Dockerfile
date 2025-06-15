@@ -4,7 +4,7 @@ COPY package*.json tsconfig*.json ./
 COPY apps/web ./apps/web
 COPY packages ./packages
 RUN npm ci
-RUN cd apps/web && npx vite build
+RUN npm run build
 
 FROM rust:1.87-alpine AS base
 WORKDIR /app
