@@ -27,8 +27,8 @@ jobs:
             target: x86_64-apple-darwin
           - os: macos-latest
             target: aarch64-apple-darwin
-          # - os: windows-latest
-          #   target: x86_64-pc-windows-msvc
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
 
     steps:
       - name: Checkout
@@ -76,18 +76,18 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }} -p $app_name
+        run: cargo build --release --target ${{ matrix.target }} -p ${{ env.app_name }}
 
       - name: Package
         run: |
-          name="$app_name-${{ matrix.target }}"
+          name="${{ env.app_name }}-${{ matrix.target }}"
           mkdir -p dist
           if [[ "${{ matrix.target }}" == *"windows"* ]]; then
-            cp target/${{ matrix.target }}/release/$app_name.exe dist/
-            cd dist && zip -r ${name}.zip $app_name.exe
+            cp target/${{ matrix.target }}/release/${{ env.app_name }}.exe dist/
+            cd dist && zip -r ${name}.zip ${{ env.app_name }}.exe
           else
-            cp target/${{ matrix.target }}/release/$app_name dist/
-            cd dist && tar czf ${name}.tar.gz $app_name
+            cp target/${{ matrix.target }}/release/${{ env.app_name }} dist/
+            cd dist && tar czf ${name}.tar.gz ${{ env.app_name }}
           fi
 
       - name: Release
