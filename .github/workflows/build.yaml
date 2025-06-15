@@ -78,17 +78,22 @@ jobs:
       - name: Build
         run: cargo build --release --target ${{ matrix.target }} -p ${{ env.app_name }}
 
-      - name: Package
+      - name: Package Unix
+        if: matrix.os != 'windows-latest'
         run: |
           name="${{ env.app_name }}-${{ matrix.target }}"
           mkdir -p dist
-          if [[ "${{ matrix.target }}" == *"windows"* ]]; then
-            cp target/${{ matrix.target }}/release/${{ env.app_name }}.exe dist/
-            cd dist && zip -r ${name}.zip ${{ env.app_name }}.exe
-          else
-            cp target/${{ matrix.target }}/release/${{ env.app_name }} dist/
-            cd dist && tar czf ${name}.tar.gz ${{ env.app_name }}
-          fi
+          cp target/${{ matrix.target }}/release/${{ env.app_name }} dist/
+          cd dist && tar czf ${name}.tar.gz ${{ env.app_name }}
+
+      - name: Package Windows
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          name="${{ env.app_name }}-${{ matrix.target }}"
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/${{ env.app_name }}.exe dist/
+          cd dist && zip -r ${name}.zip ${{ env.app_name }}.exe
 
       - name: Release
         uses: softprops/action-gh-release@v2
