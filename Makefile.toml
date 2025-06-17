@@ -13,17 +13,3 @@ args = ["build", "--release"]
 install_crate = "refinery_cli"
 command = "refinery"
 args = ["migrate", "-e", "DATABASE_URL"]
-
-[tasks.generate-migration]
-command = "atlas"
-args = [
-  "migrate",
-  "diff",
-  "${@}",
-  "--dir",
-  "file://migrations",
-  "--to",
-  "file://schema.sql",
-  "--dev-url",
-  "docker://postgres/17-alpine/dev",
-]

@@ -51,7 +51,7 @@ mod worker;
 #[folder = "$CARGO_MANIFEST_DIR/../web/dist/"]
 struct Asset;
 
-embed_migrations!("../../migrations");
+embed_migrations!("../../database/postgres/migrations");
 
 #[derive(Debug, Clone, serde::Deserialize)]
 struct OidcProviderMetadata {
@@ -91,8 +91,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let pool = Pool::builder(manager).build()?;
 
-    let mut migrator = PostgresMigrator::new(pool.clone());
-    migrations::runner().run_async(&mut migrator).await?;
+    {
+        let mut migrator = PostgresMigrator::new(pool.clone());
+        let mut runner = migrations::runner();
+
+        if runner
+            .get_last_applied_migration_async(&mut migrator)
+            .await?
+            .is_none()
+            && !migrator.is_fresh(&pool).await?
+        {
+            runner = runner.set_target(refinery::Target::Fake)
+        }
+
+        runner.run_async(&mut migrator).await?;
+    }
 
     let (storage_adapter, image_base_url) = match app_config.storage.clone() {
         StorageConfig::Fs(config) => (

@@ -3,8 +3,8 @@ CREATE TABLE users (
   email TEXT NOT NULL UNIQUE,
   display_name TEXT,
   image_url TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE accounts (
@@ -13,8 +13,8 @@ CREATE TABLE accounts (
   provider TEXT NOT NULL,
   password_hash TEXT,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
   UNIQUE (provider, sub)
 );
 
@@ -25,8 +25,8 @@ CREATE TABLE api_keys (
   title TEXT NOT NULL,
   preview TEXT NOT NULL,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE jobs (
@@ -36,7 +36,7 @@ CREATE TABLE jobs (
   status TEXT NOT NULL DEFAULT 'pending',
   group_identifier TEXT,
   message TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL,
   completed_at TIMESTAMPTZ
 );
 
@@ -68,8 +68,8 @@ CREATE TABLE subscriptions (
   description TEXT,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   feed_id uuid NOT NULL REFERENCES feeds (id) ON DELETE RESTRICT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
   UNIQUE (user_id, feed_id)
 );
 
@@ -77,7 +77,7 @@ CREATE TABLE read_entries (
   subscription_id uuid NOT NULL REFERENCES subscriptions (id) ON DELETE CASCADE,
   feed_entry_id uuid NOT NULL REFERENCES feed_entries (id) ON DELETE RESTRICT,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL,
   PRIMARY KEY (subscription_id, feed_entry_id)
 );
 
@@ -90,8 +90,8 @@ CREATE TABLE bookmarks (
   author TEXT,
   archived_path TEXT,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
   UNIQUE (user_id, link)
 );
 
@@ -99,8 +99,8 @@ CREATE TABLE tags (
   id uuid NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
   UNIQUE (user_id, title)
 );
 
@@ -124,8 +124,8 @@ CREATE TABLE streams (
   description TEXT,
   filter_json JSONB NOT NULL,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
   UNIQUE (user_id, title)
 );
 
@@ -135,7 +135,7 @@ CREATE TABLE collections (
   description TEXT,
   filter_json JSONB NOT NULL,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
   UNIQUE (user_id, title)
 );

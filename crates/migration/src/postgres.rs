@@ -13,6 +13,14 @@ impl PostgresMigrator {
     pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
+
+    pub async fn is_fresh(&self, pool: &Pool) -> Result<bool, deadpool_postgres::PoolError> {
+        let client = pool.get().await?;
+
+        let row = client.query_one(r#"SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'"#, &[]).await?;
+
+        Ok(row.get::<_, i64>(0) == 0)
+    }
 }
 
 #[async_trait::async_trait]
