@@ -5,9 +5,10 @@ use colette_query::{
 };
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
-use tokio_postgres::Row;
+use sea_query_postgres::PostgresBinder as _;
 use uuid::Uuid;
+
+use super::{PgRow, PreparedClient as _};
 
 #[derive(Debug, Clone)]
 pub struct PostgresJobRepository {
@@ -26,11 +27,9 @@ impl JobRepository for PostgresJobRepository {
         let client = self.pool.get().await?;
 
         let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let jobs = client.query_prepared::<Job>(&sql, &values).await?;
 
-        let stmt = client.prepare_cached(&sql).await?;
-        let rows = client.query(&stmt, &values.as_params()).await?;
-
-        Ok(rows.iter().map(|e| JobRow(e).into()).collect())
+        Ok(jobs)
     }
 
     async fn save(&self, data: &Job) -> Result<(), Error> {
@@ -49,8 +48,7 @@ impl JobRepository for PostgresJobRepository {
         .into_insert()
         .build_postgres(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-        client.execute(&stmt, &values.as_params()).await?;
+        client.execute_prepared(&sql, &values).await?;
 
         Ok(())
     }
@@ -62,17 +60,14 @@ impl JobRepository for PostgresJobRepository {
             .into_delete()
             .build_postgres(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-        client.execute(&stmt, &values.as_params()).await?;
+        client.execute_prepared(&sql, &values).await?;
 
         Ok(())
     }
 }
 
-struct JobRow<'a>(&'a Row);
-
-impl From<JobRow<'_>> for Job {
-    fn from(JobRow(value): JobRow<'_>) -> Self {
+impl From<PgRow<'_>> for Job {
+    fn from(PgRow(value): PgRow<'_>) -> Self {
         Self {
             id: value.get("id"),
             job_type: value.get("job_type"),

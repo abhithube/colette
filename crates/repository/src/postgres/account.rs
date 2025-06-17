@@ -5,8 +5,9 @@ use colette_core::{
 use colette_query::{IntoInsert, IntoSelect, account::AccountInsert, user::UserInsert};
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
-use tokio_postgres::Row;
+use sea_query_postgres::PostgresBinder as _;
+
+use super::{PgRow, PreparedClient as _};
 
 #[derive(Debug, Clone)]
 pub struct PostgresAccountRepository {
@@ -25,16 +26,13 @@ impl AccountRepository for PostgresAccountRepository {
         let client = self.pool.get().await?;
 
         let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let accounts = client.query_prepared::<Account>(&sql, &values).await?;
 
-        let stmt = client.prepare_cached(&sql).await?;
-        let rows = client.query(&stmt, &values.as_params()).await?;
-
-        Ok(rows.iter().map(|e| AccountRow(e).into()).collect())
+        Ok(accounts)
     }
 
     async fn save(&self, data: &Account) -> Result<(), Error> {
         let mut client = self.pool.get().await?;
-
         let tx = client.transaction().await?;
 
         if let Some(user) = &data.user {
@@ -49,8 +47,7 @@ impl AccountRepository for PostgresAccountRepository {
             .into_insert()
             .build_postgres(PostgresQueryBuilder);
 
-            let stmt = tx.prepare_cached(&sql).await?;
-            tx.execute(&stmt, &values.as_params()).await?;
+            tx.execute_prepared(&sql, &values).await?;
         }
 
         let (sql, values) = AccountInsert {
@@ -65,8 +62,7 @@ impl AccountRepository for PostgresAccountRepository {
         .into_insert()
         .build_postgres(PostgresQueryBuilder);
 
-        let stmt = tx.prepare_cached(&sql).await?;
-        tx.execute(&stmt, &values.as_params()).await?;
+        tx.execute_prepared(&sql, &values).await?;
 
         tx.commit().await?;
 
@@ -74,10 +70,8 @@ impl AccountRepository for PostgresAccountRepository {
     }
 }
 
-struct AccountRow<'a>(&'a Row);
-
-impl From<AccountRow<'_>> for Account {
-    fn from(AccountRow(value): AccountRow<'_>) -> Self {
+impl From<PgRow<'_>> for Account {
+    fn from(PgRow(value): PgRow<'_>) -> Self {
         Self {
             id: value.get("id"),
             sub: value.get("sub"),

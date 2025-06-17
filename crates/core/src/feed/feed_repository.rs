@@ -1,4 +1,3 @@
-use futures::stream::BoxStream;
 use url::Url;
 use uuid::Uuid;
 
@@ -20,8 +19,6 @@ pub trait FeedRepository: Send + Sync + 'static {
     }
 
     async fn save(&self, data: &mut Feed) -> Result<(), Error>;
-
-    async fn stream(&self) -> Result<BoxStream<Result<Url, Error>>, Error>;
 }
 
 #[derive(Debug, Clone, Default)]

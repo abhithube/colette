@@ -5,8 +5,9 @@ use colette_core::{
 use colette_query::IntoSelect;
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
-use tokio_postgres::Row;
+use sea_query_postgres::PostgresBinder as _;
+
+use super::{PgRow, PreparedClient as _};
 
 #[derive(Debug, Clone)]
 pub struct PostgresUserRepository {
@@ -25,18 +26,14 @@ impl UserRepository for PostgresUserRepository {
         let client = self.pool.get().await?;
 
         let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let users = client.query_prepared::<User>(&sql, &values).await?;
 
-        let stmt = client.prepare_cached(&sql).await?;
-        let rows = client.query(&stmt, &values.as_params()).await?;
-
-        Ok(rows.iter().map(|e| UserRow(e).into()).collect())
+        Ok(users)
     }
 }
 
-struct UserRow<'a>(&'a Row);
-
-impl From<UserRow<'_>> for User {
-    fn from(UserRow(value): UserRow<'_>) -> Self {
+impl From<PgRow<'_>> for User {
+    fn from(PgRow(value): PgRow<'_>) -> Self {
         Self {
             id: value.get("id"),
             email: value.get("email"),

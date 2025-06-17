@@ -8,9 +8,11 @@ use colette_query::{
 };
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
-use tokio_postgres::{Row, error::SqlState};
+use sea_query_postgres::PostgresBinder as _;
+use tokio_postgres::error::SqlState;
 use uuid::Uuid;
+
+use super::{PgRow, PreparedClient as _};
 
 #[derive(Debug, Clone)]
 pub struct PostgresStreamRepository {
@@ -29,11 +31,9 @@ impl StreamRepository for PostgresStreamRepository {
         let client = self.pool.get().await?;
 
         let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let streams = client.query_prepared::<Stream>(&sql, &values).await?;
 
-        let stmt = client.prepare_cached(&sql).await?;
-        let rows = client.query(&stmt, &values.as_params()).await?;
-
-        Ok(rows.iter().map(|e| StreamRow(e).into()).collect())
+        Ok(streams)
     }
 
     async fn save(&self, data: &Stream) -> Result<(), Error> {
@@ -50,9 +50,8 @@ impl StreamRepository for PostgresStreamRepository {
         .into_insert()
         .build_postgres(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
         client
-            .execute(&stmt, &values.as_params())
+            .execute_prepared(&sql, &values)
             .await
             .map_err(|e| match e.code() {
                 Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.title.clone()),
@@ -69,17 +68,14 @@ impl StreamRepository for PostgresStreamRepository {
             .into_delete()
             .build_postgres(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-        client.execute(&stmt, &values.as_params()).await?;
+        client.execute_prepared(&sql, &values).await?;
 
         Ok(())
     }
 }
 
-struct StreamRow<'a>(&'a Row);
-
-impl From<StreamRow<'_>> for Stream {
-    fn from(StreamRow(value): StreamRow<'_>) -> Self {
+impl From<PgRow<'_>> for Stream {
+    fn from(PgRow(value): PgRow<'_>) -> Self {
         Self {
             id: value.get("id"),
             title: value.get("title"),

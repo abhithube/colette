@@ -3,10 +3,13 @@ use core::str;
 use bytes::Buf;
 use colette_http::HttpClient;
 use colette_scraper::feed::FeedScraper;
-use futures::stream::BoxStream;
+use futures::{
+    StreamExt, TryFutureExt,
+    stream::{self, BoxStream},
+};
 use url::Url;
 
-use super::{Error, Feed, FeedRepository};
+use super::{Error, Feed, FeedParams, FeedRepository};
 
 pub struct FeedService {
     repository: Box<dyn FeedRepository>,
@@ -68,8 +71,14 @@ impl FeedService {
         Ok(feed)
     }
 
-    pub async fn stream(&'_ self) -> Result<BoxStream<'_, Result<Url, Error>>, Error> {
-        self.repository.stream().await
+    pub async fn stream(&'_ self) -> Result<BoxStream<'_, Url>, Error> {
+        let x = self
+            .repository
+            .query(FeedParams::default())
+            .map_ok(|e| e.into_iter().map(|e| e.source_url).collect::<Vec<_>>())
+            .await?;
+
+        Ok(stream::iter(x).boxed())
     }
 }
 

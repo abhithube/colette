@@ -8,9 +8,10 @@ use colette_query::{
 };
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
-use tokio_postgres::Row;
+use sea_query_postgres::PostgresBinder as _;
 use uuid::Uuid;
+
+use super::{PgRow, PreparedClient as _};
 
 #[derive(Debug, Clone)]
 pub struct PostgresApiKeyRepository {
@@ -29,11 +30,9 @@ impl ApiKeyRepository for PostgresApiKeyRepository {
         let client = self.pool.get().await?;
 
         let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let api_keys = client.query_prepared::<ApiKey>(&sql, &values).await?;
 
-        let stmt = client.prepare_cached(&sql).await?;
-        let rows = client.query(&stmt, &values.as_params()).await?;
-
-        Ok(rows.iter().map(|e| ApiKeyRow(e).into()).collect())
+        Ok(api_keys)
     }
 
     async fn save(&self, data: &ApiKey) -> Result<(), Error> {
@@ -52,8 +51,7 @@ impl ApiKeyRepository for PostgresApiKeyRepository {
         .into_insert()
         .build_postgres(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-        client.execute(&stmt, &values.as_params()).await?;
+        client.execute_prepared(&sql, &values).await?;
 
         Ok(())
     }
@@ -65,17 +63,14 @@ impl ApiKeyRepository for PostgresApiKeyRepository {
             .into_delete()
             .build_postgres(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-        client.execute(&stmt, &values.as_params()).await?;
+        client.execute_prepared(&sql, &values).await?;
 
         Ok(())
     }
 }
 
-struct ApiKeyRow<'a>(&'a Row);
-
-impl From<ApiKeyRow<'_>> for ApiKey {
-    fn from(ApiKeyRow(value): ApiKeyRow<'_>) -> Self {
+impl From<PgRow<'_>> for ApiKey {
+    fn from(PgRow(value): PgRow<'_>) -> Self {
         Self {
             id: value.get("id"),
             lookup_hash: value.get("lookup_hash"),

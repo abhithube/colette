@@ -9,10 +9,9 @@ use colette_query::{
 };
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
-use tokio_postgres::Row;
+use sea_query_postgres::PostgresBinder as _;
 
-use super::feed_entry::FeedEntryRow;
+use super::{PgRow, PreparedClient as _};
 
 #[derive(Debug, Clone)]
 pub struct PostgresSubscriptionEntryRepository {
@@ -34,14 +33,11 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
         let client = self.pool.get().await?;
 
         let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let subscription_entries = client
+            .query_prepared::<SubscriptionEntry>(&sql, &values)
+            .await?;
 
-        let stmt = client.prepare_cached(&sql).await?;
-        let rows = client.query(&stmt, &values.as_params()).await?;
-
-        Ok(rows
-            .iter()
-            .map(|e| SubscriptionEntryWithFeedEntryRow(e).into())
-            .collect())
+        Ok(subscription_entries)
     }
 
     async fn save(&self, data: &SubscriptionEntry) -> Result<(), Error> {
@@ -61,8 +57,7 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
             .into_insert()
             .build_postgres(PostgresQueryBuilder);
 
-            let stmt = client.prepare_cached(&sql).await?;
-            client.execute(&stmt, &values.as_params()).await?;
+            client.execute_prepared(&sql, &values).await?;
         } else {
             let (sql, values) = ReadEntryDelete {
                 subscription_id: data.subscription_id,
@@ -71,25 +66,20 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
             .into_delete()
             .build_postgres(PostgresQueryBuilder);
 
-            let stmt = client.prepare_cached(&sql).await?;
-            client.execute(&stmt, &values.as_params()).await?;
+            client.execute_prepared(&sql, &values).await?;
         }
 
         Ok(())
     }
 }
 
-struct SubscriptionEntryWithFeedEntryRow<'a>(&'a Row);
-
-impl From<SubscriptionEntryWithFeedEntryRow<'_>> for SubscriptionEntry {
-    fn from(
-        SubscriptionEntryWithFeedEntryRow(value): SubscriptionEntryWithFeedEntryRow<'_>,
-    ) -> Self {
+impl From<PgRow<'_>> for SubscriptionEntry {
+    fn from(PgRow(value): PgRow<'_>) -> Self {
         Self {
             subscription_id: value.get("subscription_id"),
             feed_entry_id: value.get("id"),
             user_id: value.get("user_id"),
-            feed_entry: Some(FeedEntryRow(value).into()),
+            feed_entry: Some(PgRow(value).into()),
             has_read: value.try_get("has_read").ok(),
             read_at: value.try_get("created_at").ok(),
         }

@@ -57,7 +57,7 @@ impl Service<Job> for RefreshFeedsHandler {
                 .await
                 .map_err(|e| Error::Service(e.to_string()))?;
 
-            while let Some(Ok(url)) = stream.next().await {
+            while let Some(url) = stream.next().await {
                 let data = serde_json::to_value(ScrapeFeedJobData { url })?;
 
                 let job = job_service

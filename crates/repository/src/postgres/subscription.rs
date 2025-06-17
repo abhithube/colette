@@ -13,9 +13,11 @@ use colette_query::{
 };
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
-use tokio_postgres::{Row, error::SqlState, types::Json};
+use sea_query_postgres::PostgresBinder as _;
+use tokio_postgres::{error::SqlState, types::Json};
 use uuid::Uuid;
+
+use super::{IdRow, PgRow, PreparedClient as _};
 
 #[derive(Debug, Clone)]
 pub struct PostgresSubscriptionRepository {
@@ -34,16 +36,13 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         let client = self.pool.get().await?;
 
         let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let subscriptions = client.query_prepared::<Subscription>(&sql, &values).await?;
 
-        let stmt = client.prepare_cached(&sql).await?;
-        let rows = client.query(&stmt, &values.as_params()).await?;
-
-        Ok(rows.iter().map(|e| SubscriptionRow(e).into()).collect())
+        Ok(subscriptions)
     }
 
     async fn save(&self, data: &Subscription) -> Result<(), Error> {
         let mut client = self.pool.get().await?;
-
         let tx = client.transaction().await?;
 
         {
@@ -60,8 +59,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             .into_insert()
             .build_postgres(PostgresQueryBuilder);
 
-            let stmt = tx.prepare_cached(&sql).await?;
-            tx.execute(&stmt, &values.as_params())
+            tx.execute_prepared(&sql, &values)
                 .await
                 .map_err(|e| match e.code() {
                     Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.feed_id),
@@ -77,8 +75,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             .into_delete()
             .build_postgres(PostgresQueryBuilder);
 
-            let stmt = tx.prepare_cached(&sql).await?;
-            tx.execute(&stmt, &values.as_params()).await?;
+            tx.execute_prepared(&sql, &values).await?;
 
             if !tags.is_empty() {
                 let (sql, values) = SubscriptionTagInsert {
@@ -89,8 +86,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 .into_insert()
                 .build_postgres(PostgresQueryBuilder);
 
-                let stmt = tx.prepare_cached(&sql).await?;
-                tx.execute(&stmt, &values.as_params()).await?;
+                tx.execute_prepared(&sql, &values).await?;
             }
         }
 
@@ -106,15 +102,13 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             .into_delete()
             .build_postgres(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-        client.execute(&stmt, &values.as_params()).await?;
+        client.execute_prepared(&sql, &values).await?;
 
         Ok(())
     }
 
     async fn import(&self, data: ImportSubscriptionsData) -> Result<(), Error> {
         let mut client = self.pool.get().await?;
-
         let tx = client.transaction().await?;
 
         let mut stack: Vec<(Option<Uuid>, colette_opml::Outline)> = data
@@ -133,12 +127,10 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                     }
                     .into_select()
                     .build_postgres(PostgresQueryBuilder);
+                    let tag = tx.query_opt_prepared::<Tag>(&sql, &values).await?;
 
-                    let stmt = tx.prepare_cached(&sql).await?;
-                    let row = tx.query_opt(&stmt, &values.as_params()).await?;
-
-                    match row {
-                        Some(row) => row.get("id"),
+                    match tag {
+                        Some(tag) => tag.id,
                         _ => {
                             let (sql, values) = TagInsert {
                                 id: Uuid::new_v4(),
@@ -150,11 +142,9 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                             }
                             .into_insert()
                             .build_postgres(PostgresQueryBuilder);
+                            let row = tx.query_one_prepared::<IdRow>(&sql, &values).await?;
 
-                            let stmt = tx.prepare_cached(&sql).await?;
-                            let row = tx.query_one(&stmt, &values.as_params()).await?;
-
-                            row.get("id")
+                            row.id
                         }
                     }
                 };
@@ -176,16 +166,14 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 };
 
                 let (sql, values) = feed.into_insert().build_postgres(PostgresQueryBuilder);
-
-                let stmt = tx.prepare_cached(&sql).await?;
-                let row = tx.query_one(&stmt, &values.as_params()).await?;
+                let feed = tx.query_one_prepared::<Feed>(&sql, &values).await?;
 
                 let subscription_id = {
                     let (sql, values) = SubscriptionInsert {
                         id: Uuid::new_v4(),
                         title: &title,
                         description: None,
-                        feed_id: row.get("id"),
+                        feed_id: feed.id,
                         user_id: data.user_id,
                         created_at: Utc::now(),
                         updated_at: Utc::now(),
@@ -193,11 +181,9 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                     }
                     .into_insert()
                     .build_postgres(PostgresQueryBuilder);
+                    let row = tx.query_one_prepared::<IdRow>(&sql, &values).await?;
 
-                    let stmt = tx.prepare_cached(&sql).await?;
-                    let row = tx.query_one(&stmt, &values.as_params()).await?;
-
-                    row.get("id")
+                    row.id
                 };
 
                 if let Some(tag_id) = parent_id {
@@ -211,8 +197,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                         .into_insert()
                         .build_postgres(PostgresQueryBuilder);
 
-                    let stmt = tx.prepare_cached(&sql).await?;
-                    tx.execute(&stmt, &values.as_params()).await?;
+                    tx.execute_prepared(&sql, &values).await?;
                 }
             }
         }
@@ -223,10 +208,8 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
     }
 }
 
-struct SubscriptionRow<'a>(&'a Row);
-
-impl From<SubscriptionRow<'_>> for Subscription {
-    fn from(SubscriptionRow(value): SubscriptionRow<'_>) -> Self {
+impl From<PgRow<'_>> for Subscription {
+    fn from(PgRow(value): PgRow<'_>) -> Self {
         Self {
             id: value.get("id"),
             title: value.get("title"),

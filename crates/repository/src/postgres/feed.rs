@@ -8,14 +8,10 @@ use colette_query::{
     feed_entry::{FeedEntryInsert, FeedEntryInsertBatch},
 };
 use deadpool_postgres::Pool;
-use futures::{
-    StreamExt,
-    stream::{self, BoxStream},
-};
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
-use tokio_postgres::Row;
-use url::Url;
+use sea_query_postgres::PostgresBinder as _;
+
+use super::{IdRow, PgRow, PreparedClient as _};
 
 #[derive(Debug, Clone)]
 pub struct PostgresFeedRepository {
@@ -34,11 +30,9 @@ impl FeedRepository for PostgresFeedRepository {
         let client = self.pool.get().await?;
 
         let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let feeds = client.query_prepared::<Feed>(&sql, &values).await?;
 
-        let stmt = client.prepare_cached(&sql).await?;
-        let rows = client.query(&stmt, &values.as_params()).await?;
-
-        Ok(rows.iter().map(|e| FeedRow(e).into()).collect())
+        Ok(feeds)
     }
 
     async fn save(&self, data: &mut Feed) -> Result<(), Error> {
@@ -57,11 +51,9 @@ impl FeedRepository for PostgresFeedRepository {
             };
 
             let (sql, values) = feed.into_insert().build_postgres(PostgresQueryBuilder);
+            let row = tx.query_one_prepared::<IdRow>(&sql, &values).await?;
 
-            let stmt = tx.prepare_cached(&sql).await?;
-            let row = tx.query_one(&stmt, &values.as_params()).await?;
-
-            row.get("id")
+            row.id
         };
 
         if let Some(ref entries) = data.entries {
@@ -80,38 +72,17 @@ impl FeedRepository for PostgresFeedRepository {
                 .into_insert()
                 .build_postgres(PostgresQueryBuilder);
 
-            let stmt = tx.prepare_cached(&sql).await?;
-            tx.execute(&stmt, &values.as_params()).await?;
+            tx.execute_prepared(&sql, &values).await?;
         }
 
         tx.commit().await?;
 
         Ok(())
     }
-
-    async fn stream(&self) -> Result<BoxStream<Result<Url, Error>>, Error> {
-        let client = self.pool.get().await?;
-
-        let (sql, values) = FeedParams::default()
-            .into_select()
-            .build_postgres(PostgresQueryBuilder);
-
-        let stmt = client.prepare_cached(&sql).await?;
-        let rows = client.query(&stmt, &values.as_params()).await?;
-
-        let urls = rows
-            .iter()
-            .map(|e| Ok(e.get::<_, String>("source_url").parse().unwrap()))
-            .collect::<Vec<_>>();
-
-        Ok(stream::iter(urls).boxed())
-    }
 }
 
-struct FeedRow<'a>(&'a Row);
-
-impl From<FeedRow<'_>> for Feed {
-    fn from(FeedRow(value): FeedRow<'_>) -> Self {
+impl From<PgRow<'_>> for Feed {
+    fn from(PgRow(value): PgRow<'_>) -> Self {
         Self {
             id: value.get("id"),
             source_url: value.get::<_, String>("source_url").parse().unwrap(),

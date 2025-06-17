@@ -12,9 +12,11 @@ use colette_query::{
 };
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
-use tokio_postgres::{Row, error::SqlState, types::Json};
+use sea_query_postgres::PostgresBinder as _;
+use tokio_postgres::{error::SqlState, types::Json};
 use uuid::Uuid;
+
+use super::{IdRow, PgRow, PreparedClient as _};
 
 #[derive(Debug, Clone)]
 pub struct PostgresBookmarkRepository {
@@ -33,11 +35,9 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         let client = self.pool.get().await?;
 
         let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let bookmarks = client.query_prepared::<Bookmark>(&sql, &values).await?;
 
-        let stmt = client.prepare_cached(&sql).await?;
-        let rows = client.query(&stmt, &values.as_params()).await?;
-
-        Ok(rows.iter().map(|e| BookmarkRow(e).into()).collect())
+        Ok(bookmarks)
     }
 
     async fn save(&self, data: &Bookmark) -> Result<(), Error> {
@@ -61,8 +61,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             .into_insert()
             .build_postgres(PostgresQueryBuilder);
 
-            let stmt = tx.prepare_cached(&sql).await?;
-            tx.execute(&stmt, &values.as_params())
+            tx.execute_prepared(&sql, &values)
                 .await
                 .map_err(|e| match e.code() {
                     Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.link.clone()),
@@ -78,8 +77,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             .into_delete()
             .build_postgres(PostgresQueryBuilder);
 
-            let stmt = tx.prepare_cached(&sql).await?;
-            tx.execute(&stmt, &values.as_params()).await?;
+            tx.execute_prepared(&sql, &values).await?;
 
             if !tags.is_empty() {
                 let (sql, values) = BookmarkTagInsert {
@@ -90,8 +88,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                 .into_insert()
                 .build_postgres(PostgresQueryBuilder);
 
-                let stmt = tx.prepare_cached(&sql).await?;
-                tx.execute(&stmt, &values.as_params()).await?;
+                tx.execute_prepared(&sql, &values).await?;
             }
         }
 
@@ -119,8 +116,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         .into_insert()
         .build_postgres(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-        client.execute(&stmt, &values.as_params()).await?;
+        client.execute_prepared(&sql, &values).await?;
 
         Ok(())
     }
@@ -140,8 +136,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         .into_update()
         .build_postgres(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-        client.execute(&stmt, &values.as_params()).await?;
+        client.execute_prepared(&sql, &values).await?;
 
         Ok(())
     }
@@ -153,15 +148,13 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             .into_delete()
             .build_postgres(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-        client.execute(&stmt, &values.as_params()).await?;
+        client.execute_prepared(&sql, &values).await?;
 
         Ok(())
     }
 
     async fn import(&self, data: ImportBookmarksData) -> Result<(), Error> {
         let mut client = self.pool.get().await?;
-
         let tx = client.transaction().await?;
 
         let mut stack: Vec<(Option<Uuid>, colette_netscape::Item)> =
@@ -177,12 +170,10 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                     }
                     .into_select()
                     .build_postgres(PostgresQueryBuilder);
+                    let tag = tx.query_opt_prepared::<Tag>(&sql, &values).await?;
 
-                    let stmt = tx.prepare_cached(&sql).await?;
-                    let row = tx.query_opt(&stmt, &values.as_params()).await?;
-
-                    match row {
-                        Some(row) => row.get("id"),
+                    match tag {
+                        Some(tag) => tag.id,
                         _ => {
                             let (sql, values) = TagInsert {
                                 id: Uuid::new_v4(),
@@ -194,11 +185,9 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                             }
                             .into_insert()
                             .build_postgres(PostgresQueryBuilder);
+                            let row = tx.query_one_prepared::<IdRow>(&sql, &values).await?;
 
-                            let stmt = tx.prepare_cached(&sql).await?;
-                            let row = tx.query_one(&stmt, &values.as_params()).await?;
-
-                            row.get("id")
+                            row.id
                         }
                     }
                 };
@@ -223,11 +212,9 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                     }
                     .into_insert()
                     .build_postgres(PostgresQueryBuilder);
+                    let row = tx.query_one_prepared::<IdRow>(&sql, &values).await?;
 
-                    let stmt = tx.prepare_cached(&sql).await?;
-                    let row = tx.query_one(&stmt, &values.as_params()).await?;
-
-                    row.get("id")
+                    row.id
                 };
 
                 if let Some(tag_id) = parent_id {
@@ -241,8 +228,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                         .into_insert()
                         .build_postgres(PostgresQueryBuilder);
 
-                    let stmt = tx.prepare_cached(&sql).await?;
-                    tx.execute(&stmt, &values.as_params()).await?;
+                    tx.execute_prepared(&sql, &values).await?;
                 }
             }
         }
@@ -253,10 +239,8 @@ impl BookmarkRepository for PostgresBookmarkRepository {
     }
 }
 
-struct BookmarkRow<'a>(&'a Row);
-
-impl From<BookmarkRow<'_>> for Bookmark {
-    fn from(BookmarkRow(value): BookmarkRow<'_>) -> Self {
+impl From<PgRow<'_>> for Bookmark {
+    fn from(PgRow(value): PgRow<'_>) -> Self {
         Self {
             id: value.get("id"),
             link: value.get::<_, String>("link").parse().unwrap(),

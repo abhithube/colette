@@ -5,8 +5,9 @@ use colette_core::{
 use colette_query::IntoSelect;
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
-use tokio_postgres::Row;
+use sea_query_postgres::PostgresBinder as _;
+
+use super::{PgRow, PreparedClient as _};
 
 #[derive(Debug, Clone)]
 pub struct PostgresFeedEntryRepository {
@@ -25,18 +26,14 @@ impl FeedEntryRepository for PostgresFeedEntryRepository {
         let client = self.pool.get().await?;
 
         let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let feed_entries = client.query_prepared::<FeedEntry>(&sql, &values).await?;
 
-        let stmt = client.prepare_cached(&sql).await?;
-        let rows = client.query(&stmt, &values.as_params()).await?;
-
-        Ok(rows.iter().map(|e| FeedEntryRow(e).into()).collect())
+        Ok(feed_entries)
     }
 }
 
-pub(crate) struct FeedEntryRow<'a>(pub(crate) &'a Row);
-
-impl From<FeedEntryRow<'_>> for FeedEntry {
-    fn from(FeedEntryRow(value): FeedEntryRow<'_>) -> Self {
+impl From<PgRow<'_>> for FeedEntry {
+    fn from(PgRow(value): PgRow<'_>) -> Self {
         Self {
             id: value.get("id"),
             link: value.get::<_, String>("link").parse().unwrap(),
