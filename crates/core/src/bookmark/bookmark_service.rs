@@ -409,12 +409,14 @@ impl BookmarkService {
     }
 
     pub async fn export_bookmarks(&self, user_id: Uuid) -> Result<Bytes, Error> {
+        let mut items = Vec::<Item>::new();
         let mut item_map = HashMap::<Uuid, Item>::new();
 
         let bookmarks = self
             .bookmark_repository
             .query(BookmarkParams {
                 user_id: Some(user_id),
+                with_tags: true,
                 ..Default::default()
             })
             .await?;
@@ -439,11 +441,15 @@ impl BookmarkService {
                         .item
                         .push(item.clone());
                 }
+            } else {
+                items.push(item);
             }
         }
 
+        items.append(&mut item_map.into_values().collect());
+
         let netscape = Netscape {
-            items: item_map.into_values().collect(),
+            items,
             ..Default::default()
         };
 

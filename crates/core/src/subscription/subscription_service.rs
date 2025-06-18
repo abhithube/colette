@@ -283,12 +283,15 @@ impl SubscriptionService {
     }
 
     pub async fn export_subscriptions(&self, user_id: Uuid) -> Result<Bytes, Error> {
+        let mut outlines = Vec::<Outline>::new();
         let mut outline_map = HashMap::<Uuid, Outline>::new();
 
         let subscriptions = self
             .subscription_repository
             .query(SubscriptionParams {
                 user_id: Some(user_id),
+                with_feed: true,
+                with_tags: true,
                 ..Default::default()
             })
             .await?;
@@ -318,13 +321,15 @@ impl SubscriptionService {
                         .outline
                         .push(outline.clone());
                 }
+            } else {
+                outlines.push(outline);
             }
         }
 
+        outlines.append(&mut outline_map.into_values().collect());
+
         let opml = Opml {
-            body: Body {
-                outlines: outline_map.into_values().collect(),
-            },
+            body: Body { outlines },
             ..Default::default()
         };
 
