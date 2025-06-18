@@ -7,14 +7,13 @@ use colette_core::{
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
     feed::FeedInsert,
-    subscription::{SubscriptionDelete, SubscriptionInsert},
+    subscription::{SubscriptionDelete, SubscriptionInsert, SubscriptionSelect},
     subscription_tag::{SubscriptionTagDelete, SubscriptionTagInsert},
     tag::TagInsert,
 };
 use deadpool_sqlite::Pool;
 use sea_query::SqliteQueryBuilder;
 use sea_query_rusqlite::RusqliteBinder as _;
-use serde_json::Value;
 use uuid::Uuid;
 
 use super::{IdRow, PreparedClient as _, SqliteRow};
@@ -37,7 +36,9 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
 
         let subscriptions = client
             .interact(move |conn| {
-                let (sql, values) = params.into_select().build_rusqlite(SqliteQueryBuilder);
+                let (sql, values) = SubscriptionSelect::sqlite(params)
+                    .into_select()
+                    .build_rusqlite(SqliteQueryBuilder);
                 conn.query_prepared::<Subscription>(&sql, &values)
             })
             .await
@@ -259,8 +260,8 @@ impl From<SqliteRow<'_>> for Subscription {
                 entries: None,
             }),
             tags: value
-                .get::<_, Value>("tags")
-                .map(|e| serde_json::from_value(e).unwrap())
+                .get::<_, String>("tags")
+                .map(|e| serde_json::from_str(&e).unwrap())
                 .ok(),
             unread_count: value.get("unread_count").ok(),
         }

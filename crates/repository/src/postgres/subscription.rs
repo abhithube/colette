@@ -7,7 +7,7 @@ use colette_core::{
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
     feed::FeedInsert,
-    subscription::{SubscriptionDelete, SubscriptionInsert},
+    subscription::{SubscriptionDelete, SubscriptionInsert, SubscriptionSelect},
     subscription_tag::{SubscriptionTagDelete, SubscriptionTagInsert},
     tag::TagInsert,
 };
@@ -35,7 +35,9 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
     async fn query(&self, params: SubscriptionParams) -> Result<Vec<Subscription>, Error> {
         let client = self.pool.get().await?;
 
-        let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let (sql, values) = SubscriptionSelect::postgres(params)
+            .into_select()
+            .build_postgres(PostgresQueryBuilder);
         let subscriptions = client.query_prepared::<Subscription>(&sql, &values).await?;
 
         Ok(subscriptions)

@@ -6,14 +6,13 @@ use colette_core::{
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
-    bookmark::{BookmarkDelete, BookmarkInsert, BookmarkUpdate},
+    bookmark::{BookmarkDelete, BookmarkInsert, BookmarkSelect, BookmarkUpdate},
     bookmark_tag::{BookmarkTagDelete, BookmarkTagInsert},
     tag::TagInsert,
 };
 use deadpool_sqlite::Pool;
 use sea_query::SqliteQueryBuilder;
 use sea_query_rusqlite::RusqliteBinder as _;
-use serde_json::Value;
 use uuid::Uuid;
 
 use super::{IdRow, PreparedClient as _, SqliteRow};
@@ -36,7 +35,9 @@ impl BookmarkRepository for SqliteBookmarkRepository {
 
         let bookmarks = client
             .interact(move |conn| {
-                let (sql, values) = params.into_select().build_rusqlite(SqliteQueryBuilder);
+                let (sql, values) = BookmarkSelect::sqlite(params)
+                    .into_select()
+                    .build_rusqlite(SqliteQueryBuilder);
                 conn.query_prepared::<Bookmark>(&sql, &values)
             })
             .await
@@ -294,8 +295,8 @@ impl From<SqliteRow<'_>> for Bookmark {
             created_at: value.get_unwrap("created_at"),
             updated_at: value.get_unwrap("updated_at"),
             tags: value
-                .get::<_, Value>("tags")
-                .map(|e| serde_json::from_value(e).unwrap())
+                .get::<_, String>("tags")
+                .map(|e| serde_json::from_str(&e).unwrap())
                 .ok(),
         }
     }

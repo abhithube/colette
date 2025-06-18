@@ -11,7 +11,7 @@ use sea_query::{
 use uuid::Uuid;
 
 use crate::{
-    IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
+    Dialect, IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
     bookmark_tag::BookmarkTag,
     filter::{ToColumn, ToSql},
     tag::Tag,
@@ -54,15 +54,36 @@ impl Iden for Bookmark {
     }
 }
 
-impl IntoSelect for BookmarkParams {
+pub struct BookmarkSelect {
+    params: BookmarkParams,
+    dialect: Dialect,
+}
+
+impl BookmarkSelect {
+    pub fn postgres(params: BookmarkParams) -> Self {
+        Self {
+            params,
+            dialect: Dialect::Postgres,
+        }
+    }
+
+    pub fn sqlite(params: BookmarkParams) -> Self {
+        Self {
+            params,
+            dialect: Dialect::Sqlite,
+        }
+    }
+}
+
+impl IntoSelect for BookmarkSelect {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column((Bookmark::Table, Asterisk))
             .from(Bookmark::Table)
-            .apply_if(self.user_id, |query, user_id| {
+            .apply_if(self.params.user_id, |query, user_id| {
                 query.and_where(Expr::col((Bookmark::Table, Bookmark::UserId)).eq(user_id));
             })
-            .apply_if(self.cursor, |query, created_at| {
+            .apply_if(self.params.cursor, |query, created_at| {
                 query.and_where(
                     Expr::col((Bookmark::Table, Bookmark::CreatedAt)).lt(Expr::val(created_at)),
                 );
@@ -70,14 +91,14 @@ impl IntoSelect for BookmarkParams {
             .order_by((Bookmark::Table, Bookmark::CreatedAt), Order::Desc)
             .to_owned();
 
-        if let Some(filter) = self.filter {
-            query.and_where(filter.to_sql());
+        if let Some(filter) = self.params.filter {
+            query.and_where((filter, self.dialect.clone()).to_sql());
         } else {
             query
-                .apply_if(self.id, |query, id| {
+                .apply_if(self.params.id, |query, id| {
                     query.and_where(Expr::col((Bookmark::Table, Bookmark::Id)).eq(id));
                 })
-                .apply_if(self.tags, |query, tags| {
+                .apply_if(self.params.tags, |query, tags| {
                     query.and_where(Expr::exists(
                         Query::select()
                             .expr(Expr::val("1"))
@@ -94,21 +115,50 @@ impl IntoSelect for BookmarkParams {
                 });
         }
 
-        if self.with_tags {
+        if self.params.with_tags {
             let tags_agg = Alias::new("tags_agg");
             let tags = Alias::new("tags");
             let t = Alias::new("t");
 
-            query.expr_as(Func::coalesce([Expr::col((tags_agg.clone(), tags.clone())).into(), Expr::cust("'[]'")]), tags.clone()).join_subquery(
-                JoinType::LeftJoin,
-                Query::select().column((BookmarkTag::Table, BookmarkTag::BookmarkId)).expr_as(Expr::cust("jsonb_agg (jsonb_build_object ('id', t.id, 'title', t.title, 'user_id', t.user_id, 'created_at', t.created_at, 'updated_at', t.updated_at) ORDER BY t.title)"), tags).from(BookmarkTag::Table).join_as(JoinType::InnerJoin, Tag::Table, t.clone(), Expr::col((t, Tag::Id)).eq(Expr::col((BookmarkTag::Table, BookmarkTag::TagId)))).group_by_col((BookmarkTag::Table, BookmarkTag::BookmarkId)).to_owned(),
-                tags_agg.clone(),
-                Expr::col((tags_agg, BookmarkTag::BookmarkId))
-                    .eq(Expr::col((Bookmark::Table, Bookmark::Id))),
-            );
+            let agg_expr = match self.dialect {
+                Dialect::Postgres => Expr::cust(
+                    "jsonb_agg (jsonb_build_object ('id', t.id, 'title', t.title, 'user_id', t.user_id, 'created_at', t.created_at, 'updated_at', t.updated_at) ORDER BY t.title)",
+                ),
+                Dialect::Sqlite => Expr::cust(
+                    "json_group_array (json_object ('id', hex(t.id), 'title', t.title, 'user_id', hex(t.user_id), 'created_at', t.created_at, 'updated_at', t.updated_at) ORDER BY t.title)",
+                ),
+            };
+
+            query
+                .expr_as(
+                    Func::coalesce([
+                        Expr::col((tags_agg.clone(), tags.clone())).into(),
+                        Expr::cust("'[]'"),
+                    ]),
+                    tags.clone(),
+                )
+                .join_subquery(
+                    JoinType::LeftJoin,
+                    Query::select()
+                        .column((BookmarkTag::Table, BookmarkTag::BookmarkId))
+                        .expr_as(agg_expr, tags)
+                        .from(BookmarkTag::Table)
+                        .join_as(
+                            JoinType::InnerJoin,
+                            Tag::Table,
+                            t.clone(),
+                            Expr::col((t, Tag::Id))
+                                .eq(Expr::col((BookmarkTag::Table, BookmarkTag::TagId))),
+                        )
+                        .group_by_col((BookmarkTag::Table, BookmarkTag::BookmarkId))
+                        .to_owned(),
+                    tags_agg.clone(),
+                    Expr::col((tags_agg, BookmarkTag::BookmarkId))
+                        .eq(Expr::col((Bookmark::Table, Bookmark::Id))),
+                );
         }
 
-        if let Some(limit) = self.limit {
+        if let Some(limit) = self.params.limit {
             query.limit(limit);
         }
 
@@ -250,10 +300,10 @@ impl ToColumn for BookmarkDateField {
     }
 }
 
-impl ToSql for BookmarkFilter {
+impl ToSql for (BookmarkFilter, Dialect) {
     fn to_sql(self) -> SimpleExpr {
-        match self {
-            Self::Text { field, op } => match field {
+        match self.0 {
+            BookmarkFilter::Text { field, op } => match field {
                 BookmarkTextField::Tag => Expr::exists(
                     Query::select()
                         .expr(Expr::val("1"))
@@ -272,9 +322,12 @@ impl ToSql for BookmarkFilter {
                 ),
                 _ => (field.to_column(), op).to_sql(),
             },
-            Self::Date { field, op } => (field.to_column(), op).to_sql(),
-            Self::And(filters) => {
-                let mut conditions = filters.into_iter().map(|e| e.to_sql()).collect::<Vec<_>>();
+            BookmarkFilter::Date { field, op } => (field.to_column(), op, self.1).to_sql(),
+            BookmarkFilter::And(filters) => {
+                let mut conditions = filters
+                    .into_iter()
+                    .map(|e| (e, self.1.clone()).to_sql())
+                    .collect::<Vec<_>>();
                 let mut and = conditions.swap_remove(0);
 
                 for condition in conditions {
@@ -283,8 +336,11 @@ impl ToSql for BookmarkFilter {
 
                 and
             }
-            Self::Or(filters) => {
-                let mut conditions = filters.into_iter().map(|e| e.to_sql()).collect::<Vec<_>>();
+            BookmarkFilter::Or(filters) => {
+                let mut conditions = filters
+                    .into_iter()
+                    .map(|e| (e, self.1.clone()).to_sql())
+                    .collect::<Vec<_>>();
                 let mut or = conditions.swap_remove(0);
 
                 for condition in conditions {
@@ -293,7 +349,7 @@ impl ToSql for BookmarkFilter {
 
                 or
             }
-            Self::Not(filter) => filter.to_sql().not(),
+            BookmarkFilter::Not(filter) => (*filter, self.1).to_sql().not(),
             _ => unreachable!(),
         }
     }

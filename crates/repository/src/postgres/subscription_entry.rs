@@ -5,6 +5,7 @@ use colette_core::{
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
+    feed_entry::SubscriptionEntrySelect,
     read_entry::{ReadEntryDelete, ReadEntryInsert},
 };
 use deadpool_postgres::Pool;
@@ -32,7 +33,9 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
     ) -> Result<Vec<SubscriptionEntry>, Error> {
         let client = self.pool.get().await?;
 
-        let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let (sql, values) = SubscriptionEntrySelect::postgres(params)
+            .into_select()
+            .build_postgres(PostgresQueryBuilder);
         let subscription_entries = client
             .query_prepared::<SubscriptionEntry>(&sql, &values)
             .await?;

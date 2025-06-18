@@ -5,6 +5,7 @@ use colette_core::{
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
+    feed_entry::SubscriptionEntrySelect,
     read_entry::{ReadEntryDelete, ReadEntryInsert},
 };
 use deadpool_sqlite::Pool;
@@ -34,7 +35,9 @@ impl SubscriptionEntryRepository for SqliteSubscriptionEntryRepository {
 
         let subscription_entries = client
             .interact(move |conn| {
-                let (sql, values) = params.into_select().build_rusqlite(SqliteQueryBuilder);
+                let (sql, values) = SubscriptionEntrySelect::sqlite(params)
+                    .into_select()
+                    .build_rusqlite(SqliteQueryBuilder);
                 conn.query_prepared::<SubscriptionEntry>(&sql, &values)
             })
             .await

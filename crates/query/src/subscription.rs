@@ -9,8 +9,8 @@ use sea_query::{
 use uuid::Uuid;
 
 use crate::{
-    IntoDelete, IntoInsert, IntoSelect, feed::Feed, feed_entry::FeedEntry, read_entry::ReadEntry,
-    subscription_tag::SubscriptionTag, tag::Tag,
+    Dialect, IntoDelete, IntoInsert, IntoSelect, feed::Feed, feed_entry::FeedEntry,
+    read_entry::ReadEntry, subscription_tag::SubscriptionTag, tag::Tag,
 };
 
 pub enum Subscription {
@@ -44,18 +44,39 @@ impl Iden for Subscription {
     }
 }
 
-impl IntoSelect for SubscriptionParams {
+pub struct SubscriptionSelect {
+    params: SubscriptionParams,
+    dialect: Dialect,
+}
+
+impl SubscriptionSelect {
+    pub fn postgres(params: SubscriptionParams) -> Self {
+        Self {
+            params,
+            dialect: Dialect::Postgres,
+        }
+    }
+
+    pub fn sqlite(params: SubscriptionParams) -> Self {
+        Self {
+            params,
+            dialect: Dialect::Sqlite,
+        }
+    }
+}
+
+impl IntoSelect for SubscriptionSelect {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column((Subscription::Table, Asterisk))
             .from(Subscription::Table)
-            .apply_if(self.id, |query, id| {
+            .apply_if(self.params.id, |query, id| {
                 query.and_where(Expr::col((Subscription::Table, Subscription::Id)).eq(id));
             })
-            .apply_if(self.user_id, |query, user_id| {
+            .apply_if(self.params.user_id, |query, user_id| {
                 query.and_where(Expr::col((Subscription::Table, Subscription::UserId)).eq(user_id));
             })
-            .apply_if(self.tags, |query, tags| {
+            .apply_if(self.params.tags, |query, tags| {
                 query.and_where(Expr::exists(
                     Query::select()
                         .expr(Expr::val("1"))
@@ -70,7 +91,7 @@ impl IntoSelect for SubscriptionParams {
                         .to_owned(),
                 ));
             })
-            .apply_if(self.cursor, |query, (title, id)| {
+            .apply_if(self.params.cursor, |query, (title, id)| {
                 query.and_where(
                     Expr::tuple([
                         Expr::col(Subscription::Title).into(),
@@ -83,7 +104,7 @@ impl IntoSelect for SubscriptionParams {
             .order_by((Subscription::Table, Subscription::Id), Order::Asc)
             .to_owned();
 
-        if self.with_feed {
+        if self.params.with_feed {
             query
                 .columns([
                     (Feed::Table, Feed::SourceUrl),
@@ -103,7 +124,7 @@ impl IntoSelect for SubscriptionParams {
                 );
         }
 
-        if self.with_unread_count {
+        if self.params.with_unread_count {
             let uc_agg = Alias::new("uc_agg");
             let unread_count = Alias::new("unread_count");
 
@@ -154,21 +175,50 @@ impl IntoSelect for SubscriptionParams {
                 );
         }
 
-        if self.with_tags {
+        if self.params.with_tags {
             let tags_agg = Alias::new("tags_agg");
             let tags = Alias::new("tags");
             let t = Alias::new("t");
 
-            query.expr_as(Func::coalesce([Expr::col((tags_agg.clone(), tags.clone())).into(), Expr::cust("'[]'")]), tags.clone()).join_subquery(
-                JoinType::LeftJoin,
-                Query::select().column((SubscriptionTag::Table, SubscriptionTag::SubscriptionId)).expr_as(Expr::cust("jsonb_agg (jsonb_build_object ('id', t.id, 'title', t.title, 'user_id', t.user_id, 'created_at', t.created_at, 'updated_at', t.updated_at) ORDER BY t.title)"), tags).from(SubscriptionTag::Table).join_as(JoinType::InnerJoin, Tag::Table, t.clone(), Expr::col((t, Tag::Id)).eq(Expr::col((SubscriptionTag::Table, SubscriptionTag::TagId)))).group_by_col((SubscriptionTag::Table, SubscriptionTag::SubscriptionId)).to_owned(),
-                tags_agg.clone(),
-                Expr::col((tags_agg, SubscriptionTag::SubscriptionId))
-                    .eq(Expr::col((Subscription::Table, Subscription::Id))),
-            );
+            let agg_expr = match self.dialect {
+                Dialect::Postgres => Expr::cust(
+                    "jsonb_agg (jsonb_build_object ('id', t.id, 'title', t.title, 'user_id', t.user_id, 'created_at', t.created_at, 'updated_at', t.updated_at) ORDER BY t.title)",
+                ),
+                Dialect::Sqlite => Expr::cust(
+                    "json_group_array (json_object ('id', hex(t.id), 'title', t.title, 'user_id', hex(t.user_id), 'created_at', t.created_at, 'updated_at', t.updated_at) ORDER BY t.title)",
+                ),
+            };
+
+            query
+                .expr_as(
+                    Func::coalesce([
+                        Expr::col((tags_agg.clone(), tags.clone())).into(),
+                        Expr::cust("'[]'"),
+                    ]),
+                    tags.clone(),
+                )
+                .join_subquery(
+                    JoinType::LeftJoin,
+                    Query::select()
+                        .column((SubscriptionTag::Table, SubscriptionTag::SubscriptionId))
+                        .expr_as(agg_expr, tags)
+                        .from(SubscriptionTag::Table)
+                        .join_as(
+                            JoinType::InnerJoin,
+                            Tag::Table,
+                            t.clone(),
+                            Expr::col((t, Tag::Id))
+                                .eq(Expr::col((SubscriptionTag::Table, SubscriptionTag::TagId))),
+                        )
+                        .group_by_col((SubscriptionTag::Table, SubscriptionTag::SubscriptionId))
+                        .to_owned(),
+                    tags_agg.clone(),
+                    Expr::col((tags_agg, SubscriptionTag::SubscriptionId))
+                        .eq(Expr::col((Subscription::Table, Subscription::Id))),
+                );
         }
 
-        if let Some(limit) = self.limit {
+        if let Some(limit) = self.params.limit {
             query.limit(limit);
         }
 

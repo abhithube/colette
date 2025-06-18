@@ -16,6 +16,12 @@ pub mod subscription_tag;
 pub mod tag;
 pub mod user;
 
+#[derive(Clone)]
+pub enum Dialect {
+    Postgres,
+    Sqlite,
+}
+
 pub trait IntoSelect {
     fn into_select(self) -> SelectStatement;
 }

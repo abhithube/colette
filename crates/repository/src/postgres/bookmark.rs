@@ -6,7 +6,7 @@ use colette_core::{
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
-    bookmark::{BookmarkDelete, BookmarkInsert, BookmarkUpdate},
+    bookmark::{BookmarkDelete, BookmarkInsert, BookmarkSelect, BookmarkUpdate},
     bookmark_tag::{BookmarkTagDelete, BookmarkTagInsert},
     tag::TagInsert,
 };
@@ -34,7 +34,9 @@ impl BookmarkRepository for PostgresBookmarkRepository {
     async fn query(&self, params: BookmarkParams) -> Result<Vec<Bookmark>, Error> {
         let client = self.pool.get().await?;
 
-        let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let (sql, values) = BookmarkSelect::postgres(params)
+            .into_select()
+            .build_postgres(PostgresQueryBuilder);
         let bookmarks = client.query_prepared::<Bookmark>(&sql, &values).await?;
 
         Ok(bookmarks)

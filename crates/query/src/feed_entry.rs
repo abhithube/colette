@@ -15,7 +15,7 @@ use sea_query::{
 use uuid::Uuid;
 
 use crate::{
-    IntoInsert, IntoSelect,
+    Dialect, IntoInsert, IntoSelect,
     filter::{ToColumn, ToSql},
     read_entry::ReadEntry,
     subscription::Subscription,
@@ -148,7 +148,28 @@ impl<'a, I: IntoIterator<Item = FeedEntryInsert<'a>>> IntoInsert for FeedEntryIn
     }
 }
 
-impl IntoSelect for SubscriptionEntryParams {
+pub struct SubscriptionEntrySelect {
+    params: SubscriptionEntryParams,
+    dialect: Dialect,
+}
+
+impl SubscriptionEntrySelect {
+    pub fn postgres(params: SubscriptionEntryParams) -> Self {
+        Self {
+            params,
+            dialect: Dialect::Postgres,
+        }
+    }
+
+    pub fn sqlite(params: SubscriptionEntryParams) -> Self {
+        Self {
+            params,
+            dialect: Dialect::Sqlite,
+        }
+    }
+}
+
+impl IntoSelect for SubscriptionEntrySelect {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column((FeedEntry::Table, Asterisk))
@@ -163,10 +184,10 @@ impl IntoSelect for SubscriptionEntryParams {
                 Expr::col((Subscription::Table, Subscription::FeedId))
                     .eq(Expr::col((FeedEntry::Table, FeedEntry::FeedId))),
             )
-            .apply_if(self.user_id, |query, user_id| {
+            .apply_if(self.params.user_id, |query, user_id| {
                 query.and_where(Expr::col((Subscription::Table, Subscription::UserId)).eq(user_id));
             })
-            .apply_if(self.cursor, |query, (published_at, id)| {
+            .apply_if(self.params.cursor, |query, (published_at, id)| {
                 query.and_where(
                     Expr::tuple([
                         Expr::col((FeedEntry::Table, FeedEntry::PublishedAt)).into(),
@@ -182,19 +203,19 @@ impl IntoSelect for SubscriptionEntryParams {
             .order_by((FeedEntry::Table, FeedEntry::Id), Order::Desc)
             .to_owned();
 
-        if let Some(filter) = self.filter {
-            query.and_where(filter.to_sql());
+        if let Some(filter) = self.params.filter {
+            query.and_where((filter, self.dialect).to_sql());
         } else {
             query
-                .apply_if(self.feed_entry_id, |query, feed_entry_id| {
+                .apply_if(self.params.feed_entry_id, |query, feed_entry_id| {
                     query.and_where(Expr::col((FeedEntry::Table, FeedEntry::Id)).eq(feed_entry_id));
                 })
-                .apply_if(self.subscription_id, |query, subscription_id| {
+                .apply_if(self.params.subscription_id, |query, subscription_id| {
                     query.and_where(
                         Expr::col((Subscription::Table, Subscription::Id)).eq(subscription_id),
                     );
                 })
-                .apply_if(self.has_read, |query, has_read| {
+                .apply_if(self.params.has_read, |query, has_read| {
                     let mut subquery = Expr::exists(
                         Query::select()
                             .expr(Expr::val("1"))
@@ -216,7 +237,7 @@ impl IntoSelect for SubscriptionEntryParams {
 
                     query.and_where(subquery);
                 })
-                .apply_if(self.tags, |query, tags| {
+                .apply_if(self.params.tags, |query, tags| {
                     query.and_where(Expr::exists(
                         Query::select()
                             .expr(Expr::val("1"))
@@ -237,7 +258,7 @@ impl IntoSelect for SubscriptionEntryParams {
                 });
         }
 
-        if self.with_read_entry {
+        if self.params.with_read_entry {
             query
                 .column((ReadEntry::Table, ReadEntry::CreatedAt))
                 .expr_as(
@@ -255,7 +276,7 @@ impl IntoSelect for SubscriptionEntryParams {
                 );
         }
 
-        if let Some(limit) = self.limit {
+        if let Some(limit) = self.params.limit {
             query.limit(limit);
         }
 
@@ -291,10 +312,10 @@ impl ToColumn for SubscriptionEntryDateField {
     }
 }
 
-impl ToSql for SubscriptionEntryFilter {
+impl ToSql for (SubscriptionEntryFilter, Dialect) {
     fn to_sql(self) -> SimpleExpr {
-        match self {
-            Self::Text { field, op } => match field {
+        match self.0 {
+            SubscriptionEntryFilter::Text { field, op } => match field {
                 SubscriptionEntryTextField::Tag => Expr::exists(
                     Query::select()
                         .expr(Expr::val("1"))
@@ -313,10 +334,13 @@ impl ToSql for SubscriptionEntryFilter {
                 ),
                 _ => (field.to_column(), op).to_sql(),
             },
-            Self::Boolean { field, op } => (field.to_column(), op).to_sql(),
-            Self::Date { field, op } => (field.to_column(), op).to_sql(),
-            Self::And(filters) => {
-                let mut conditions = filters.into_iter().map(|e| e.to_sql()).collect::<Vec<_>>();
+            SubscriptionEntryFilter::Boolean { field, op } => (field.to_column(), op).to_sql(),
+            SubscriptionEntryFilter::Date { field, op } => (field.to_column(), op, self.1).to_sql(),
+            SubscriptionEntryFilter::And(filters) => {
+                let mut conditions = filters
+                    .into_iter()
+                    .map(|e| (e, self.1.clone()).to_sql())
+                    .collect::<Vec<_>>();
                 let mut and = conditions.swap_remove(0);
 
                 for condition in conditions {
@@ -325,8 +349,11 @@ impl ToSql for SubscriptionEntryFilter {
 
                 and
             }
-            Self::Or(filters) => {
-                let mut conditions = filters.into_iter().map(|e| e.to_sql()).collect::<Vec<_>>();
+            SubscriptionEntryFilter::Or(filters) => {
+                let mut conditions = filters
+                    .into_iter()
+                    .map(|e| (e, self.1.clone()).to_sql())
+                    .collect::<Vec<_>>();
                 let mut or = conditions.swap_remove(0);
 
                 for condition in conditions {
@@ -335,7 +362,7 @@ impl ToSql for SubscriptionEntryFilter {
 
                 or
             }
-            Self::Not(filter) => filter.to_sql().not(),
+            SubscriptionEntryFilter::Not(filter) => (*filter, self.1).to_sql().not(),
             _ => unreachable!(),
         }
     }
