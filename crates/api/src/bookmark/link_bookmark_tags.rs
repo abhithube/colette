@@ -13,7 +13,7 @@ use crate::{
 };
 
 #[utoipa::path(
-    patch,
+    post,
     path = "/{id}/linkTags",
     params(Id),
     request_body = LinkBookmarkTags,

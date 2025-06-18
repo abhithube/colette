@@ -789,7 +789,7 @@ export async function linkBookmarkTags(
     >,
     LinkBookmarkTagsMutationRequest
   >({
-    method: 'PATCH',
+    method: 'POST',
     url: getLinkBookmarkTagsUrl(id).toString(),
     data: linkBookmarkTagsMutationRequestSchema.parse(data),
     ...requestConfig,
@@ -1479,7 +1479,7 @@ export async function linkSubscriptionTags(
     >,
     LinkSubscriptionTagsMutationRequest
   >({
-    method: 'PATCH',
+    method: 'POST',
     url: getLinkSubscriptionTagsUrl(id).toString(),
     data: linkSubscriptionTagsMutationRequestSchema.parse(data),
     ...requestConfig,

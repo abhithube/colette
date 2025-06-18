@@ -648,7 +648,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
   /bookmarks/{id}/linkTags:
-    patch:
+    post:
       tags:
       - Bookmarks
       description: Link a list of tags to a bookmark
@@ -1667,7 +1667,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
   /subscriptions/{id}/linkTags:
-    patch:
+    post:
       tags:
       - Subscriptions
       description: Link a list of tags to a subscription
