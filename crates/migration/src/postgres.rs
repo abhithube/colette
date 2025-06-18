@@ -5,12 +5,12 @@ use refinery_core::{
 };
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
-pub struct PostgresMigrator {
-    pool: Pool,
+pub struct PostgresMigrator<'a> {
+    pool: &'a Pool,
 }
 
-impl PostgresMigrator {
-    pub fn new(pool: Pool) -> Self {
+impl<'a> PostgresMigrator<'a> {
+    pub fn new(pool: &'a Pool) -> Self {
         Self { pool }
     }
 
@@ -24,7 +24,7 @@ impl PostgresMigrator {
 }
 
 #[async_trait::async_trait]
-impl AsyncTransaction for PostgresMigrator {
+impl AsyncTransaction for PostgresMigrator<'_> {
     type Error = deadpool_postgres::PoolError;
 
     async fn execute(&mut self, queries: &[&str]) -> Result<usize, Self::Error> {
@@ -45,7 +45,7 @@ impl AsyncTransaction for PostgresMigrator {
 }
 
 #[async_trait::async_trait]
-impl AsyncQuery<Vec<Migration>> for PostgresMigrator {
+impl AsyncQuery<Vec<Migration>> for PostgresMigrator<'_> {
     async fn query(
         &mut self,
         query: &str,
@@ -68,4 +68,4 @@ impl AsyncQuery<Vec<Migration>> for PostgresMigrator {
     }
 }
 
-impl AsyncMigrate for PostgresMigrator {}
+impl AsyncMigrate for PostgresMigrator<'_> {}

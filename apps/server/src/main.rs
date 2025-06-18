@@ -3,17 +3,19 @@ use std::{error::Error, net::SocketAddr, sync::Arc};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{ApiConfig, ApiOidcConfig, ApiState, ApiStorageConfig};
 use colette_core::{
-    api_key::ApiKeyService,
+    account::AccountRepository,
+    api_key::{ApiKeyRepository, ApiKeyService},
     auth::{AuthConfig, AuthService, JwtConfig, OidcConfig},
-    bookmark::BookmarkService,
-    collection::CollectionService,
-    feed::FeedService,
-    feed_entry::FeedEntryService,
-    job::JobService,
-    stream::StreamService,
-    subscription::SubscriptionService,
-    subscription_entry::SubscriptionEntryService,
-    tag::TagService,
+    bookmark::{BookmarkRepository, BookmarkService},
+    collection::{CollectionRepository, CollectionService},
+    feed::{FeedRepository, FeedService},
+    feed_entry::{FeedEntryRepository, FeedEntryService},
+    job::{JobRepository, JobService},
+    stream::{StreamRepository, StreamService},
+    subscription::{SubscriptionRepository, SubscriptionService},
+    subscription_entry::{SubscriptionEntryRepository, SubscriptionEntryService},
+    tag::{TagRepository, TagService},
+    user::UserRepository,
 };
 use colette_http::{HttpClient, ReqwestClient};
 use colette_job::{
@@ -21,21 +23,28 @@ use colette_job::{
     import_subscriptions::ImportSubscriptionsHandler, refresh_feeds::RefreshFeedsHandler,
     scrape_bookmark::ScrapeBookmarkHandler, scrape_feed::ScrapeFeedHandler,
 };
-use colette_migration::PostgresMigrator;
+use colette_migration::{PostgresMigrator, SqliteMigrator};
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::{JobConsumerAdapter, JobProducerAdapter, LocalQueue};
-use colette_repository::postgres::{
-    PostgresAccountRepository, PostgresApiKeyRepository, PostgresBookmarkRepository,
-    PostgresCollectionRepository, PostgresFeedEntryRepository, PostgresFeedRepository,
-    PostgresJobRepository, PostgresStreamRepository, PostgresSubscriptionEntryRepository,
-    PostgresSubscriptionRepository, PostgresTagRepository, PostgresUserRepository,
+use colette_repository::{
+    postgres::{
+        PostgresAccountRepository, PostgresApiKeyRepository, PostgresBookmarkRepository,
+        PostgresCollectionRepository, PostgresFeedEntryRepository, PostgresFeedRepository,
+        PostgresJobRepository, PostgresStreamRepository, PostgresSubscriptionEntryRepository,
+        PostgresSubscriptionRepository, PostgresTagRepository, PostgresUserRepository,
+    },
+    sqlite::{
+        SqliteAccountRepository, SqliteApiKeyRepository, SqliteBookmarkRepository,
+        SqliteCollectionRepository, SqliteFeedEntryRepository, SqliteFeedRepository,
+        SqliteJobRepository, SqliteStreamRepository, SqliteSubscriptionEntryRepository,
+        SqliteSubscriptionRepository, SqliteTagRepository, SqliteUserRepository,
+    },
 };
 use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
 use colette_storage::{FsStorageClient, S3StorageClient, StorageAdapter};
 use config::{QueueConfig, S3RequestStyle, StorageConfig};
 use deadpool_postgres::{Manager, ManagerConfig, Pool};
 use jsonwebtoken::{DecodingKey, EncodingKey, jwk::JwkSet};
-use refinery::embed_migrations;
 use s3::{Bucket, Region, creds::Credentials};
 use tokio::{net::TcpListener, sync::Mutex};
 use tokio_postgres::NoTls;
@@ -50,8 +59,6 @@ mod worker;
 #[derive(Clone, rust_embed::Embed)]
 #[folder = "$CARGO_MANIFEST_DIR/../web/dist/"]
 struct Asset;
-
-embed_migrations!("../../database/postgres/migrations");
 
 #[derive(Debug, Clone, serde::Deserialize)]
 struct OidcProviderMetadata {
@@ -81,31 +88,83 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .init();
     }
 
-    let app_config = config::from_env()?;
+    let app_config = config::from_env().await?;
 
-    let manager = Manager::from_config(
-        app_config.database_url.parse()?,
-        NoTls,
-        ManagerConfig::default(),
-    );
+    let repositories = if app_config.database_url.starts_with("/") {
+        let pool = deadpool_sqlite::Config::new(app_config.database_url)
+            .builder(deadpool_sqlite::Runtime::Tokio1)?
+            .build()?;
 
-    let pool = Pool::builder(manager).build()?;
-
-    {
-        let mut migrator = PostgresMigrator::new(pool.clone());
-        let mut runner = migrations::runner();
-
-        if runner
-            .get_last_applied_migration_async(&mut migrator)
-            .await?
-            .is_none()
-            && !migrator.is_fresh(&pool).await?
         {
-            runner = runner.set_target(refinery::Target::Fake)
+            let mut migrator = SqliteMigrator::new(&pool);
+            let mut runner = sqlite_migrations::migrations::runner();
+
+            if !migrator.is_fresh(&pool).await?
+                && runner
+                    .get_last_applied_migration_async(&mut migrator)
+                    .await?
+                    .is_none()
+            {
+                runner = runner.set_target(refinery::Target::Fake)
+            }
+
+            runner.run_async(&mut migrator).await?;
         }
 
-        runner.run_async(&mut migrator).await?;
-    }
+        Repositories {
+            account: Arc::new(SqliteAccountRepository::new(pool.clone())),
+            api_key: Arc::new(SqliteApiKeyRepository::new(pool.clone())),
+            bookmark: Arc::new(SqliteBookmarkRepository::new(pool.clone())),
+            collection: Arc::new(SqliteCollectionRepository::new(pool.clone())),
+            feed: Arc::new(SqliteFeedRepository::new(pool.clone())),
+            feed_entry: Arc::new(SqliteFeedEntryRepository::new(pool.clone())),
+            job: Arc::new(SqliteJobRepository::new(pool.clone())),
+            stream: Arc::new(SqliteStreamRepository::new(pool.clone())),
+            subscription: Arc::new(SqliteSubscriptionRepository::new(pool.clone())),
+            subscription_entry: Arc::new(SqliteSubscriptionEntryRepository::new(pool.clone())),
+            tag: Arc::new(SqliteTagRepository::new(pool.clone())),
+            user: Arc::new(SqliteUserRepository::new(pool)),
+        }
+    } else {
+        let manager = Manager::from_config(
+            app_config.database_url.parse()?,
+            NoTls,
+            ManagerConfig::default(),
+        );
+
+        let pool = Pool::builder(manager).build()?;
+
+        {
+            let mut migrator = PostgresMigrator::new(&pool);
+            let mut runner = postgres_migrations::migrations::runner();
+
+            if !migrator.is_fresh(&pool).await?
+                && runner
+                    .get_last_applied_migration_async(&mut migrator)
+                    .await?
+                    .is_none()
+            {
+                runner = runner.set_target(refinery::Target::Fake)
+            }
+
+            runner.run_async(&mut migrator).await?;
+        }
+
+        Repositories {
+            account: Arc::new(PostgresAccountRepository::new(pool.clone())),
+            api_key: Arc::new(PostgresApiKeyRepository::new(pool.clone())),
+            bookmark: Arc::new(PostgresBookmarkRepository::new(pool.clone())),
+            collection: Arc::new(PostgresCollectionRepository::new(pool.clone())),
+            feed: Arc::new(PostgresFeedRepository::new(pool.clone())),
+            feed_entry: Arc::new(PostgresFeedEntryRepository::new(pool.clone())),
+            job: Arc::new(PostgresJobRepository::new(pool.clone())),
+            stream: Arc::new(PostgresStreamRepository::new(pool.clone())),
+            subscription: Arc::new(PostgresSubscriptionRepository::new(pool.clone())),
+            subscription_entry: Arc::new(PostgresSubscriptionEntryRepository::new(pool.clone())),
+            tag: Arc::new(PostgresTagRepository::new(pool.clone())),
+            user: Arc::new(PostgresUserRepository::new(pool)),
+        }
+    };
 
     let (storage_adapter, image_base_url) = match app_config.storage.clone() {
         StorageConfig::Fs(config) => (
@@ -208,20 +267,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
-    let collection_repository = PostgresCollectionRepository::new(pool.clone());
-    let feed_repository = PostgresFeedRepository::new(pool.clone());
-    let job_repository = PostgresJobRepository::new(pool.clone());
-    let stream_repository = PostgresStreamRepository::new(pool.clone());
-    let subscription_repository = PostgresSubscriptionRepository::new(pool.clone());
-    let subscription_entry_repository = PostgresSubscriptionEntryRepository::new(pool.clone());
-    let tag_repository = PostgresTagRepository::new(pool.clone());
-
     let bookmark_service = Arc::new(BookmarkService::new(
-        bookmark_repository.clone(),
-        tag_repository.clone(),
-        collection_repository.clone(),
-        job_repository.clone(),
+        repositories.bookmark.clone(),
+        repositories.tag.clone(),
+        repositories.collection.clone(),
+        repositories.job.clone(),
         http_client.clone(),
         BookmarkScraper::new(
             http_client.clone(),
@@ -232,19 +282,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
         import_bookmarks_producer.clone(),
     ));
     let feed_service = Arc::new(FeedService::new(
-        feed_repository.clone(),
+        repositories.feed,
         http_client.clone(),
         FeedScraper::new(
             http_client.clone(),
             register_feed_plugins(reqwest_client.clone()),
         ),
     ));
-    let job_service = Arc::new(JobService::new(job_repository.clone()));
+    let job_service = Arc::new(JobService::new(repositories.job.clone()));
     let subscription_service = Arc::new(SubscriptionService::new(
-        subscription_repository.clone(),
-        tag_repository.clone(),
-        subscription_entry_repository.clone(),
-        job_repository.clone(),
+        repositories.subscription,
+        repositories.tag.clone(),
+        repositories.subscription_entry.clone(),
+        repositories.job,
         import_subscriptions_producer.clone(),
     ));
 
@@ -267,12 +317,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let api_state = ApiState {
-        api_key_service: Arc::new(ApiKeyService::new(PostgresApiKeyRepository::new(
-            pool.clone(),
-        ))),
+        api_key_service: Arc::new(ApiKeyService::new(repositories.api_key)),
         auth_service: Arc::new(AuthService::new(
-            PostgresUserRepository::new(pool.clone()),
-            PostgresAccountRepository::new(pool.clone()),
+            repositories.user,
+            repositories.account,
             http_client,
             AuthConfig {
                 jwt: JwtConfig {
@@ -287,19 +335,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
             },
         )),
         bookmark_service: bookmark_service.clone(),
-        collection_service: Arc::new(CollectionService::new(collection_repository)),
+        collection_service: Arc::new(CollectionService::new(repositories.collection)),
         feed_service: feed_service.clone(),
-        feed_entry_service: Arc::new(FeedEntryService::new(PostgresFeedEntryRepository::new(
-            pool.clone(),
-        ))),
+        feed_entry_service: Arc::new(FeedEntryService::new(repositories.feed_entry)),
         job_service: job_service.clone(),
-        stream_service: Arc::new(StreamService::new(stream_repository.clone())),
+        stream_service: Arc::new(StreamService::new(repositories.stream.clone())),
         subscription_service: subscription_service.clone(),
         subscription_entry_service: Arc::new(SubscriptionEntryService::new(
-            subscription_entry_repository,
-            stream_repository,
+            repositories.subscription_entry,
+            repositories.stream,
         )),
-        tag_service: Arc::new(TagService::new(tag_repository)),
+        tag_service: Arc::new(TagService::new(repositories.tag)),
         config: ApiConfig {
             oidc: oidc_config.map(|e| ApiOidcConfig {
                 client_id: e.client_id,
@@ -409,4 +455,27 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
 
     Ok(())
+}
+
+mod postgres_migrations {
+    refinery::embed_migrations!("../../database/postgres/migrations");
+}
+
+mod sqlite_migrations {
+    refinery::embed_migrations!("../../database/sqlite/migrations");
+}
+
+pub struct Repositories {
+    account: Arc<dyn AccountRepository>,
+    api_key: Arc<dyn ApiKeyRepository>,
+    bookmark: Arc<dyn BookmarkRepository>,
+    collection: Arc<dyn CollectionRepository>,
+    feed: Arc<dyn FeedRepository>,
+    feed_entry: Arc<dyn FeedEntryRepository>,
+    job: Arc<dyn JobRepository>,
+    stream: Arc<dyn StreamRepository>,
+    subscription: Arc<dyn SubscriptionRepository>,
+    subscription_entry: Arc<dyn SubscriptionEntryRepository>,
+    tag: Arc<dyn TagRepository>,
+    user: Arc<dyn UserRepository>,
 }

@@ -65,7 +65,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                 .await
                 .map_err(|e| match e.code() {
                     Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.link.clone()),
-                    _ => Error::Database(e),
+                    _ => Error::PostgresClient(e),
                 })?;
         }
 

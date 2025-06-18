@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use bytes::{Buf, Bytes};
 use chrono::{DateTime, Utc};
@@ -25,10 +25,10 @@ use crate::{
 const THUMBNAILS_DIR: &str = "thumbnails";
 
 pub struct BookmarkService {
-    bookmark_repository: Box<dyn BookmarkRepository>,
-    tag_repository: Box<dyn TagRepository>,
-    collection_repository: Box<dyn CollectionRepository>,
-    job_repository: Box<dyn JobRepository>,
+    bookmark_repository: Arc<dyn BookmarkRepository>,
+    tag_repository: Arc<dyn TagRepository>,
+    collection_repository: Arc<dyn CollectionRepository>,
+    job_repository: Arc<dyn JobRepository>,
     http_client: Box<dyn HttpClient>,
     scraper: BookmarkScraper,
     storage_client: Box<dyn StorageClient>,
@@ -39,10 +39,10 @@ pub struct BookmarkService {
 impl BookmarkService {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        bookmark_repository: impl BookmarkRepository,
-        tag_repository: impl TagRepository,
-        collection_repository: impl CollectionRepository,
-        job_repository: impl JobRepository,
+        bookmark_repository: Arc<dyn BookmarkRepository>,
+        tag_repository: Arc<dyn TagRepository>,
+        collection_repository: Arc<dyn CollectionRepository>,
+        job_repository: Arc<dyn JobRepository>,
         http_client: impl HttpClient,
         scraper: BookmarkScraper,
         storage_client: impl StorageClient,
@@ -50,10 +50,10 @@ impl BookmarkService {
         import_bookmarks_producer: impl JobProducer,
     ) -> Self {
         Self {
-            bookmark_repository: Box::new(bookmark_repository),
-            tag_repository: Box::new(tag_repository),
-            collection_repository: Box::new(collection_repository),
-            job_repository: Box::new(job_repository),
+            bookmark_repository,
+            tag_repository,
+            collection_repository,
+            job_repository,
             http_client: Box::new(http_client),
             scraper,
             storage_client: Box::new(storage_client),

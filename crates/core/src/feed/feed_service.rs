@@ -1,4 +1,5 @@
 use core::str;
+use std::sync::Arc;
 
 use bytes::Buf;
 use colette_http::HttpClient;
@@ -12,19 +13,19 @@ use url::Url;
 use super::{Error, Feed, FeedParams, FeedRepository};
 
 pub struct FeedService {
-    repository: Box<dyn FeedRepository>,
+    repository: Arc<dyn FeedRepository>,
     client: Box<dyn HttpClient>,
     scraper: FeedScraper,
 }
 
 impl FeedService {
     pub fn new(
-        repository: impl FeedRepository,
+        repository: Arc<dyn FeedRepository>,
         client: impl HttpClient,
         scraper: FeedScraper,
     ) -> Self {
         Self {
-            repository: Box::new(repository),
+            repository,
             client: Box::new(client),
             scraper,
         }

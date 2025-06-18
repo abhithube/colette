@@ -8,9 +8,18 @@
   ],
   "overrides": [
     {
-      "files": ["*.sql"],
+      "files": ["./database/postgres/migrations/*"],
       "options": {
         "language": "postgresql",
+        "keywordCase": "upper",
+        "dataTypeCase": "upper",
+        "functionCase": "lower"
+      }
+    },
+    {
+      "files": ["./database/sqlite/migrations/*"],
+      "options": {
+        "language": "sqlite",
         "keywordCase": "upper",
         "dataTypeCase": "upper",
         "functionCase": "lower"

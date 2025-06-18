@@ -55,7 +55,7 @@ impl StreamRepository for PostgresStreamRepository {
             .await
             .map_err(|e| match e.code() {
                 Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.title.clone()),
-                _ => Error::Database(e),
+                _ => Error::PostgresClient(e),
             })?;
 
         Ok(())

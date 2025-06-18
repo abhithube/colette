@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use chrono::Utc;
 use uuid::Uuid;
 
@@ -5,14 +7,12 @@ use super::{Error, Stream, StreamParams, StreamRepository, SubscriptionEntryFilt
 use crate::common::Paginated;
 
 pub struct StreamService {
-    repository: Box<dyn StreamRepository>,
+    repository: Arc<dyn StreamRepository>,
 }
 
 impl StreamService {
-    pub fn new(repository: impl StreamRepository) -> Self {
-        Self {
-            repository: Box::new(repository),
-        }
+    pub fn new(repository: Arc<dyn StreamRepository>) -> Self {
+        Self { repository }
     }
 
     pub async fn list_streams(&self, user_id: Uuid) -> Result<Paginated<Stream>, Error> {

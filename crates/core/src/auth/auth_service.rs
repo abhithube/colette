@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use chrono::{Duration, Utc};
 use colette_http::HttpClient;
 use http::Request;
@@ -18,22 +20,22 @@ const LOCAL_PROVIDER: &str = "local";
 const OIDC_PROVIDER: &str = "oidc";
 
 pub struct AuthService {
-    user_repository: Box<dyn UserRepository>,
-    account_repository: Box<dyn AccountRepository>,
+    user_repository: Arc<dyn UserRepository>,
+    account_repository: Arc<dyn AccountRepository>,
     http_client: Box<dyn HttpClient>,
     config: AuthConfig,
 }
 
 impl AuthService {
     pub fn new(
-        user_repository: impl UserRepository,
-        account_repository: impl AccountRepository,
+        user_repository: Arc<dyn UserRepository>,
+        account_repository: Arc<dyn AccountRepository>,
         http_client: impl HttpClient,
         config: AuthConfig,
     ) -> Self {
         Self {
-            user_repository: Box::new(user_repository),
-            account_repository: Box::new(account_repository),
+            user_repository,
+            account_repository,
             http_client: Box::new(http_client),
             config,
         }

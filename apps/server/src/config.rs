@@ -1,15 +1,135 @@
 use std::path::PathBuf;
 
 use chrono::Duration;
+use tokio::fs::{self, File};
 use url::Url;
 
 const APP_NAME: &str = "colette";
 
-pub fn from_env() -> Result<Config, envy::Error> {
+pub async fn from_env() -> Result<Config, Box<dyn std::error::Error>> {
     let raw = envy::from_env::<RawConfig>()?;
-    let config = raw.try_into()?;
 
-    Ok(config)
+    let data_dir = raw
+        .data_dir
+        .unwrap_or_else(|| dirs::config_dir().unwrap().join(APP_NAME));
+
+    fs::create_dir_all(&data_dir).await?;
+
+    let mut server = ServerConfig::default();
+    if let Some(port) = raw.server_port {
+        server.port = port;
+    }
+
+    let database_url = if let Some(database_url) = raw.database_url {
+        database_url
+    } else {
+        let path = data_dir.join("sqlite/db.sqlite");
+
+        if !tokio::fs::try_exists(&path).await? {
+            if let Some(prefix) = path.parent() {
+                fs::create_dir_all(prefix).await?;
+            }
+
+            File::create(&path).await?;
+        }
+
+        path.to_string_lossy().into_owned()
+    };
+
+    let jwt = JwtConfig {
+        secret: raw.jwt_secret,
+        issuer: raw
+            .jwt_issuer
+            .unwrap_or_else(|| format!("http://0.0.0.0:{}", server.port)),
+        audience: APP_NAME.into(),
+        access_duration: raw.jwt_access_duration,
+        refresh_duration: raw.jwt_refresh_duration,
+    };
+
+    let queue = match raw.queue_backend {
+        QueueBackend::Local => QueueConfig::Local,
+    };
+
+    let storage = match raw.storage_backend {
+        StorageBackend::Fs => {
+            let config = FsStorageConfig {
+                path: data_dir.join("fs"),
+            };
+            if !fs::try_exists(&config.path).await? {
+                fs::create_dir(&config.path).await?;
+            }
+
+            StorageConfig::Fs(config)
+        }
+        StorageBackend::S3 => {
+            let access_key_id = raw
+                .aws_access_key_id
+                .expect("'AWS_ACCESS_KEY_ID' not specified");
+            let secret_access_key = raw
+                .aws_secret_access_key
+                .expect("'AWS_SECRET_ACCESS_KEY' not specified");
+            let endpoint = raw.aws_endpoint.expect("'AWS_ENDPOINT' not specified");
+
+            let config = S3StorageConfig {
+                access_key_id,
+                secret_access_key,
+                region: raw.aws_region.unwrap_or_else(|| "us-east-1".into()),
+                endpoint,
+                bucket_name: raw.s3_bucket_name.unwrap_or_else(|| APP_NAME.into()),
+                path_style: if raw.s3_path_style_enabled {
+                    S3RequestStyle::Path
+                } else {
+                    S3RequestStyle::VirtualHost
+                },
+            };
+
+            StorageConfig::S3(config)
+        }
+    };
+
+    let mut cron = None;
+    if raw.cron_enabled {
+        let mut config = CronConfig::default();
+        if let Some(schedule) = raw.cron_schedule {
+            config.schedule = schedule;
+        }
+
+        cron = Some(config);
+    }
+
+    let mut cors = None;
+    if raw.cors_enabled {
+        let mut config = CorsConfig::default();
+        if let Some(origin_urls) = raw.cors_origin_urls {
+            config.origin_urls = origin_urls;
+        }
+
+        cors = Some(config);
+    }
+
+    let mut oidc = None::<OidcConfig>;
+    if let (Some(client_id), Some(redirect_uri), Some(discovery_endpoint)) = (
+        raw.oidc_client_id,
+        raw.oidc_redirect_uri,
+        raw.oidc_discovery_endpoint,
+    ) {
+        oidc = Some(OidcConfig {
+            client_id,
+            redirect_uri,
+            discovery_endpoint,
+        })
+    }
+
+    Ok(Config {
+        server,
+        database_url,
+        jwt,
+        queue,
+        storage,
+        oidc,
+        cron,
+        cors,
+    })
 }
 
 #[derive(Debug, Clone)]
@@ -106,7 +226,7 @@ pub struct CorsConfig {
 struct RawConfig {
     data_dir: Option<PathBuf>,
     server_port: Option<u32>,
-    database_url: String,
+    database_url: Option<String>,
     jwt_secret: String,
     jwt_issuer: Option<String>,
     #[serde(default = "jwt_access_duration")]
@@ -133,118 +253,6 @@ struct RawConfig {
     #[serde(default = "cors_enabled")]
     cors_enabled: bool,
     cors_origin_urls: Option<Vec<String>>,
-}
-
-impl TryFrom<RawConfig> for Config {
-    type Error = envy::Error;
-
-    fn try_from(value: RawConfig) -> Result<Self, Self::Error> {
-        let data_dir = value
-            .data_dir
-            .unwrap_or_else(|| dirs::config_dir().unwrap().join(APP_NAME));
-
-        std::fs::create_dir_all(&data_dir).unwrap();
-
-        let mut server = ServerConfig::default();
-        if let Some(port) = value.server_port {
-            server.port = port;
-        }
-
-        let jwt = JwtConfig {
-            secret: value.jwt_secret,
-            issuer: value
-                .jwt_issuer
-                .unwrap_or_else(|| format!("http://0.0.0.0:{}", server.port)),
-            audience: APP_NAME.into(),
-            access_duration: value.jwt_access_duration,
-            refresh_duration: value.jwt_refresh_duration,
-        };
-
-        let queue = match value.queue_backend {
-            QueueBackend::Local => QueueConfig::Local,
-        };
-
-        let storage = match value.storage_backend {
-            StorageBackend::Fs => {
-                let config = FsStorageConfig {
-                    path: data_dir.join("fs"),
-                };
-                if !std::fs::exists(&config.path).unwrap() {
-                    let _ = std::fs::create_dir(&config.path);
-                }
-
-                StorageConfig::Fs(config)
-            }
-            StorageBackend::S3 => {
-                let access_key_id = value
-                    .aws_access_key_id
-                    .expect("'AWS_ACCESS_KEY_ID' not specified");
-                let secret_access_key = value
-                    .aws_secret_access_key
-                    .expect("'AWS_SECRET_ACCESS_KEY' not specified");
-                let endpoint = value.aws_endpoint.expect("'AWS_ENDPOINT' not specified");
-
-                let config = S3StorageConfig {
-                    access_key_id,
-                    secret_access_key,
-                    region: value.aws_region.unwrap_or_else(|| "us-east-1".into()),
-                    endpoint,
-                    bucket_name: value.s3_bucket_name.unwrap_or_else(|| APP_NAME.into()),
-                    path_style: if value.s3_path_style_enabled {
-                        S3RequestStyle::Path
-                    } else {
-                        S3RequestStyle::VirtualHost
-                    },
-                };
-
-                StorageConfig::S3(config)
-            }
-        };
-
-        let mut cron = None;
-        if value.cron_enabled {
-            let mut config = CronConfig::default();
-            if let Some(schedule) = value.cron_schedule {
-                config.schedule = schedule;
-            }
-
-            cron = Some(config);
-        }
-
-        let mut cors = None;
-        if value.cors_enabled {
-            let mut config = CorsConfig::default();
-            if let Some(origin_urls) = value.cors_origin_urls {
-                config.origin_urls = origin_urls;
-            }
-
-            cors = Some(config);
-        }
-
-        let mut oidc = None::<OidcConfig>;
-        if let (Some(client_id), Some(redirect_uri), Some(discovery_endpoint)) = (
-            value.oidc_client_id,
-            value.oidc_redirect_uri,
-            value.oidc_discovery_endpoint,
-        ) {
-            oidc = Some(OidcConfig {
-                client_id,
-                redirect_uri,
-                discovery_endpoint,
-            })
-        }
-
-        Ok(Self {
-            server,
-            database_url: value.database_url,
-            jwt,
-            queue,
-            storage,
-            oidc,
-            cron,
-            cors,
-        })
-    }
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize)]

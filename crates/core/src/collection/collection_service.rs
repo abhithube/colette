@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use chrono::Utc;
 use uuid::Uuid;
 
@@ -5,14 +7,12 @@ use super::{Collection, CollectionParams, CollectionRepository, Error};
 use crate::{bookmark::BookmarkFilter, common::Paginated};
 
 pub struct CollectionService {
-    repository: Box<dyn CollectionRepository>,
+    repository: Arc<dyn CollectionRepository>,
 }
 
 impl CollectionService {
-    pub fn new(repository: impl CollectionRepository) -> Self {
-        Self {
-            repository: Box::new(repository),
-        }
+    pub fn new(repository: Arc<dyn CollectionRepository>) -> Self {
+        Self { repository }
     }
 
     pub async fn list_collections(&self, user_id: Uuid) -> Result<Paginated<Collection>, Error> {

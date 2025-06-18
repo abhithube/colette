@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
@@ -5,14 +7,12 @@ use super::{ApiKey, ApiKeyParams, ApiKeyRepository, Error};
 use crate::common::Paginated;
 
 pub struct ApiKeyService {
-    repository: Box<dyn ApiKeyRepository>,
+    repository: Arc<dyn ApiKeyRepository>,
 }
 
 impl ApiKeyService {
-    pub fn new(repository: impl ApiKeyRepository) -> Self {
-        Self {
-            repository: Box::new(repository),
-        }
+    pub fn new(repository: Arc<dyn ApiKeyRepository>) -> Self {
+        Self { repository }
     }
 
     pub async fn list_api_keys(&self, user_id: Uuid) -> Result<Paginated<ApiKey>, Error> {

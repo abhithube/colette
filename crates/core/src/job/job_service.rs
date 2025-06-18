@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 use uuid::Uuid;
@@ -5,14 +7,12 @@ use uuid::Uuid;
 use super::{Error, Job, JobParams, JobRepository, JobStatus};
 
 pub struct JobService {
-    job_repository: Box<dyn JobRepository>,
+    job_repository: Arc<dyn JobRepository>,
 }
 
 impl JobService {
-    pub fn new(job_repository: impl JobRepository) -> Self {
-        Self {
-            job_repository: Box::new(job_repository),
-        }
+    pub fn new(job_repository: Arc<dyn JobRepository>) -> Self {
+        Self { job_repository }
     }
 
     pub async fn get_job(&self, id: Uuid) -> Result<Job, Error> {

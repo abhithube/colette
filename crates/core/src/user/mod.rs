@@ -21,8 +21,14 @@ pub struct User {
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
-    Database(#[from] tokio_postgres::Error),
+    PostgresPool(#[from] deadpool_postgres::PoolError),
 
     #[error(transparent)]
-    Pool(#[from] deadpool_postgres::PoolError),
+    PostgresClient(#[from] tokio_postgres::Error),
+
+    #[error(transparent)]
+    SqlitePool(#[from] deadpool_sqlite::PoolError),
+
+    #[error(transparent)]
+    SqliteClient(#[from] rusqlite::Error),
 }

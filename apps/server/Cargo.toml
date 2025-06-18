@@ -19,12 +19,14 @@ colette-scraper.workspace = true
 colette-storage = { workspace = true, features = ["s3"] }
 cron = { version = "0.15.0", default-features = false }
 deadpool-postgres = { workspace = true, features = ["rt_tokio_1"] }
+deadpool-sqlite = { workspace = true, features = ["rt_tokio_1"] }
 dirs = { version = "6.0.0", default-features = false }
 envy = { version = "0.4.2", default-features = false }
 futures.workspace = true
 jsonwebtoken.workspace = true
 refinery = { version = "0.8.16", default-features = false }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
+rusqlite.workspace = true
 rust-embed = { version = "8.5.0", default-features = false, features = [
   "interpolate-folder-path",
 ] }

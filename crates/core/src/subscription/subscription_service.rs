@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use bytes::{Buf, Bytes};
 use chrono::Utc;
@@ -19,26 +19,26 @@ use crate::{
 };
 
 pub struct SubscriptionService {
-    subscription_repository: Box<dyn SubscriptionRepository>,
-    tag_repository: Box<dyn TagRepository>,
-    subscription_entry_repository: Box<dyn SubscriptionEntryRepository>,
-    job_repository: Box<dyn JobRepository>,
+    subscription_repository: Arc<dyn SubscriptionRepository>,
+    tag_repository: Arc<dyn TagRepository>,
+    subscription_entry_repository: Arc<dyn SubscriptionEntryRepository>,
+    job_repository: Arc<dyn JobRepository>,
     import_subscriptions_producer: Box<Mutex<dyn JobProducer>>,
 }
 
 impl SubscriptionService {
     pub fn new(
-        subscription_repository: impl SubscriptionRepository,
-        tag_repository: impl TagRepository,
-        subscription_entry_repository: impl SubscriptionEntryRepository,
-        job_repository: impl JobRepository,
+        subscription_repository: Arc<dyn SubscriptionRepository>,
+        tag_repository: Arc<dyn TagRepository>,
+        subscription_entry_repository: Arc<dyn SubscriptionEntryRepository>,
+        job_repository: Arc<dyn JobRepository>,
         import_subscriptions_producer: impl JobProducer,
     ) -> Self {
         Self {
-            subscription_repository: Box::new(subscription_repository),
-            tag_repository: Box::new(tag_repository),
-            subscription_entry_repository: Box::new(subscription_entry_repository),
-            job_repository: Box::new(job_repository),
+            subscription_repository,
+            tag_repository,
+            subscription_entry_repository,
+            job_repository,
             import_subscriptions_producer: Box::new(Mutex::new(import_subscriptions_producer)),
         }
     }

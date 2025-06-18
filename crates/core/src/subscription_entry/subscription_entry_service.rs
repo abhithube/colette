@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use uuid::Uuid;
 
 use super::{
@@ -10,18 +12,18 @@ use crate::{
 };
 
 pub struct SubscriptionEntryService {
-    subscription_entry_repository: Box<dyn SubscriptionEntryRepository>,
-    stream_repository: Box<dyn StreamRepository>,
+    subscription_entry_repository: Arc<dyn SubscriptionEntryRepository>,
+    stream_repository: Arc<dyn StreamRepository>,
 }
 
 impl SubscriptionEntryService {
     pub fn new(
-        subscription_entry_repository: impl SubscriptionEntryRepository,
-        stream_repository: impl StreamRepository,
+        subscription_entry_repository: Arc<dyn SubscriptionEntryRepository>,
+        stream_repository: Arc<dyn StreamRepository>,
     ) -> Self {
         Self {
-            subscription_entry_repository: Box::new(subscription_entry_repository),
-            stream_repository: Box::new(stream_repository),
+            subscription_entry_repository,
+            stream_repository,
         }
     }
 

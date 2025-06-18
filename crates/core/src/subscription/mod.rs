@@ -61,11 +61,17 @@ pub enum Error {
     SerdeJson(#[from] serde_json::Error),
 
     #[error(transparent)]
-    Database(#[from] tokio_postgres::Error),
-
-    #[error(transparent)]
-    Pool(#[from] deadpool_postgres::PoolError),
-
-    #[error(transparent)]
     Serde(#[from] serde::de::value::Error),
+
+    #[error(transparent)]
+    PostgresPool(#[from] deadpool_postgres::PoolError),
+
+    #[error(transparent)]
+    PostgresClient(#[from] tokio_postgres::Error),
+
+    #[error(transparent)]
+    SqlitePool(#[from] deadpool_sqlite::PoolError),
+
+    #[error(transparent)]
+    SqliteClient(#[from] rusqlite::Error),
 }

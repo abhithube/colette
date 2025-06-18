@@ -34,10 +34,16 @@ pub enum Error {
     SerdeJson(#[from] serde_json::Error),
 
     #[error(transparent)]
-    Database(#[from] tokio_postgres::Error),
+    PostgresPool(#[from] deadpool_postgres::PoolError),
 
     #[error(transparent)]
-    Pool(#[from] deadpool_postgres::PoolError),
+    PostgresClient(#[from] tokio_postgres::Error),
+
+    #[error(transparent)]
+    SqlitePool(#[from] deadpool_sqlite::PoolError),
+
+    #[error(transparent)]
+    SqliteClient(#[from] rusqlite::Error),
 }
 
 impl From<user::Error> for Error {

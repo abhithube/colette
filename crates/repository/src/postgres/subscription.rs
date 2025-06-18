@@ -63,7 +63,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 .await
                 .map_err(|e| match e.code() {
                     Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.feed_id),
-                    _ => Error::Database(e),
+                    _ => Error::PostgresClient(e),
                 })?;
         }
 

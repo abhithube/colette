@@ -1,17 +1,17 @@
+use std::sync::Arc;
+
 use uuid::Uuid;
 
 use super::{Cursor, Error, FeedEntry, FeedEntryParams, FeedEntryRepository};
 use crate::common::{PAGINATION_LIMIT, Paginated};
 
 pub struct FeedEntryService {
-    feed_entry_repository: Box<dyn FeedEntryRepository>,
+    repository: Arc<dyn FeedEntryRepository>,
 }
 
 impl FeedEntryService {
-    pub fn new(feed_entry_repository: impl FeedEntryRepository) -> Self {
-        Self {
-            feed_entry_repository: Box::new(feed_entry_repository),
-        }
+    pub fn new(repository: Arc<dyn FeedEntryRepository>) -> Self {
+        Self { repository }
     }
 
     pub async fn list_feed_entries(
@@ -23,7 +23,7 @@ impl FeedEntryService {
             .and_then(|e| colette_util::base64_decode::<Cursor>(&e).ok());
 
         let mut feed_entries = self
-            .feed_entry_repository
+            .repository
             .query(FeedEntryParams {
                 feed_id: query.feed_id,
                 cursor: cursor.map(|e| (e.published_at, e.id)),
@@ -56,7 +56,7 @@ impl FeedEntryService {
 
     pub async fn get_feed_entry(&self, id: Uuid) -> Result<FeedEntry, Error> {
         let mut feed_entries = self
-            .feed_entry_repository
+            .repository
             .query(FeedEntryParams {
                 id: Some(id),
                 ..Default::default()

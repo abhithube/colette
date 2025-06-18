@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use chrono::Utc;
 use uuid::Uuid;
 
@@ -5,14 +7,12 @@ use super::{Error, Tag, TagParams, TagRepository, TagType};
 use crate::common::Paginated;
 
 pub struct TagService {
-    repository: Box<dyn TagRepository>,
+    repository: Arc<dyn TagRepository>,
 }
 
 impl TagService {
-    pub fn new(repository: impl TagRepository) -> Self {
-        Self {
-            repository: Box::new(repository),
-        }
+    pub fn new(repository: Arc<dyn TagRepository>) -> Self {
+        Self { repository }
     }
 
     pub async fn list_tags(
