@@ -88,13 +88,13 @@ pub enum Error {
     Forbidden(Uuid),
 
     #[error(transparent)]
-    Base64(#[from] colette_util::Base64Error),
+    Crypto(#[from] colette_util::CryptoError),
 
     #[error(transparent)]
     Stream(#[from] stream::Error),
 
     #[error(transparent)]
-    Serde(#[from] serde::de::value::Error),
+    Serde(#[from] serde_json::Error),
 
     #[error(transparent)]
     PostgresPool(#[from] deadpool_postgres::PoolError),

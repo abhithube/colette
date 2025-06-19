@@ -2,6 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use chrono::{Duration, Utc};
 use colette_http::HttpClient;
+use colette_util::{argon2_hash, argon2_verify, base64_url_encode, random_generate, sha256_hash};
 use http::{Request, header};
 use http_body_util::BodyExt as _;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, jwk::JwkSet};
@@ -41,7 +42,7 @@ impl AuthService {
     }
 
     pub async fn register_user(&self, data: RegisterPayload) -> Result<User, Error> {
-        let password_hash = colette_util::argon2_hash(&data.password)?;
+        let password_hash = argon2_hash(&data.password)?;
 
         let user = User::builder()
             .email(data.email.clone())
@@ -76,7 +77,7 @@ impl AuthService {
             return Err(Error::NotAuthenticated);
         };
 
-        let valid = colette_util::argon2_verify(&data.password, &password_hash)?;
+        let valid = argon2_verify(&data.password, &password_hash)?;
         if !valid {
             return Err(Error::NotAuthenticated);
         }
@@ -143,12 +144,9 @@ impl AuthService {
             return Err(Error::NotAuthenticated);
         };
 
-        let code_verifier = colette_util::random_generate(43);
-        let code_challenge = {
-            let hash = colette_util::sha256_hash(&code_verifier);
-            colette_util::base64_encode(&hash)?
-        };
-        let state = colette_util::random_generate(32);
+        let code_verifier = base64_url_encode(&random_generate(43));
+        let code_challenge = base64_url_encode(&sha256_hash(&code_verifier));
+        let state = base64_url_encode(&random_generate(32));
 
         let mut params = vec![
             ("response_type", "code"),

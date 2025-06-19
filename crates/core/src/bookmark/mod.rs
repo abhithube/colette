@@ -126,13 +126,10 @@ pub enum Error {
     Scraper(#[from] colette_scraper::bookmark::BookmarkError),
 
     #[error(transparent)]
-    Base64(#[from] colette_util::Base64Error),
+    Crypto(#[from] colette_util::CryptoError),
 
     #[error(transparent)]
-    SerdeJson(#[from] serde_json::Error),
-
-    #[error(transparent)]
-    Serde(#[from] serde::de::value::Error),
+    Serde(#[from] serde_json::Error),
 
     #[error(transparent)]
     PostgresPool(#[from] deadpool_postgres::PoolError),

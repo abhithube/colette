@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use colette_util::{base64_decode, base64_encode};
 use uuid::Uuid;
 
 use super::{Cursor, Error, FeedEntry, FeedEntryParams, FeedEntryRepository};
@@ -18,9 +19,11 @@ impl FeedEntryService {
         &self,
         query: FeedEntryListQuery,
     ) -> Result<Paginated<FeedEntry>, Error> {
-        let cursor = query
-            .cursor
-            .and_then(|e| colette_util::base64_decode::<Cursor>(&e).ok());
+        let cursor = query.cursor.and_then(|e| {
+            base64_decode(&e)
+                .ok()
+                .and_then(|e| serde_json::from_slice::<Cursor>(&e).ok())
+        });
 
         let mut feed_entries = self
             .repository
@@ -42,7 +45,7 @@ impl FeedEntryService {
                     published_at: last.published_at,
                     id: last.id,
                 };
-                let encoded = colette_util::base64_encode(&c)?;
+                let encoded = base64_encode(&serde_json::to_vec(&c)?);
 
                 cursor = Some(encoded);
             }

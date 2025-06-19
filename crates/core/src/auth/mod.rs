@@ -25,10 +25,7 @@ pub enum Error {
     Jwt(#[from] jsonwebtoken::errors::Error),
 
     #[error(transparent)]
-    Argon2(#[from] colette_util::Argon2Error),
-
-    #[error(transparent)]
-    Base64(#[from] colette_util::Base64Error),
+    Crypto(#[from] colette_util::CryptoError),
 
     #[error(transparent)]
     Http(#[from] colette_http::Error),

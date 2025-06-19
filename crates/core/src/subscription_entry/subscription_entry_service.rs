@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use colette_util::{base64_decode, base64_encode};
 use uuid::Uuid;
 
 use super::{
@@ -32,10 +33,11 @@ impl SubscriptionEntryService {
         query: SubscriptionEntryListQuery,
         user_id: Uuid,
     ) -> Result<Paginated<SubscriptionEntry>, Error> {
-        let cursor = query
-            .cursor
-            .and_then(|e| colette_util::base64_decode::<Cursor>(&e).ok());
-
+        let cursor = query.cursor.and_then(|e| {
+            base64_decode(&e)
+                .ok()
+                .and_then(|e| serde_json::from_slice::<Cursor>(&e).ok())
+        });
         let mut filter = Option::<SubscriptionEntryFilter>::None;
         if let Some(stream_id) = query.stream_id {
             let mut streams = self
@@ -83,7 +85,7 @@ impl SubscriptionEntryService {
                     published_at: entry.published_at,
                     id: entry.id,
                 };
-                let encoded = colette_util::base64_encode(&c)?;
+                let encoded = base64_encode(&serde_json::to_vec(&c)?);
 
                 cursor = Some(encoded);
             }

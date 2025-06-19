@@ -7,6 +7,7 @@ use colette_netscape::{Item, Netscape};
 use colette_queue::JobProducer;
 use colette_scraper::bookmark::BookmarkScraper;
 use colette_storage::StorageClient;
+use colette_util::{base64_decode, base64_encode, hex_encode, sha256_hash};
 use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
@@ -67,9 +68,11 @@ impl BookmarkService {
         query: BookmarkListQuery,
         user_id: Uuid,
     ) -> Result<Paginated<Bookmark>, Error> {
-        let cursor = query
-            .cursor
-            .and_then(|e| colette_util::base64_decode::<Cursor>(&e).ok());
+        let cursor = query.cursor.and_then(|e| {
+            base64_decode(&e)
+                .ok()
+                .and_then(|e| serde_json::from_slice::<Cursor>(&e).ok())
+        });
 
         let mut filter = Option::<BookmarkFilter>::None;
         if let Some(collection_id) = query.collection_id {
@@ -113,7 +116,7 @@ impl BookmarkService {
                 let c = Cursor {
                     created_at: last.created_at,
                 };
-                let encoded = colette_util::base64_encode(&c)?;
+                let encoded = base64_encode(&serde_json::to_vec(&c)?);
 
                 cursor = Some(encoded);
             }
@@ -350,7 +353,7 @@ impl BookmarkService {
                 let file_name = format!(
                     "{}-{}",
                     Utc::now().timestamp(),
-                    &colette_util::sha256_hash(thumbnail_url.as_str())[..8]
+                    hex_encode(&sha256_hash(thumbnail_url.as_str())[..8])
                 );
 
                 let body = self.http_client.get(&thumbnail_url).await?;

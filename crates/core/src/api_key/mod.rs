@@ -38,7 +38,7 @@ pub enum Error {
     Auth,
 
     #[error(transparent)]
-    Hash(#[from] colette_util::Argon2Error),
+    Crypto(#[from] colette_util::CryptoError),
 
     #[error(transparent)]
     Serde(#[from] serde::de::value::Error),

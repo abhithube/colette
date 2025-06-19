@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
+use colette_util::{
+    argon2_hash, argon2_verify, base64_encode, hex_encode, random_generate, sha256_hash,
+};
 use uuid::Uuid;
 
 use super::{ApiKey, ApiKeyParams, ApiKeyRepository, Error};
@@ -31,13 +34,13 @@ impl ApiKeyService {
     }
 
     pub async fn validate_api_key(&self, value: String) -> Result<ApiKey, Error> {
-        let lookup_hash = colette_util::sha256_hash(&value);
+        let lookup_hash = hex_encode(&sha256_hash(&value));
 
         let Some(api_key) = self.repository.find_by_lookup_hash(lookup_hash).await? else {
             return Err(Error::Auth);
         };
 
-        let valid = colette_util::argon2_verify(&value, &api_key.verification_hash)?;
+        let valid = argon2_verify(&value, &api_key.verification_hash)?;
         if !valid {
             return Err(Error::Auth);
         }
@@ -70,11 +73,14 @@ impl ApiKeyService {
         data: ApiKeyCreate,
         user_id: Uuid,
     ) -> Result<ApiKeyCreated, Error> {
-        let value = colette_util::random_generate(32);
+        let value = base64_encode(&random_generate(32));
+
+        let lookup_hash = hex_encode(&sha256_hash(&value));
+        let verification_hash = argon2_hash(&value)?;
 
         let api_key = ApiKey::builder()
-            .lookup_hash(colette_util::sha256_hash(&value))
-            .verification_hash(colette_util::argon2_hash(&value)?)
+            .lookup_hash(lookup_hash)
+            .verification_hash(verification_hash)
             .title(data.title)
             .preview(format!(
                 "{}...{}",
