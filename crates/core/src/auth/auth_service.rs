@@ -1,11 +1,10 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use chrono::{Duration, Utc};
 use colette_http::HttpClient;
-use http::Request;
+use http::{Request, header};
 use http_body_util::BodyExt as _;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, jwk::JwkSet};
-use serde_json::json;
 use url::Url;
 use uuid::Uuid;
 
@@ -139,21 +138,62 @@ impl AuthService {
         Ok(token_data)
     }
 
+    pub async fn build_authorization_url(&self) -> Result<AuthorizationUrlData, Error> {
+        let Some(ref oidc_config) = self.config.oidc else {
+            return Err(Error::NotAuthenticated);
+        };
+
+        let code_verifier = colette_util::random_generate(43);
+        let code_challenge = {
+            let hash = colette_util::sha256_hash(&code_verifier);
+            colette_util::base64_encode(&hash)?
+        };
+        let state = colette_util::random_generate(32);
+
+        let mut params = vec![
+            ("response_type", "code"),
+            ("client_id", &oidc_config.client_id),
+            ("redirect_uri", &oidc_config.redirect_uri),
+            ("code_challenge_method", "S256"),
+            ("code_challenge", &code_challenge),
+            ("state", &state),
+        ];
+        if let Some(scope) = &oidc_config.scope {
+            params.push(("scope", scope));
+        }
+
+        let authorization_url =
+            Url::parse_with_params(&oidc_config.authorization_endpoint, params).unwrap();
+
+        Ok(AuthorizationUrlData {
+            url: authorization_url.into(),
+            code_verifier,
+            state,
+        })
+    }
+
     pub async fn exchange_code(&self, data: CodePayload) -> Result<TokenData, Error> {
         let Some(ref oidc_config) = self.config.oidc else {
             return Err(Error::NotAuthenticated);
         };
 
-        let body = serde_json::to_vec(&json!({
-            "grant_type": "authorization_code",
-            "client_id": oidc_config.client_id,
-            "code_verifier": data.code_verifier,
-            "code": data.code,
-            "redirect_uri": oidc_config.redirect_uri
-        }))?;
+        let params = HashMap::from([
+            ("grant_type", "authorization_code"),
+            ("client_id", &oidc_config.client_id),
+            ("code_verifier", &data.code_verifier),
+            ("code", &data.code),
+            ("redirect_uri", &oidc_config.redirect_uri),
+        ]);
+
+        let form_body = params
+            .iter()
+            .map(|(k, v)| format!("{}={}", urlencoding::encode(k), urlencoding::encode(v)))
+            .collect::<Vec<_>>()
+            .join("&");
 
         let request = Request::post(oidc_config.token_endpoint.as_str())
-            .body(body.into())
+            .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
+            .body(form_body.into())
             .map_err(|e| Error::Http(colette_http::Error::Http(e)))?;
 
         let resp = self.http_client.send(request).await?;
@@ -290,9 +330,11 @@ pub struct OidcConfig {
     pub client_id: String,
     pub issuer: String,
     pub redirect_uri: String,
+    pub authorization_endpoint: String,
     pub token_endpoint: String,
     pub userinfo_endpoint: String,
     pub jwk_set: JwkSet,
+    pub scope: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -310,10 +352,16 @@ pub struct LoginPayload {
 }
 
 #[derive(Debug, Clone)]
+pub struct AuthorizationUrlData {
+    pub url: String,
+    pub code_verifier: String,
+    pub state: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct CodePayload {
     pub code: String,
     pub code_verifier: String,
-    pub nonce: String,
 }
 
 #[derive(Debug, Clone)]

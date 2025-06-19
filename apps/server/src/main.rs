@@ -63,6 +63,7 @@ struct Asset;
 #[derive(Debug, Clone, serde::Deserialize)]
 struct OidcProviderMetadata {
     issuer: String,
+    authorization_endpoint: String,
     token_endpoint: String,
     userinfo_endpoint: String,
     jwks_uri: String,
@@ -299,7 +300,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
 
     let mut oidc_config = None::<OidcConfig>;
-    if let Some(config) = app_config.oidc {
+    if let Some(config) = app_config.oidc.clone() {
         let data = http_client.get(&config.discovery_endpoint.parse()?).await?;
         let metadata = serde_json::from_slice::<OidcProviderMetadata>(&data)?;
 
@@ -309,10 +310,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         oidc_config = Some(OidcConfig {
             client_id: config.client_id,
             issuer: metadata.issuer,
+            authorization_endpoint: metadata.authorization_endpoint,
             token_endpoint: metadata.token_endpoint,
             userinfo_endpoint: metadata.userinfo_endpoint,
             redirect_uri: config.redirect_uri,
             jwk_set,
+            scope: config.scope,
         })
     }
 
@@ -347,10 +350,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )),
         tag_service: Arc::new(TagService::new(repositories.tag)),
         config: ApiConfig {
-            oidc: oidc_config.map(|e| ApiOidcConfig {
-                client_id: e.client_id,
-                redirect_uri: e.redirect_uri,
-                issuer: e.issuer,
+            oidc: oidc_config.map(|_| ApiOidcConfig {
+                sign_in_text: app_config.oidc.and_then(|e| e.sign_in_text),
             }),
             storage: ApiStorageConfig {
                 base_url: image_base_url,

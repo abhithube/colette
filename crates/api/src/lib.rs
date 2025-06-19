@@ -150,7 +150,8 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> R
             CorsLayer::new()
                 .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
                 .allow_origin(origins)
-                .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]),
+                .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION])
+                .allow_credentials(true),
         )
     }
 

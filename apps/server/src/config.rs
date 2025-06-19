@@ -117,6 +117,8 @@ pub async fn from_env() -> Result<Config, Box<dyn std::error::Error>> {
             client_id,
             redirect_uri,
             discovery_endpoint,
+            scope: raw.oidc_scope,
+            sign_in_text: raw.oidc_sign_in_text,
         })
     }
 
@@ -202,6 +204,8 @@ pub struct OidcConfig {
     pub client_id: String,
     pub discovery_endpoint: String,
     pub redirect_uri: String,
+    pub scope: Option<String>,
+    pub sign_in_text: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -236,6 +240,8 @@ struct RawConfig {
     oidc_client_id: Option<String>,
     oidc_discovery_endpoint: Option<String>,
     oidc_redirect_uri: Option<String>,
+    oidc_scope: Option<String>,
+    oidc_sign_in_text: Option<String>,
     #[serde(default = "QueueBackend::default")]
     queue_backend: QueueBackend,
     #[serde(default = "StorageBackend::default")]

@@ -361,7 +361,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
-  /auth/code:
+  /auth/oidc/redirect:
+    get:
+      tags:
+      - Auth
+      description: Initiate the OIDC flow by redirecting to the authorization URL
+      operationId: redirectOidc
+      responses:
+        '303':
+          description: Redirect to OIDC authorization endpoint
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/oidc/code:
     post:
       tags:
       - Auth
@@ -380,8 +395,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TokenData'
-        '401':
-          description: Bad credentials
+        '409':
+          description: Missing OAuth cookies
           content:
             application/json:
               schema:
@@ -2216,7 +2231,7 @@ components:
       - NOT_AUTHENTICATED
       - NOT_AUTHORIZED
       - NOT_FOUND
-      - ALREADY_EXISTS
+      - CONFLICT
       - VALIDATION
       - BAD_GATEWAY
       - UNKNOWN
@@ -2539,14 +2554,11 @@ components:
       type: object
       required:
       - code
-      - codeVerifier
-      - nonce
+      - state
       properties:
         code:
           type: string
-        codeVerifier:
-          type: string
-        nonce:
+        state:
           type: string
     Collection:
       type: object
@@ -2804,22 +2816,12 @@ components:
     OidcConfig:
       type: object
       description: API OIDC config
-      required:
-      - clientId
-      - issuer
-      - redirectUri
       properties:
-        clientId:
-          type: string
-          description: OIDC client ID
-        issuer:
-          type: string
-          format: uri
-          description: OIDC issuer URL
-        redirectUri:
-          type: string
-          format: uri
-          description: OIDC redirect URI
+        signInText:
+          type:
+          - string
+          - 'null'
+          description: OIDC sign in button text
     Paginated_ApiKey:
       type: object
       description: Paginated list of results

@@ -1,12 +1,15 @@
 use axum::{
     extract::State,
-    http::{StatusCode, header},
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::CookieJar;
 
-use super::{AUTH_TAG, REFRESH_COOKIE, TokenData, build_refresh_cookie};
-use crate::{ApiState, common::ApiError};
+use super::{AUTH_TAG, REFRESH_COOKIE, TokenData};
+use crate::{
+    ApiState,
+    common::{ApiError, build_cookie},
+};
 
 #[utoipa::path(
   post,
@@ -31,12 +34,12 @@ pub(super) async fn handler(
         .await
     {
         Ok(tokens) => {
-            let cookie = build_refresh_cookie(&tokens.refresh_token, tokens.refresh_expires_in);
+            let refresh_cookie = build_cookie(
+                (REFRESH_COOKIE, tokens.refresh_token.clone()),
+                Some(tokens.refresh_expires_in.num_seconds()),
+            );
 
-            Ok((
-                [(header::SET_COOKIE, cookie.to_string())],
-                OkResponse(tokens.into()),
-            ))
+            Ok((jar.add(refresh_cookie), OkResponse(tokens.into())))
         }
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }

@@ -1,19 +1,20 @@
 use axum::{
     extract::State,
-    http::{StatusCode, header},
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
+use axum_extra::extract::CookieJar;
 use colette_core::auth;
 
-use super::{AUTH_TAG, TokenData, build_refresh_cookie};
+use super::{AUTH_TAG, CODE_VERIFIER_COOKIE, REFRESH_COOKIE, STATE_COOKIE, TokenData};
 use crate::{
     ApiState,
-    common::{ApiError, Json},
+    common::{ApiError, ApiErrorCode, Json, build_cookie},
 };
 
 #[utoipa::path(
   post,
-  path = "/code",
+  path = "/oidc/code",
   request_body = CodePayload,
   responses(OkResponse, ErrResponse),
   operation_id = "exchangeCode",
@@ -23,14 +24,50 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
+    jar: CookieJar,
     Json(body): Json<CodePayload>,
 ) -> Result<impl IntoResponse, ErrResponse> {
-    match state.auth_service.exchange_code(body.into()).await {
+    let Some(mut code_verifier_cookie) = jar.get(CODE_VERIFIER_COOKIE).cloned() else {
+        return Err(ErrResponse::Conflict(ApiError {
+            code: ApiErrorCode::Conflict,
+            message: "Missing code_verifier cookie".into(),
+        }));
+    };
+    code_verifier_cookie.set_path("/");
+
+    let Some(mut state_cookie) = jar.get(STATE_COOKIE).cloned() else {
+        return Err(ErrResponse::Conflict(ApiError {
+            code: ApiErrorCode::Conflict,
+            message: "Missing state cookie".into(),
+        }));
+    };
+    state_cookie.set_path("/");
+
+    if state_cookie.value() != body.state {
+        return Err(ErrResponse::Conflict(ApiError {
+            code: ApiErrorCode::Conflict,
+            message: "Invalid state".into(),
+        }));
+    }
+
+    match state
+        .auth_service
+        .exchange_code(auth::CodePayload {
+            code: body.code,
+            code_verifier: code_verifier_cookie.value().into(),
+        })
+        .await
+    {
         Ok(tokens) => {
-            let cookie = build_refresh_cookie(&tokens.refresh_token, tokens.refresh_expires_in);
+            let refresh_cookie = build_cookie(
+                (REFRESH_COOKIE, tokens.refresh_token.clone()),
+                Some(tokens.refresh_expires_in.num_seconds()),
+            );
 
             Ok((
-                [(header::SET_COOKIE, cookie.to_string())],
+                jar.remove(code_verifier_cookie)
+                    .remove(state_cookie)
+                    .add(refresh_cookie),
                 OkResponse(tokens.into()),
             ))
         }
@@ -42,18 +79,7 @@ pub(super) async fn handler(
 #[serde(rename_all = "camelCase")]
 pub(super) struct CodePayload {
     code: String,
-    code_verifier: String,
-    nonce: String,
-}
-
-impl From<CodePayload> for auth::CodePayload {
-    fn from(value: CodePayload) -> Self {
-        auth::CodePayload {
-            code: value.code,
-            code_verifier: value.code_verifier,
-            nonce: value.nonce,
-        }
-    }
+    state: String,
 }
 
 #[derive(utoipa::IntoResponses)]
@@ -69,8 +95,8 @@ impl IntoResponse for OkResponse {
 #[allow(dead_code)]
 #[derive(utoipa::IntoResponses)]
 pub(super) enum ErrResponse {
-    #[response(status = StatusCode::UNAUTHORIZED, description = "Bad credentials")]
-    Unauthorized(ApiError),
+    #[response(status = StatusCode::CONFLICT, description = "Missing OAuth cookies")]
+    Conflict(ApiError),
 
     #[response(status = StatusCode::UNPROCESSABLE_ENTITY, description = "Invalid input")]
     UnprocessableEntity(ApiError),
@@ -82,9 +108,7 @@ pub(super) enum ErrResponse {
 impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Unauthorized(_) => {
-                (StatusCode::UNAUTHORIZED, ApiError::bad_credentials()).into_response()
-            }
+            Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
             Self::InternalServerError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
             }

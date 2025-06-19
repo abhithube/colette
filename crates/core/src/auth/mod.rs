@@ -28,6 +28,9 @@ pub enum Error {
     Argon2(#[from] colette_util::Argon2Error),
 
     #[error(transparent)]
+    Base64(#[from] colette_util::Base64Error),
+
+    #[error(transparent)]
     Http(#[from] colette_http::Error),
 
     #[error(transparent)]

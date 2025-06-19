@@ -1,8 +1,8 @@
 use axum::{
-    http::{StatusCode, header},
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
-use axum_extra::extract::{CookieJar, cookie::Cookie};
+use axum_extra::extract::CookieJar;
 
 use super::{AUTH_TAG, REFRESH_COOKIE};
 use crate::common::ApiError;
@@ -17,21 +17,13 @@ use crate::common::ApiError;
 )]
 #[axum::debug_handler]
 pub(super) async fn handler(jar: CookieJar) -> Result<impl IntoResponse, ErrResponse> {
-    if jar.get(REFRESH_COOKIE).is_none() {
+    let Some(mut refresh_cookie) = jar.get(REFRESH_COOKIE).cloned() else {
         return Err(ErrResponse::Unauthorized(ApiError::forbidden()));
     };
 
-    let removal_cookie = Cookie::build(REFRESH_COOKIE)
-        .removal()
-        .path("/")
-        .http_only(true)
-        .secure(false)
-        .build();
+    refresh_cookie.set_path("/");
 
-    Ok((
-        [(header::SET_COOKIE, removal_cookie.to_string())],
-        OkResponse,
-    ))
+    Ok((jar.remove(refresh_cookie), OkResponse))
 }
 
 #[derive(utoipa::IntoResponses)]

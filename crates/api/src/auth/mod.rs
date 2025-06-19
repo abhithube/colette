@@ -1,6 +1,5 @@
 use axum::{Router, routing};
-use axum_extra::extract::cookie::Cookie;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use colette_core::auth;
 use url::Url;
 use utoipa::OpenApi;
@@ -12,11 +11,14 @@ mod exchange_code;
 mod get_active_user;
 mod login_user;
 mod logout_user;
+mod redirect_oidc;
 mod refresh_token;
 mod register_user;
 
 const AUTH_TAG: &str = "Auth";
 const REFRESH_COOKIE: &str = "colette_refresh";
+const CODE_VERIFIER_COOKIE: &str = "colette_code_verifier";
+const STATE_COOKIE: &str = "colette_state";
 
 #[derive(OpenApi)]
 #[openapi(
@@ -33,6 +35,7 @@ const REFRESH_COOKIE: &str = "colette_refresh";
         get_active_user::handler,
         refresh_token::handler,
         logout_user::handler,
+        redirect_oidc::handler,
         exchange_code::handler
     )
 )]
@@ -43,8 +46,9 @@ impl AuthApi {
         Router::new()
             .route("/register", routing::post(register_user::handler))
             .route("/login", routing::post(login_user::handler))
-            .route("/code", routing::post(exchange_code::handler))
             .route("/token", routing::post(refresh_token::handler))
+            .route("/oidc/redirect", routing::get(redirect_oidc::handler))
+            .route("/oidc/code", routing::post(exchange_code::handler))
     }
 
     pub(crate) fn authenticated() -> Router<ApiState> {
@@ -117,13 +121,4 @@ impl From<auth::TokenType> for TokenType {
             auth::TokenType::Bearer => TokenType::Bearer,
         }
     }
-}
-
-fn build_refresh_cookie(token: &str, expires_in: Duration) -> Cookie<'_> {
-    Cookie::build((REFRESH_COOKIE, token))
-        .path("/")
-        .http_only(true)
-        .secure(false)
-        .max_age(time::Duration::seconds(expires_in.num_seconds()))
-        .build()
 }

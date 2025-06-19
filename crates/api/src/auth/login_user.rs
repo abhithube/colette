@@ -1,15 +1,16 @@
 use axum::{
     extract::State,
-    http::{StatusCode, header},
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
+use axum_extra::extract::CookieJar;
 use colette_core::auth;
 use email_address::EmailAddress;
 
-use super::{AUTH_TAG, TokenData, build_refresh_cookie};
+use super::{AUTH_TAG, REFRESH_COOKIE, TokenData};
 use crate::{
     ApiState,
-    common::{ApiError, Json, NonEmptyString},
+    common::{ApiError, Json, NonEmptyString, build_cookie},
 };
 
 #[utoipa::path(
@@ -24,16 +25,17 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
+    jar: CookieJar,
     Json(body): Json<LoginPayload>,
 ) -> Result<impl IntoResponse, ErrResponse> {
     match state.auth_service.login_user(body.into()).await {
         Ok(tokens) => {
-            let cookie = build_refresh_cookie(&tokens.refresh_token, tokens.refresh_expires_in);
+            let refresh_cookie = build_cookie(
+                (REFRESH_COOKIE, tokens.refresh_token.clone()),
+                Some(tokens.refresh_expires_in.num_seconds()),
+            );
 
-            Ok((
-                [(header::SET_COOKIE, cookie.to_string())],
-                OkResponse(tokens.into()),
-            ))
+            Ok((jar.add(refresh_cookie), OkResponse(tokens.into())))
         }
         Err(e) => match e {
             auth::Error::NotAuthenticated => Err(ErrResponse::Unauthorized(e.into())),

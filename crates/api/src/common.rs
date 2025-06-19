@@ -6,7 +6,10 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
-use axum_extra::headers::{Authorization, HeaderMapExt, authorization::Bearer};
+use axum_extra::{
+    extract::cookie::{Cookie, SameSite},
+    headers::{Authorization, HeaderMapExt, authorization::Bearer},
+};
 use chrono::{DateTime, Utc};
 use colette_core::{
     api_key::ApiKeyService, auth::AuthService, bookmark::BookmarkService,
@@ -33,14 +36,8 @@ pub struct Config {
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct OidcConfig {
-    /// OIDC client ID
-    pub client_id: String,
-    /// OIDC issuer URL
-    #[schema(value_type = Url)]
-    pub issuer: String,
-    /// OIDC redirect URI
-    #[schema(value_type = Url)]
-    pub redirect_uri: String,
+    /// OIDC sign in button text
+    pub sign_in_text: Option<String>,
 }
 
 /// API storage config
@@ -313,13 +310,27 @@ impl From<filter::DateOp> for DateOp {
     }
 }
 
+pub(crate) fn build_cookie<'a, C: Into<Cookie<'a>>>(c: C, max_age: Option<i64>) -> Cookie<'a> {
+    let mut builder = Cookie::build(c)
+        .path("/")
+        .http_only(true)
+        .secure(true)
+        .same_site(SameSite::None);
+
+    if let Some(max_age) = max_age {
+        builder = builder.max_age(time::Duration::seconds(max_age));
+    }
+
+    builder.build()
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub(crate) enum ApiErrorCode {
     NotAuthenticated,
     NotAuthorized,
     NotFound,
-    AlreadyExists,
+    Conflict,
     Validation,
     BadGateway,
     Unknown,
@@ -380,7 +391,7 @@ impl IntoResponse for ApiError {
                 (StatusCode::FORBIDDEN, axum::Json(self)).into_response()
             }
             ApiErrorCode::NotFound => (StatusCode::NOT_FOUND, axum::Json(self)).into_response(),
-            ApiErrorCode::AlreadyExists => (StatusCode::CONFLICT, axum::Json(self)).into_response(),
+            ApiErrorCode::Conflict => (StatusCode::CONFLICT, axum::Json(self)).into_response(),
             ApiErrorCode::Validation => {
                 (StatusCode::UNPROCESSABLE_ENTITY, axum::Json(self)).into_response()
             }

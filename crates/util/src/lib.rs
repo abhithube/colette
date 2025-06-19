@@ -4,7 +4,7 @@ use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::{SaltString, rand_core::OsRng},
 };
-use base64::{DecodeError, Engine as _, engine::general_purpose::STANDARD_NO_PAD};
+use base64::{DecodeError, Engine as _, prelude::BASE64_URL_SAFE_NO_PAD};
 use rand::RngCore as _;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -36,11 +36,11 @@ pub enum Argon2Error {
 pub fn base64_encode<T: Serialize>(data: &T) -> Result<String, Base64Error> {
     let raw = serde_json::to_string(data)?;
 
-    Ok(STANDARD_NO_PAD.encode(&raw))
+    Ok(BASE64_URL_SAFE_NO_PAD.encode(&raw))
 }
 
 pub fn base64_decode<T: for<'a> Deserialize<'a>>(raw: &str) -> Result<T, Base64Error> {
-    let decoded = STANDARD_NO_PAD.decode(raw)?;
+    let decoded = BASE64_URL_SAFE_NO_PAD.decode(raw)?;
     let data_str = str::from_utf8(&decoded)?;
     let data = serde_json::from_str::<T>(data_str)?;
 
@@ -63,7 +63,7 @@ pub fn random_generate(len: usize) -> String {
     let mut raw = vec![0; len];
     rand::rng().fill_bytes(&mut raw);
 
-    STANDARD_NO_PAD.encode(raw)
+    BASE64_URL_SAFE_NO_PAD.encode(raw)
 }
 
 pub fn sha256_hash(value: &str) -> String {
