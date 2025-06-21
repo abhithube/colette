@@ -9,7 +9,8 @@ use bookmark::BookmarkApi;
 use collection::CollectionApi;
 use common::{ApiError, BooleanOp, DateOp, TextOp, verify_auth_extension};
 pub use common::{
-    ApiState, Config as ApiConfig, OidcConfig as ApiOidcConfig, StorageConfig as ApiStorageConfig,
+    ApiState, Config as ApiConfig, OidcConfig as ApiOidcConfig, ServerConfig as ApiServerConfig,
+    StorageConfig as ApiStorageConfig,
 };
 use config::ConfigApi;
 use feed::FeedApi;
@@ -19,6 +20,7 @@ use subscription::SubscriptionApi;
 use subscription_entry::SubscriptionEntryApi;
 use tag::TagApi;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use url::Url;
 use utoipa::{
     Modify, OpenApi,
     openapi::{
@@ -99,7 +101,7 @@ pub fn create_openapi() -> utoipa::openapi::OpenApi {
     openapi
 }
 
-pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> Router {
+pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<Url>>) -> Router {
     let openapi = create_openapi();
 
     let public_router = Router::new()
@@ -143,7 +145,7 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> R
     if let Some(origin_urls) = origin_urls {
         let origins = origin_urls
             .iter()
-            .filter_map(|e| e.parse::<HeaderValue>().ok())
+            .filter_map(|e| e.origin().ascii_serialization().parse::<HeaderValue>().ok())
             .collect::<Vec<_>>();
 
         router = router.layer(

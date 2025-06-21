@@ -1,0 +1,41 @@
+# data_dir =
+
+[server]
+# port = 8000
+# base_url = "http://localhost:8000"
+
+[database]
+# url =
+
+[client]
+# base_url =
+
+[jwt]
+secret = 
+
+[cors]
+# enabled = false
+# origin_urls = []
+
+[cron]
+# enabled = true
+# schedule = "0 */15 * * * *"
+
+[storage]
+# backend = "fs" # possible values: "fs" or "s3"
+
+[s3]
+# access_key_id =
+# secret_access_key =
+# region =
+# endpoint =
+# bucket_name = "colette"
+# path_style_enabled = true
+# image_base_url =
+
+[oidc]
+# enabled = false
+# client_id =
+# discovery_endpoint =
+# scope = "openid email profile"
+# sign_in_text = "Sign in with OIDC"

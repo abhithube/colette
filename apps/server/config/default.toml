@@ -1,0 +1,23 @@
+[server]
+port = 8000
+base_url = "http://localhost:8000"
+
+[cors]
+enabled = false
+origin_urls = []
+
+[cron]
+enabled = true
+schedule = "0 */15 * * * *"
+
+[storage]
+backend = "fs"
+
+[s3]
+bucket_name = "colette"
+path_style_enabled = true
+
+[oidc]
+enabled = false
+scope = "openid email profile"
+sign_in_text = "Sign in with OIDC"

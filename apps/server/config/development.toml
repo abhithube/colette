@@ -1,0 +1,8 @@
+[client]
+base_url = "http://localhost:5173"
+
+[jwt]
+secret = "secret"
+
+[cors]
+enabled = true

@@ -148,17 +148,15 @@ impl AuthService {
         let code_challenge = base64_url_encode(&sha256_hash(&code_verifier));
         let state = base64_url_encode(&random_generate(32));
 
-        let mut params = vec![
+        let params = vec![
             ("response_type", "code"),
             ("client_id", &oidc_config.client_id),
             ("redirect_uri", &oidc_config.redirect_uri),
+            ("scope", &oidc_config.scope),
             ("code_challenge_method", "S256"),
             ("code_challenge", &code_challenge),
             ("state", &state),
         ];
-        if let Some(scope) = &oidc_config.scope {
-            params.push(("scope", scope));
-        }
 
         let authorization_url =
             Url::parse_with_params(&oidc_config.authorization_endpoint, params).unwrap();
@@ -332,7 +330,7 @@ pub struct OidcConfig {
     pub token_endpoint: String,
     pub userinfo_endpoint: String,
     pub jwk_set: JwkSet,
-    pub scope: Option<String>,
+    pub scope: String,
 }
 
 #[derive(Debug, Clone)]

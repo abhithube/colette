@@ -39,9 +39,7 @@ pub(super) async fn handler(
         )
         .await
     {
-        Ok(data) => Ok(OkResponse(
-            (data, state.config.storage.base_url.clone()).into(),
-        )),
+        Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
             bookmark::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
             bookmark::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),

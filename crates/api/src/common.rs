@@ -24,6 +24,8 @@ use uuid::Uuid;
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
+    /// Server config
+    pub server: ServerConfig,
     /// OIDC config
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -32,12 +34,20 @@ pub struct Config {
     pub storage: StorageConfig,
 }
 
+/// API server config
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerConfig {
+    /// Server base URL
+    pub base_url: Url,
+}
+
 /// API OIDC config
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct OidcConfig {
     /// OIDC sign in button text
-    pub sign_in_text: Option<String>,
+    pub sign_in_text: String,
 }
 
 /// API storage config
@@ -45,7 +55,7 @@ pub struct OidcConfig {
 #[serde(rename_all = "camelCase")]
 pub struct StorageConfig {
     /// Base URL for the image storage server
-    pub base_url: Url,
+    pub image_base_url: Url,
 }
 
 #[derive(Clone, axum::extract::FromRef)]

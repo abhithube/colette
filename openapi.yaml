@@ -2314,7 +2314,7 @@ components:
       - thumbnailUrl
       - publishedAt
       - author
-      - archivedUrl
+      - archivedPath
       - createdAt
       - updatedAt
       properties:
@@ -2346,12 +2346,11 @@ components:
           - string
           - 'null'
           description: Author of the bookmark
-        archivedUrl:
+        archivedPath:
           type:
           - string
           - 'null'
-          format: uri
-          description: URL of the archived version of the bookmark's thumbnail
+          description: Storage path of the archived version of the bookmark's thumbnail
         createdAt:
           type: string
           format: date-time
@@ -2607,8 +2606,12 @@ components:
       type: object
       description: API config
       required:
+      - server
       - storage
       properties:
+        server:
+          $ref: '#/components/schemas/ServerConfig'
+          description: Server config
         oidc:
           $ref: '#/components/schemas/OidcConfig'
           description: OIDC config
@@ -2816,11 +2819,11 @@ components:
     OidcConfig:
       type: object
       description: API OIDC config
+      required:
+      - signInText
       properties:
         signInText:
-          type:
-          - string
-          - 'null'
+          type: string
           description: OIDC sign in button text
     Paginated_ApiKey:
       type: object
@@ -3124,13 +3127,23 @@ components:
           - string
           - 'null'
           format: uri
-    StorageConfig:
+    ServerConfig:
       type: object
-      description: API storage config
+      description: API server config
       required:
       - baseUrl
       properties:
         baseUrl:
+          type: string
+          format: uri
+          description: Server base URL
+    StorageConfig:
+      type: object
+      description: API storage config
+      required:
+      - imageBaseUrl
+      properties:
+        imageBaseUrl:
           type: string
           format: uri
           description: Base URL for the image storage server

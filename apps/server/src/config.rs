@@ -1,211 +1,219 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::LazyLock};
 
-use chrono::Duration;
+use config::{Config, Environment, FileFormat};
 use tokio::fs::{self, File};
 use url::Url;
 
-const APP_NAME: &str = "colette";
+const APP_NAME: &str = "Colette";
+static DATA_DIR: LazyLock<PathBuf> =
+    LazyLock::new(|| dirs::config_dir().unwrap().join(APP_NAME.to_lowercase()));
 
-pub async fn from_env() -> Result<Config, Box<dyn std::error::Error>> {
-    let raw = envy::from_env::<RawConfig>()?;
+const SQLITE_PATH: &str = "sqlite/db.sqlite";
+const FS_PATH: &str = "fs";
 
-    let data_dir = raw
-        .data_dir
-        .unwrap_or_else(|| dirs::config_dir().unwrap().join(APP_NAME));
+const DEFAULT_CONFIG: &str = include_str!("../config/default.toml");
 
-    fs::create_dir_all(&data_dir).await?;
+#[cfg(debug_assertions)]
+const DEVELOPMENT_CONFIG: &str = include_str!("../config/development.toml");
 
-    let mut server = ServerConfig::default();
-    if let Some(port) = raw.server_port {
-        server.port = port;
+pub async fn from_env() -> Result<AppConfig, Box<dyn std::error::Error>> {
+    #[allow(unused_mut)]
+    let mut builder = Config::builder()
+        .add_source(config::File::from_str(DEFAULT_CONFIG, FileFormat::Toml))
+        .set_default("data_dir", DATA_DIR.to_string_lossy().into_owned())?
+        .add_source(
+            Environment::default()
+                .separator("__")
+                .list_separator(",")
+                .with_list_parse_key("cors.origin_urls")
+                .try_parsing(true),
+        );
+
+    #[cfg(debug_assertions)]
+    {
+        builder = builder.add_source(config::File::from_str(DEVELOPMENT_CONFIG, FileFormat::Toml));
     }
 
-    let database_url = if let Some(database_url) = raw.database_url {
-        database_url
-    } else {
-        let path = data_dir.join("sqlite/db.sqlite");
+    let raw = builder.build()?.try_deserialize::<RawConfig>()?;
 
-        if !tokio::fs::try_exists(&path).await? {
-            if let Some(prefix) = path.parent() {
-                fs::create_dir_all(prefix).await?;
+    let database = match raw.database.map(|e| e.url) {
+        Some(url) => DatabaseConfig::Postgres(PostgresConfig { url }),
+        None => {
+            let path = raw.data_dir.join(SQLITE_PATH);
+
+            if !fs::try_exists(&path).await? {
+                if let Some(prefix) = path.parent() {
+                    fs::create_dir_all(prefix).await?;
+                }
+
+                File::create(&path).await?;
             }
 
-            File::create(&path).await?;
+            DatabaseConfig::Sqlite(SqliteConfig { path })
         }
-
-        path.to_string_lossy().into_owned()
     };
 
     let jwt = JwtConfig {
-        secret: raw.jwt_secret,
-        issuer: raw
-            .jwt_issuer
-            .unwrap_or_else(|| format!("http://0.0.0.0:{}", server.port)),
-        audience: APP_NAME.into(),
-        access_duration: raw.jwt_access_duration,
-        refresh_duration: raw.jwt_refresh_duration,
+        secret: raw.jwt.secret,
+        issuer: raw.server.base_url.to_string(),
+        audience: vec![APP_NAME.to_lowercase()],
     };
 
-    let queue = match raw.queue_backend {
-        QueueBackend::Local => QueueConfig::Local,
-    };
+    let cors = raw.cors.enabled.then(|| {
+        let mut origin_urls = raw.cors.origin_urls;
+        if let Some(ref config) = raw.client
+            && !origin_urls.contains(&config.base_url)
+        {
+            origin_urls.push(config.base_url.to_owned());
+        }
 
-    let storage = match raw.storage_backend {
-        StorageBackend::Fs => {
-            let config = FsStorageConfig {
-                path: data_dir.join("fs"),
-            };
-            if !fs::try_exists(&config.path).await? {
-                fs::create_dir(&config.path).await?;
+        CorsConfig { origin_urls }
+    });
+
+    let cron = raw.cron.enabled.then_some(CronConfig {
+        schedule: raw.cron.schedule,
+    });
+
+    let storage = match raw.storage.backend {
+        RawStorageBackend::Fs => {
+            let path = raw.data_dir.join(FS_PATH);
+
+            if !tokio::fs::try_exists(&path).await? {
+                fs::create_dir_all(&path).await?;
             }
 
-            StorageConfig::Fs(config)
+            let mut image_base_url = raw.server.base_url.clone();
+            image_base_url.set_path("uploads");
+
+            StorageConfig {
+                image_base_url,
+                backend: StorageBackend::Fs(FsConfig { path }),
+            }
         }
-        StorageBackend::S3 => {
-            let access_key_id = raw
-                .aws_access_key_id
-                .expect("'AWS_ACCESS_KEY_ID' not specified");
+        RawStorageBackend::S3 => {
+            let access_key_id = raw.s3.access_key_id.expect("'AWS__ACCESS_KEY_ID' not set");
             let secret_access_key = raw
-                .aws_secret_access_key
-                .expect("'AWS_SECRET_ACCESS_KEY' not specified");
-            let endpoint = raw.aws_endpoint.expect("'AWS_ENDPOINT' not specified");
+                .s3
+                .secret_access_key
+                .expect("'AWS__SECRET_ACCESS_KEY' not set");
+            let region = raw.s3.region.expect("'AWS__REGION' not set");
+            let endpoint = raw.s3.endpoint.expect("'AWS__ENDPOINT' not set");
 
-            let config = S3StorageConfig {
-                access_key_id,
-                secret_access_key,
-                region: raw.aws_region.unwrap_or_else(|| "us-east-1".into()),
-                endpoint,
-                bucket_name: raw.s3_bucket_name.unwrap_or_else(|| APP_NAME.into()),
-                path_style: if raw.s3_path_style_enabled {
-                    S3RequestStyle::Path
+            let image_base_url = raw.s3.image_base_url.unwrap_or_else(|| {
+                let mut image_base_url = endpoint.clone();
+
+                if raw.s3.path_style_enabled {
+                    image_base_url.set_path(&format!("{}/", raw.s3.bucket_name));
                 } else {
-                    S3RequestStyle::VirtualHost
-                },
-            };
+                    image_base_url
+                        .set_host(Some(&format!(
+                            "{}.{}",
+                            raw.s3.bucket_name,
+                            image_base_url.host_str().unwrap()
+                        )))
+                        .unwrap();
+                }
 
-            StorageConfig::S3(config)
+                image_base_url
+            });
+
+            StorageConfig {
+                image_base_url,
+                backend: StorageBackend::S3(S3Config {
+                    access_key_id,
+                    secret_access_key,
+                    region,
+                    endpoint,
+                    bucket_name: raw.s3.bucket_name,
+                    path_style_enabled: raw.s3.path_style_enabled,
+                }),
+            }
         }
     };
 
-    let mut cron = None;
-    if raw.cron_enabled {
-        let mut config = CronConfig::default();
-        if let Some(schedule) = raw.cron_schedule {
-            config.schedule = schedule;
-        }
+    let oidc = if let Some(oidc) = raw.oidc
+        && oidc.enabled
+    {
+        let mut redirect_uri = if let Some(ref config) = raw.client {
+            config.base_url.clone()
+        } else {
+            raw.server.base_url.clone()
+        };
 
-        cron = Some(config);
-    }
+        redirect_uri.set_path("auth-callback");
 
-    let mut cors = None;
-    if raw.cors_enabled {
-        let mut config = CorsConfig::default();
-        if let Some(origin_urls) = raw.cors_origin_urls {
-            config.origin_urls = origin_urls;
-        }
-
-        cors = Some(config);
-    }
-
-    let mut oidc = None::<OidcConfig>;
-    if let (Some(client_id), Some(redirect_uri), Some(discovery_endpoint)) = (
-        raw.oidc_client_id,
-        raw.oidc_redirect_uri,
-        raw.oidc_discovery_endpoint,
-    ) {
-        oidc = Some(OidcConfig {
-            client_id,
-            redirect_uri,
-            discovery_endpoint,
-            scope: raw.oidc_scope,
-            sign_in_text: raw.oidc_sign_in_text,
+        Some(OidcConfig {
+            client_id: oidc.client_id.expect("'OIDC__CLIENT_ID' not set"),
+            discovery_endpoint: oidc
+                .discovery_endpoint
+                .expect("'OIDC__DISCOVERY_ENDPOINT' not set"),
+            redirect_uri: redirect_uri.into(),
+            scope: oidc.scope,
+            sign_in_text: oidc.sign_in_text,
         })
-    }
+    } else {
+        None
+    };
 
-    Ok(Config {
-        server,
-        database_url,
+    Ok(AppConfig {
+        server: raw.server,
+        database,
         jwt,
-        queue,
+        cors,
+        cron,
         storage,
         oidc,
-        cron,
-        cors,
     })
 }
 
 #[derive(Debug, Clone)]
-pub struct Config {
+pub struct AppConfig {
     pub server: ServerConfig,
-    pub database_url: String,
+    pub database: DatabaseConfig,
     pub jwt: JwtConfig,
-    pub queue: QueueConfig,
+    pub cors: Option<CorsConfig>,
+    pub cron: Option<CronConfig>,
     pub storage: StorageConfig,
     pub oidc: Option<OidcConfig>,
-    pub cron: Option<CronConfig>,
-    pub cors: Option<CorsConfig>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct ServerConfig {
+    pub port: u32,
+    pub base_url: Url,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct ClientConfig {
+    pub base_url: Url,
 }
 
 #[derive(Debug, Clone)]
-pub struct ServerConfig {
-    pub port: u32,
+pub enum DatabaseConfig {
+    Sqlite(SqliteConfig),
+    Postgres(PostgresConfig),
 }
 
-impl Default for ServerConfig {
-    fn default() -> Self {
-        Self { port: 8000 }
-    }
+#[derive(Debug, Clone)]
+pub struct SqliteConfig {
+    pub path: PathBuf,
+}
+
+#[derive(Debug, Clone)]
+pub struct PostgresConfig {
+    pub url: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct JwtConfig {
     pub secret: String,
     pub issuer: String,
-    pub audience: String,
-    pub access_duration: Duration,
-    pub refresh_duration: Duration,
+    pub audience: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
-pub enum QueueConfig {
-    Local,
-}
-
-#[derive(Debug, Clone)]
-pub enum StorageConfig {
-    Fs(FsStorageConfig),
-    S3(S3StorageConfig),
-}
-
-#[derive(Debug, Clone)]
-pub struct FsStorageConfig {
-    pub path: PathBuf,
-}
-
-#[derive(Debug, Clone)]
-pub struct S3StorageConfig {
-    pub access_key_id: String,
-    pub secret_access_key: String,
-    pub region: String,
-    pub endpoint: Url,
-    pub bucket_name: String,
-    pub path_style: S3RequestStyle,
-}
-
-#[derive(Debug, Clone, Default)]
-pub enum S3RequestStyle {
-    #[default]
-    Path,
-    VirtualHost,
-}
-
-#[derive(Debug, Clone)]
-pub struct OidcConfig {
-    pub client_id: String,
-    pub discovery_endpoint: String,
-    pub redirect_uri: String,
-    pub scope: Option<String>,
-    pub sign_in_text: Option<String>,
+pub struct CorsConfig {
+    pub origin_urls: Vec<Url>,
 }
 
 #[derive(Debug, Clone)]
@@ -213,85 +221,106 @@ pub struct CronConfig {
     pub schedule: String,
 }
 
-impl Default for CronConfig {
-    fn default() -> Self {
-        CronConfig {
-            schedule: "0 */15 * * * *".into(),
-        }
-    }
+#[derive(Debug, Clone)]
+pub struct StorageConfig {
+    pub image_base_url: Url,
+    pub backend: StorageBackend,
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct CorsConfig {
-    pub origin_urls: Vec<String>,
+#[derive(Debug, Clone)]
+pub enum StorageBackend {
+    Fs(FsConfig),
+    S3(S3Config),
+}
+
+#[derive(Debug, Clone)]
+pub struct FsConfig {
+    pub path: PathBuf,
+}
+
+#[derive(Debug, Clone)]
+pub struct S3Config {
+    pub access_key_id: String,
+    pub secret_access_key: String,
+    pub region: String,
+    pub endpoint: Url,
+    pub bucket_name: String,
+    pub path_style_enabled: bool,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct OidcConfig {
+    pub client_id: String,
+    pub discovery_endpoint: Url,
+    pub redirect_uri: String,
+    pub scope: String,
+    pub sign_in_text: String,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
 struct RawConfig {
-    data_dir: Option<PathBuf>,
-    server_port: Option<u32>,
-    database_url: Option<String>,
-    jwt_secret: String,
-    jwt_issuer: Option<String>,
-    #[serde(default = "jwt_access_duration")]
-    jwt_access_duration: Duration,
-    #[serde(default = "jwt_refresh_duration")]
-    jwt_refresh_duration: Duration,
-    oidc_client_id: Option<String>,
-    oidc_discovery_endpoint: Option<String>,
-    oidc_redirect_uri: Option<String>,
-    oidc_scope: Option<String>,
-    oidc_sign_in_text: Option<String>,
-    #[serde(default = "QueueBackend::default")]
-    queue_backend: QueueBackend,
-    #[serde(default = "StorageBackend::default")]
-    storage_backend: StorageBackend,
-    aws_access_key_id: Option<String>,
-    aws_secret_access_key: Option<String>,
-    aws_region: Option<String>,
-    aws_endpoint: Option<Url>,
-    s3_bucket_name: Option<String>,
-    #[serde(default = "s3_path_style_enabled")]
-    s3_path_style_enabled: bool,
-    #[serde(default = "cron_enabled")]
-    cron_enabled: bool,
-    cron_schedule: Option<String>,
-    #[serde(default = "cors_enabled")]
-    cors_enabled: bool,
-    cors_origin_urls: Option<Vec<String>>,
+    data_dir: PathBuf,
+    server: ServerConfig,
+    database: Option<RawDatabaseConfig>,
+    client: Option<ClientConfig>,
+    jwt: RawJwtConfig,
+    cors: RawCorsConfig,
+    cron: RawCronConfig,
+    storage: RawStorageConfig,
+    s3: RawS3Config,
+    oidc: Option<RawOidcConfig>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct RawDatabaseConfig {
+    url: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct RawJwtConfig {
+    secret: String,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum QueueBackend {
-    #[default]
-    Local,
+struct RawCorsConfig {
+    enabled: bool,
+    origin_urls: Vec<Url>,
 }
 
-#[derive(Debug, Clone, Default, serde::Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum StorageBackend {
-    #[default]
+#[derive(Debug, Clone, serde::Deserialize)]
+struct RawCronConfig {
+    enabled: bool,
+    schedule: String,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct RawStorageConfig {
+    backend: RawStorageBackend,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum RawStorageBackend {
     Fs,
     S3,
 }
 
-fn jwt_access_duration() -> Duration {
-    Duration::minutes(15)
+#[derive(Debug, Clone, serde::Deserialize)]
+struct RawS3Config {
+    access_key_id: Option<String>,
+    secret_access_key: Option<String>,
+    region: Option<String>,
+    endpoint: Option<Url>,
+    bucket_name: String,
+    path_style_enabled: bool,
+    image_base_url: Option<Url>,
 }
 
-fn jwt_refresh_duration() -> Duration {
-    Duration::days(7)
-}
-
-fn s3_path_style_enabled() -> bool {
-    true
-}
-
-fn cron_enabled() -> bool {
-    true
-}
-
-fn cors_enabled() -> bool {
-    false
+#[derive(Debug, Clone, serde::Deserialize)]
+struct RawOidcConfig {
+    enabled: bool,
+    client_id: Option<String>,
+    discovery_endpoint: Option<Url>,
+    scope: String,
+    sign_in_text: String,
 }

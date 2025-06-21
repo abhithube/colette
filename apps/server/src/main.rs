@@ -1,7 +1,8 @@
 use std::{error::Error, net::SocketAddr, sync::Arc};
 
 use axum_embed::{FallbackBehavior, ServeEmbed};
-use colette_api::{ApiConfig, ApiOidcConfig, ApiState, ApiStorageConfig};
+use chrono::Duration;
+use colette_api::{ApiConfig, ApiOidcConfig, ApiServerConfig, ApiState, ApiStorageConfig};
 use colette_core::{
     account::AccountRepository,
     api_key::{ApiKeyRepository, ApiKeyService},
@@ -42,7 +43,6 @@ use colette_repository::{
 };
 use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
 use colette_storage::{FsStorageClient, S3StorageClient, StorageAdapter};
-use config::{QueueConfig, S3RequestStyle, StorageConfig};
 use deadpool_postgres::{Manager, ManagerConfig, Pool};
 use jsonwebtoken::{DecodingKey, EncodingKey, jwk::JwkSet};
 use s3::{Bucket, Region, creds::Credentials};
@@ -52,6 +52,8 @@ use tower::{ServiceBuilder, ServiceExt};
 use tower_http::services::ServeDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use worker::{CronWorker, JobWorker};
+
+use crate::config::{DatabaseConfig, StorageBackend};
 
 mod config;
 mod worker;
@@ -91,97 +93,94 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let app_config = config::from_env().await?;
 
-    let repositories = if app_config.database_url.starts_with("/") {
-        let pool = deadpool_sqlite::Config::new(app_config.database_url)
-            .builder(deadpool_sqlite::Runtime::Tokio1)?
-            .build()?;
+    let repositories = match app_config.database {
+        DatabaseConfig::Sqlite(config) => {
+            let pool = deadpool_sqlite::Config::new(config.path)
+                .builder(deadpool_sqlite::Runtime::Tokio1)?
+                .build()?;
 
-        {
-            let mut migrator = SqliteMigrator::new(&pool);
-            let mut runner = sqlite_migrations::migrations::runner();
-
-            if !migrator.is_fresh(&pool).await?
-                && runner
-                    .get_last_applied_migration_async(&mut migrator)
-                    .await?
-                    .is_none()
             {
-                runner = runner.set_target(refinery::Target::Fake)
+                let mut migrator = SqliteMigrator::new(&pool);
+                let mut runner = sqlite_migrations::migrations::runner();
+
+                if !migrator.is_fresh(&pool).await?
+                    && runner
+                        .get_last_applied_migration_async(&mut migrator)
+                        .await?
+                        .is_none()
+                {
+                    runner = runner.set_target(refinery::Target::Fake)
+                }
+
+                runner.run_async(&mut migrator).await?;
             }
 
-            runner.run_async(&mut migrator).await?;
+            Repositories {
+                account: Arc::new(SqliteAccountRepository::new(pool.clone())),
+                api_key: Arc::new(SqliteApiKeyRepository::new(pool.clone())),
+                bookmark: Arc::new(SqliteBookmarkRepository::new(pool.clone())),
+                collection: Arc::new(SqliteCollectionRepository::new(pool.clone())),
+                feed: Arc::new(SqliteFeedRepository::new(pool.clone())),
+                feed_entry: Arc::new(SqliteFeedEntryRepository::new(pool.clone())),
+                job: Arc::new(SqliteJobRepository::new(pool.clone())),
+                stream: Arc::new(SqliteStreamRepository::new(pool.clone())),
+                subscription: Arc::new(SqliteSubscriptionRepository::new(pool.clone())),
+                subscription_entry: Arc::new(SqliteSubscriptionEntryRepository::new(pool.clone())),
+                tag: Arc::new(SqliteTagRepository::new(pool.clone())),
+                user: Arc::new(SqliteUserRepository::new(pool)),
+            }
         }
+        DatabaseConfig::Postgres(config) => {
+            let manager =
+                Manager::from_config(config.url.parse()?, NoTls, ManagerConfig::default());
 
-        Repositories {
-            account: Arc::new(SqliteAccountRepository::new(pool.clone())),
-            api_key: Arc::new(SqliteApiKeyRepository::new(pool.clone())),
-            bookmark: Arc::new(SqliteBookmarkRepository::new(pool.clone())),
-            collection: Arc::new(SqliteCollectionRepository::new(pool.clone())),
-            feed: Arc::new(SqliteFeedRepository::new(pool.clone())),
-            feed_entry: Arc::new(SqliteFeedEntryRepository::new(pool.clone())),
-            job: Arc::new(SqliteJobRepository::new(pool.clone())),
-            stream: Arc::new(SqliteStreamRepository::new(pool.clone())),
-            subscription: Arc::new(SqliteSubscriptionRepository::new(pool.clone())),
-            subscription_entry: Arc::new(SqliteSubscriptionEntryRepository::new(pool.clone())),
-            tag: Arc::new(SqliteTagRepository::new(pool.clone())),
-            user: Arc::new(SqliteUserRepository::new(pool)),
-        }
-    } else {
-        let manager = Manager::from_config(
-            app_config.database_url.parse()?,
-            NoTls,
-            ManagerConfig::default(),
-        );
+            let pool = Pool::builder(manager).build()?;
 
-        let pool = Pool::builder(manager).build()?;
-
-        {
-            let mut migrator = PostgresMigrator::new(&pool);
-            let mut runner = postgres_migrations::migrations::runner();
-
-            if !migrator.is_fresh(&pool).await?
-                && runner
-                    .get_last_applied_migration_async(&mut migrator)
-                    .await?
-                    .is_none()
             {
-                runner = runner.set_target(refinery::Target::Fake)
+                let mut migrator = PostgresMigrator::new(&pool);
+                let mut runner = postgres_migrations::migrations::runner();
+
+                if !migrator.is_fresh(&pool).await?
+                    && runner
+                        .get_last_applied_migration_async(&mut migrator)
+                        .await?
+                        .is_none()
+                {
+                    runner = runner.set_target(refinery::Target::Fake)
+                }
+
+                runner.run_async(&mut migrator).await?;
             }
 
-            runner.run_async(&mut migrator).await?;
-        }
-
-        Repositories {
-            account: Arc::new(PostgresAccountRepository::new(pool.clone())),
-            api_key: Arc::new(PostgresApiKeyRepository::new(pool.clone())),
-            bookmark: Arc::new(PostgresBookmarkRepository::new(pool.clone())),
-            collection: Arc::new(PostgresCollectionRepository::new(pool.clone())),
-            feed: Arc::new(PostgresFeedRepository::new(pool.clone())),
-            feed_entry: Arc::new(PostgresFeedEntryRepository::new(pool.clone())),
-            job: Arc::new(PostgresJobRepository::new(pool.clone())),
-            stream: Arc::new(PostgresStreamRepository::new(pool.clone())),
-            subscription: Arc::new(PostgresSubscriptionRepository::new(pool.clone())),
-            subscription_entry: Arc::new(PostgresSubscriptionEntryRepository::new(pool.clone())),
-            tag: Arc::new(PostgresTagRepository::new(pool.clone())),
-            user: Arc::new(PostgresUserRepository::new(pool)),
+            Repositories {
+                account: Arc::new(PostgresAccountRepository::new(pool.clone())),
+                api_key: Arc::new(PostgresApiKeyRepository::new(pool.clone())),
+                bookmark: Arc::new(PostgresBookmarkRepository::new(pool.clone())),
+                collection: Arc::new(PostgresCollectionRepository::new(pool.clone())),
+                feed: Arc::new(PostgresFeedRepository::new(pool.clone())),
+                feed_entry: Arc::new(PostgresFeedEntryRepository::new(pool.clone())),
+                job: Arc::new(PostgresJobRepository::new(pool.clone())),
+                stream: Arc::new(PostgresStreamRepository::new(pool.clone())),
+                subscription: Arc::new(PostgresSubscriptionRepository::new(pool.clone())),
+                subscription_entry: Arc::new(PostgresSubscriptionEntryRepository::new(
+                    pool.clone(),
+                )),
+                tag: Arc::new(PostgresTagRepository::new(pool.clone())),
+                user: Arc::new(PostgresUserRepository::new(pool)),
+            }
         }
     };
 
-    let (storage_adapter, image_base_url) = match app_config.storage.clone() {
-        StorageConfig::Fs(config) => (
-            StorageAdapter::Fs(FsStorageClient::new(config.path)),
-            format!("http://0.0.0.0:{}/uploads/", app_config.server.port)
-                .parse()
-                .unwrap(),
-        ),
-        StorageConfig::S3(config) => {
-            let mut base_url = config.endpoint;
-
+    let storage_adapter = match app_config.storage.backend {
+        StorageBackend::Fs(ref config) => {
+            StorageAdapter::Fs(FsStorageClient::new(config.path.to_owned()))
+        }
+        StorageBackend::S3(ref config) => {
             let mut bucket = Bucket::new(
                 &config.bucket_name,
                 Region::Custom {
-                    region: config.region,
-                    endpoint: base_url.origin().ascii_serialization(),
+                    region: config.region.to_owned(),
+                    endpoint: config.endpoint.to_string(),
                 },
                 Credentials::new(
                     Some(&config.access_key_id),
@@ -191,18 +190,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     None,
                 )?,
             )?;
-            match config.path_style {
-                S3RequestStyle::Path => {
-                    base_url.set_path(&format!("{}/", bucket.name));
-                    bucket.set_path_style();
-                }
-                S3RequestStyle::VirtualHost => {
-                    base_url.set_host(Some(&format!(
-                        "{}.{}",
-                        bucket.name,
-                        base_url.host_str().unwrap()
-                    )))?;
-                }
+            if config.path_style_enabled {
+                bucket.set_path_style();
             }
 
             let exists = bucket.exists().await?;
@@ -210,62 +199,52 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 panic!("bucket does not exist with name: {}", config.bucket_name);
             }
 
-            (StorageAdapter::S3(S3StorageClient::new(bucket)), base_url)
+            StorageAdapter::S3(S3StorageClient::new(bucket))
         }
     };
 
     let reqwest_client = reqwest::Client::builder().build()?;
     let http_client = ReqwestClient::new(reqwest_client.clone());
 
-    let (scrape_feed_producer, scrape_feed_consumer) = match &app_config.queue {
-        QueueConfig::Local => {
-            let queue = LocalQueue::new().split();
+    let (scrape_feed_producer, scrape_feed_consumer) = {
+        let queue = LocalQueue::new().split();
 
-            (
-                JobProducerAdapter::Local(queue.0),
-                JobConsumerAdapter::Local(queue.1),
-            )
-        }
+        (
+            JobProducerAdapter::Local(queue.0),
+            JobConsumerAdapter::Local(queue.1),
+        )
     };
-    let (scrape_bookmark_producer, scrape_bookmark_consumer) = match &app_config.queue {
-        QueueConfig::Local => {
-            let queue = LocalQueue::new().split();
+    let (scrape_bookmark_producer, scrape_bookmark_consumer) = {
+        let queue = LocalQueue::new().split();
 
-            (
-                JobProducerAdapter::Local(queue.0),
-                JobConsumerAdapter::Local(queue.1),
-            )
-        }
+        (
+            JobProducerAdapter::Local(queue.0),
+            JobConsumerAdapter::Local(queue.1),
+        )
     };
-    let (archive_thumbnail_producer, archive_thumbnail_consumer) = match &app_config.queue {
-        QueueConfig::Local => {
-            let queue = LocalQueue::new().split();
+    let (archive_thumbnail_producer, archive_thumbnail_consumer) = {
+        let queue = LocalQueue::new().split();
 
-            (
-                JobProducerAdapter::Local(queue.0),
-                JobConsumerAdapter::Local(queue.1),
-            )
-        }
+        (
+            JobProducerAdapter::Local(queue.0),
+            JobConsumerAdapter::Local(queue.1),
+        )
     };
-    let (import_subscriptions_producer, import_subscriptions_consumer) = match &app_config.queue {
-        QueueConfig::Local => {
-            let queue = LocalQueue::new().split();
+    let (import_subscriptions_producer, import_subscriptions_consumer) = {
+        let queue = LocalQueue::new().split();
 
-            (
-                JobProducerAdapter::Local(queue.0),
-                JobConsumerAdapter::Local(queue.1),
-            )
-        }
+        (
+            JobProducerAdapter::Local(queue.0),
+            JobConsumerAdapter::Local(queue.1),
+        )
     };
-    let (import_bookmarks_producer, import_bookmarks_consumer) = match &app_config.queue {
-        QueueConfig::Local => {
-            let queue = LocalQueue::new().split();
+    let (import_bookmarks_producer, import_bookmarks_consumer) = {
+        let queue = LocalQueue::new().split();
 
-            (
-                JobProducerAdapter::Local(queue.0),
-                JobConsumerAdapter::Local(queue.1),
-            )
-        }
+        (
+            JobProducerAdapter::Local(queue.0),
+            JobConsumerAdapter::Local(queue.1),
+        )
     };
 
     let bookmark_service = Arc::new(BookmarkService::new(
@@ -301,7 +280,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let mut oidc_config = None::<OidcConfig>;
     if let Some(config) = app_config.oidc.clone() {
-        let data = http_client.get(&config.discovery_endpoint.parse()?).await?;
+        let data = http_client.get(&config.discovery_endpoint).await?;
         let metadata = serde_json::from_slice::<OidcProviderMetadata>(&data)?;
 
         let data = http_client.get(&metadata.jwks_uri.parse()?).await?;
@@ -328,11 +307,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
             AuthConfig {
                 jwt: JwtConfig {
                     issuer: app_config.jwt.issuer,
-                    audience: vec![app_config.jwt.audience],
+                    audience: app_config.jwt.audience,
                     encoding_key: EncodingKey::from_secret(app_config.jwt.secret.as_bytes()),
                     decoding_key: DecodingKey::from_secret(app_config.jwt.secret.as_bytes()),
-                    access_duration: app_config.jwt.access_duration,
-                    refresh_duration: app_config.jwt.refresh_duration,
+                    access_duration: Duration::minutes(15),
+                    refresh_duration: Duration::days(7),
                 },
                 oidc: oidc_config.clone(),
             },
@@ -350,19 +329,22 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )),
         tag_service: Arc::new(TagService::new(repositories.tag)),
         config: ApiConfig {
-            oidc: oidc_config.map(|_| ApiOidcConfig {
-                sign_in_text: app_config.oidc.and_then(|e| e.sign_in_text),
+            server: ApiServerConfig {
+                base_url: app_config.server.base_url,
+            },
+            oidc: app_config.oidc.map(|e| ApiOidcConfig {
+                sign_in_text: e.sign_in_text,
             }),
             storage: ApiStorageConfig {
-                base_url: image_base_url,
+                image_base_url: app_config.storage.image_base_url,
             },
         },
     };
 
     let mut api = colette_api::create_router(api_state, app_config.cors.map(|e| e.origin_urls));
 
-    if let StorageConfig::Fs(config) = app_config.storage {
-        api = api.nest_service("/uploads", ServeDir::new(config.path))
+    if let StorageBackend::Fs(ref config) = app_config.storage.backend {
+        api = api.nest_service("/uploads", ServeDir::new(&config.path))
     }
 
     api = api.fallback_service(ServeEmbed::<Asset>::with_parameters(

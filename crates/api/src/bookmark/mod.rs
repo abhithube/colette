@@ -65,9 +65,9 @@ struct Bookmark {
     /// Author of the bookmark
     #[schema(required)]
     author: Option<String>,
-    /// URL of the archived version of the bookmark's thumbnail
+    /// Storage path of the archived version of the bookmark's thumbnail
     #[schema(required)]
-    archived_url: Option<Url>,
+    archived_path: Option<String>,
     /// Timestamp at which the bookmark was created
     created_at: DateTime<Utc>,
     /// Timestamp at which the bookmark was modified
@@ -85,8 +85,8 @@ struct BookmarkDetails {
     tags: Option<Vec<Tag>>,
 }
 
-impl From<(colette_core::Bookmark, Url)> for Bookmark {
-    fn from((value, bucket_url): (colette_core::Bookmark, Url)) -> Self {
+impl From<colette_core::Bookmark> for Bookmark {
+    fn from(value: colette_core::Bookmark) -> Self {
         Self {
             id: value.id,
             link: value.link,
@@ -94,22 +94,22 @@ impl From<(colette_core::Bookmark, Url)> for Bookmark {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
-            archived_url: value.archived_path.map(|e| bucket_url.join(&e).unwrap()),
+            archived_path: value.archived_path,
             created_at: value.created_at,
             updated_at: value.updated_at,
         }
     }
 }
 
-impl From<(colette_core::Bookmark, Url)> for BookmarkDetails {
-    fn from((value, bucket_url): (colette_core::Bookmark, Url)) -> Self {
+impl From<colette_core::Bookmark> for BookmarkDetails {
+    fn from(value: colette_core::Bookmark) -> Self {
         let tags = value
             .tags
             .clone()
             .map(|e| e.into_iter().map(Tag::from).collect());
 
         Self {
-            bookmark: (value, bucket_url).into(),
+            bookmark: value.into(),
             tags,
         }
     }

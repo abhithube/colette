@@ -33,14 +33,7 @@ pub(super) async fn handler(
         .list_bookmarks(query.into(), user_id)
         .await
     {
-        Ok(data) => Ok(OkResponse(Paginated {
-            data: data
-                .data
-                .into_iter()
-                .map(|e| (e, state.config.storage.base_url.clone()).into())
-                .collect(),
-            cursor: data.cursor,
-        })),
+        Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
