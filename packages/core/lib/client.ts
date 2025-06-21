@@ -72,22 +72,22 @@ const getOrHandleRefresh = async (): Promise<string | null> => {
 export const client = async <TData, _TError = unknown, TVariables = unknown>(
   paramsConfig: RequestConfig<TVariables>,
 ): Promise<ResponseConfig<TData>> => {
-  const globalConfig = getConfig()
-  const config = { ...globalConfig, ...paramsConfig }
-
-  const normalizedParams = new URLSearchParams()
-  Object.entries(config.params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  })
-
-  let targetUrl = [config.baseURL, config.url].filter(Boolean).join('')
-  if (config.params) {
-    targetUrl += `?${normalizedParams}`
-  }
-
   const makeRequest = async () => {
+    const globalConfig = getConfig()
+    const config = { ...globalConfig, ...paramsConfig }
+
+    const normalizedParams = new URLSearchParams()
+    Object.entries(config.params || {}).forEach(([key, value]) => {
+      if (value !== undefined) {
+        normalizedParams.append(key, value === null ? 'null' : value.toString())
+      }
+    })
+
+    let targetUrl = [config.baseURL, config.url].filter(Boolean).join('')
+    if (config.params) {
+      targetUrl += `?${normalizedParams}`
+    }
+
     const headers = new Headers(config.headers)
 
     if (!headers.has('Content-Type') && config.data) {
