@@ -18,8 +18,15 @@ impl FsStorageClient {
 #[async_trait::async_trait]
 impl StorageClient for FsStorageClient {
     async fn upload(&self, path: &str, data: Vec<u8>) -> Result<(), std::io::Error> {
-        tokio::fs::create_dir_all(&self.path).await?;
-        tokio::fs::write(self.path.join(path), data).await?;
+        let full = self.path.join(path);
+
+        if let Some(parent) = full.parent()
+            && !tokio::fs::try_exists(parent).await?
+        {
+            tokio::fs::create_dir_all(parent).await?;
+        }
+
+        tokio::fs::write(full, data).await?;
 
         Ok(())
     }
