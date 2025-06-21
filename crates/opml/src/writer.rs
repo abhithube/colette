@@ -14,7 +14,7 @@ pub fn to_writer<W: Write>(mut writer: W, opml: Opml) -> Result<(), Error> {
         writer,
         "{}<title>{}</title>",
         " ".repeat(4).repeat(2),
-        opml.head.title
+        quick_xml::escape::escape(opml.head.title)
     )?;
     writeln!(writer, "{}</head>", " ".repeat(4))?;
 
@@ -36,17 +36,20 @@ fn write_outlines<W: Write>(
 ) -> Result<(), Error> {
     for outline in outlines {
         let mut attributes: Vec<String> = Vec::new();
-        if let Some(r#type) = &outline.r#type {
+        if let Some(ref r#type) = outline.r#type {
             attributes.push(format!(r#"type="{type}""#));
         }
-        attributes.push(format!(r#"text="{}""#, outline.text));
-        if let Some(xml_url) = &outline.xml_url {
+        attributes.push(format!(
+            r#"text="{}""#,
+            quick_xml::escape::escape(&outline.text)
+        ));
+        if let Some(ref xml_url) = outline.xml_url {
             attributes.push(format!(r#"xmlUrl="{xml_url}""#));
         }
-        if let Some(title) = &outline.title {
-            attributes.push(format!(r#"title="{title}""#));
+        if let Some(ref title) = outline.title {
+            attributes.push(format!(r#"title="{}""#, quick_xml::escape::escape(title)));
         }
-        if let Some(html_url) = &outline.html_url {
+        if let Some(ref html_url) = outline.html_url {
             attributes.push(format!(r#"htmlUrl="{html_url}""#));
         }
 

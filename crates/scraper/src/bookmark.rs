@@ -86,7 +86,7 @@ impl TryFrom<ExtractedBookmark> for ProcessedBookmark {
             return Err(PostprocessorError::Title);
         };
 
-        if let Some(t) = &value.thumbnail
+        if let Some(ref t) = value.thumbnail
             && t.starts_with("//")
         {
             value.thumbnail = Some(format!("https:{t}"));

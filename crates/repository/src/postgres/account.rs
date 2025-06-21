@@ -35,7 +35,7 @@ impl AccountRepository for PostgresAccountRepository {
         let mut client = self.pool.get().await?;
         let tx = client.transaction().await?;
 
-        if let Some(user) = &data.user {
+        if let Some(ref user) = data.user {
             let (sql, values) = UserInsert {
                 id: user.id,
                 email: &user.email,

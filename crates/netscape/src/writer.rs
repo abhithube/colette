@@ -26,7 +26,7 @@ fn write_items<W: Write>(writer: &mut W, items: &[Item], level: usize) -> Result
         if let Some(add_date) = item.add_date {
             attributes.push(format!(r#"ADD_DATE="{add_date}""#));
         }
-        if let Some(href) = &item.href {
+        if let Some(ref href) = item.href {
             attributes.push(format!(r#"HREF="{href}""#));
         }
         if let Some(last_visit) = item.last_visit {
