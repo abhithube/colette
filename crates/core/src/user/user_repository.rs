@@ -8,7 +8,21 @@ pub trait UserRepository: Send + Sync + 'static {
 
     async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, Error> {
         Ok(self
-            .query(UserParams { id: Some(id) })
+            .query(UserParams {
+                id: Some(id),
+                ..Default::default()
+            })
+            .await?
+            .into_iter()
+            .next())
+    }
+
+    async fn find_by_email(&self, email: String) -> Result<Option<User>, Error> {
+        Ok(self
+            .query(UserParams {
+                email: Some(email),
+                ..Default::default()
+            })
             .await?
             .into_iter()
             .next())
@@ -18,4 +32,5 @@ pub trait UserRepository: Send + Sync + 'static {
 #[derive(Debug, Clone, Default)]
 pub struct UserParams {
     pub id: Option<Uuid>,
+    pub email: Option<String>,
 }

@@ -6,17 +6,6 @@ use super::{Account, Error};
 pub trait AccountRepository: Send + Sync + 'static {
     async fn query(&self, params: AccountParams) -> Result<Vec<Account>, Error>;
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Account>, Error> {
-        Ok(self
-            .query(AccountParams {
-                id: Some(id),
-                ..Default::default()
-            })
-            .await?
-            .into_iter()
-            .next())
-    }
-
     async fn find_by_sub_and_provider(
         &self,
         sub: String,

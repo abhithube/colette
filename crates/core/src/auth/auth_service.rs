@@ -226,6 +226,8 @@ impl AuthService {
             token_data.claims
         };
 
+        let email = claims.email.unwrap();
+
         let user = match self
             .account_repository
             .find_by_sub_and_provider(claims.sub.clone(), OIDC_PROVIDER.into())
@@ -236,20 +238,31 @@ impl AuthService {
                 None => Err(Error::NotAuthenticated),
             },
             None => {
-                let user = User::builder()
-                    .email(claims.email.unwrap())
-                    .maybe_display_name(claims.name)
-                    .maybe_image_url(claims.picture)
-                    .build();
+                let (user, insert) = match self.user_repository.find_by_email(email.clone()).await?
+                {
+                    Some(user) => (user, false),
+                    None => {
+                        let user = User::builder()
+                            .email(email)
+                            .maybe_display_name(claims.name)
+                            .maybe_image_url(claims.picture)
+                            .build();
+
+                        (user, true)
+                    }
+                };
 
                 let account = Account::builder()
                     .sub(claims.sub)
                     .provider(OIDC_PROVIDER.into())
                     .user_id(user.id)
-                    .user(user.clone())
+                    .maybe_user(insert.then_some(user.clone()))
                     .build();
 
-                self.account_repository.save(&account).await?;
+                self.account_repository
+                    .save(&account)
+                    .await
+                    .inspect_err(|e| println!("{e}"))?;
 
                 Ok(user)
             }
