@@ -7,6 +7,7 @@ import {
   HomePage,
   Layout,
   LoginPage,
+  RegisterPage,
   StashPage,
   StreamPage,
   SubscriptionPage,
@@ -20,7 +21,7 @@ import {
   RouteIds,
   RouterProvider,
 } from '@colette/router'
-import { OIDCConfigProvider, ThemeProvider } from '@colette/util'
+import { ConfigProvider, ThemeProvider } from '@colette/util'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
@@ -33,16 +34,6 @@ scan({
 
 client.setConfig({
   baseURL: import.meta.env.DEV ? import.meta.env.VITE_BACKEND_URL : '/api',
-  tokenConfig: {
-    accessManager: {
-      get: () => localStorage.getItem('colette-access-token'),
-      set: (token) => localStorage.setItem('colette-access-token', token),
-    },
-    refreshManager: {
-      get: () => localStorage.getItem('colette-refresh-token'),
-      set: (token) => localStorage.setItem('colette-refresh-token', token),
-    },
-  },
 })
 
 const queryClient = new QueryClient()
@@ -56,7 +47,7 @@ const routerMap = {
     const context = getRouteApi('__root__').useRouteContext()
 
     return (
-      <OIDCConfigProvider oidcConfig={context.oidcConfig ?? null}>
+      <ConfigProvider config={context.config}>
         <ThemeProvider>
           <QueryClientProvider client={context.queryClient}>
             <Outlet />
@@ -64,9 +55,10 @@ const routerMap = {
             <ReactQueryDevtools />
           </QueryClientProvider>
         </ThemeProvider>
-      </OIDCConfigProvider>
+      </ConfigProvider>
     )
   },
+  '/register': RegisterPage,
   '/login': LoginPage,
   '/auth-callback': () => <div></div>,
   '/layout': Layout,

@@ -1,7 +1,8 @@
 import { rootRoute } from '../__root'
+import client from '@colette/core/client'
+import { exchangeCode } from '@colette/core/http'
 import { createRoute, redirect } from '@tanstack/react-router'
 import { zodValidator } from '@tanstack/zod-adapter'
-import * as client from 'openid-client'
 import { z } from 'zod'
 
 export const authCallbackRoute = createRoute({
@@ -11,12 +12,10 @@ export const authCallbackRoute = createRoute({
     z.object({
       code: z.string(),
       state: z.string(),
-      iss: z.string().url().optional(),
-      session_state: z.string().optional(),
     }),
   ),
-  beforeLoad: async ({ context }) => {
-    if (!context.oidcConfig) {
+  beforeLoad: async ({ context, search }) => {
+    if (!context.config.oidc) {
       throw redirect({
         to: '/',
         replace: true,
@@ -24,28 +23,20 @@ export const authCallbackRoute = createRoute({
     }
 
     if (!context.user) {
-      const codeVerifier =
-        sessionStorage.getItem('colette-code-verifier') ?? undefined
+      const data = await exchangeCode({
+        code: search.code,
+        state: search.state,
+      })
 
-      const res = await client.authorizationCodeGrant(
-        context.oidcConfig.clientConfig,
-        new URL(window.location.href),
-        {
-          pkceCodeVerifier: codeVerifier,
-        },
-      )
-
-      sessionStorage.removeItem('colette-code-verifier')
-
-      localStorage.setItem('colette-access-token', res.access_token)
-      if (res.refresh_token) {
-        localStorage.setItem('colette-refresh-token', res.refresh_token)
-      }
+      client.setConfig({
+        ...client.getConfig(),
+        accessToken: data.accessToken,
+      })
     }
 
-    const from = sessionStorage.getItem('colette-from')
+    const from = sessionStorage.getItem('colette_from')
     if (from) {
-      sessionStorage.removeItem('colette-from')
+      sessionStorage.removeItem('colette_from')
     }
 
     throw redirect({

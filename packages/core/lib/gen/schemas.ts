@@ -43,6 +43,7 @@ import type {
   PaginatedSubscriptionEntryDetails,
   PaginatedTagDetails,
   RegisterPayload,
+  ServerConfig,
   StorageConfig,
   Stream,
   StreamCreate,
@@ -123,8 +124,11 @@ import type {
   LogoutUser401,
   LogoutUserError,
   LogoutUserMutationResponse,
+  RedirectOidc303,
+  RedirectOidcError,
+  RedirectOidcQueryResponse,
   ExchangeCode200,
-  ExchangeCode401,
+  ExchangeCode409,
   ExchangeCode422,
   ExchangeCodeError,
   ExchangeCodeMutationRequest,
@@ -410,7 +414,7 @@ export const apiErrorCodeSchema = z.enum([
   'NOT_AUTHENTICATED',
   'NOT_AUTHORIZED',
   'NOT_FOUND',
-  'ALREADY_EXISTS',
+  'CONFLICT',
   'VALIDATION',
   'BAD_GATEWAY',
   'UNKNOWN',
@@ -508,10 +512,11 @@ export const bookmarkSchema = z
       .describe('Timestamp at which the bookmark was published')
       .nullable(),
     author: z.string().describe('Author of the bookmark').nullable(),
-    archivedUrl: z
+    archivedPath: z
       .string()
-      .url()
-      .describe("URL of the archived version of the bookmark's thumbnail")
+      .describe(
+        "Storage path of the archived version of the bookmark's thumbnail",
+      )
       .nullable(),
     createdAt: z
       .string()
@@ -687,8 +692,7 @@ export const booleanOpSchema = z.object({
 
 export const codePayloadSchema = z.object({
   code: z.string(),
-  codeVerifier: z.string(),
-  nonce: z.string(),
+  state: z.string(),
 }) as unknown as ToZod<CodePayload>
 
 export const collectionSchema = z.object({
@@ -714,6 +718,7 @@ export const collectionUpdateSchema = z.object({
  */
 export const configSchema = z
   .object({
+    server: z.lazy(() => serverConfigSchema).describe('API server config'),
     oidc: z
       .lazy(() => oidcConfigSchema)
       .describe('API OIDC config')
@@ -857,9 +862,7 @@ export const loginPayloadSchema = z.object({
  */
 export const oidcConfigSchema = z
   .object({
-    clientId: z.string().describe('OIDC client ID'),
-    issuer: z.string().url().describe('OIDC issuer URL'),
-    redirectUri: z.string().url().describe('OIDC redirect URI'),
+    signInText: z.string().describe('OIDC sign in button text'),
   })
   .describe('API OIDC config') as unknown as ToZod<OidcConfig>
 
@@ -1156,11 +1159,23 @@ export const registerPayloadSchema = z.object({
 }) as unknown as ToZod<RegisterPayload>
 
 /**
+ * @description API server config
+ */
+export const serverConfigSchema = z
+  .object({
+    baseUrl: z.string().url().describe('Server base URL'),
+  })
+  .describe('API server config') as unknown as ToZod<ServerConfig>
+
+/**
  * @description API storage config
  */
 export const storageConfigSchema = z
   .object({
-    baseUrl: z.string().url().describe('Base URL for the image storage server'),
+    imageBaseUrl: z
+      .string()
+      .url()
+      .describe('Base URL for the image storage server'),
   })
   .describe('API storage config') as unknown as ToZod<StorageConfig>
 
@@ -1870,6 +1885,22 @@ export const logoutUserMutationResponseSchema = z.lazy(
 ) as unknown as ToZod<LogoutUserMutationResponse>
 
 /**
+ * @description Redirect to OIDC authorization endpoint
+ */
+export const redirectOidc303Schema =
+  z.any() as unknown as ToZod<RedirectOidc303>
+
+/**
+ * @description Unknown error
+ */
+export const redirectOidcErrorSchema = z.lazy(
+  () => apiErrorSchema,
+) as unknown as ToZod<RedirectOidcError>
+
+export const redirectOidcQueryResponseSchema =
+  z.any() as unknown as ToZod<RedirectOidcQueryResponse>
+
+/**
  * @description Access token for autheticated user
  */
 export const exchangeCode200Schema = z.lazy(
@@ -1877,11 +1908,11 @@ export const exchangeCode200Schema = z.lazy(
 ) as unknown as ToZod<ExchangeCode200>
 
 /**
- * @description Bad credentials
+ * @description Missing OAuth cookies
  */
-export const exchangeCode401Schema = z.lazy(
+export const exchangeCode409Schema = z.lazy(
   () => apiErrorSchema,
-) as unknown as ToZod<ExchangeCode401>
+) as unknown as ToZod<ExchangeCode409>
 
 /**
  * @description Invalid input

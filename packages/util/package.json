@@ -8,7 +8,6 @@
   "dependencies": {
     "@colette/core": "*",
     "date-fns": "^4.1.0",
-    "openid-client": "*",
     "react": "*"
   },
   "devDependencies": {

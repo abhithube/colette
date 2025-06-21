@@ -18,7 +18,7 @@ export const apiErrorCodeEnum = {
   NOT_AUTHENTICATED: 'NOT_AUTHENTICATED',
   NOT_AUTHORIZED: 'NOT_AUTHORIZED',
   NOT_FOUND: 'NOT_FOUND',
-  ALREADY_EXISTS: 'ALREADY_EXISTS',
+  CONFLICT: 'CONFLICT',
   VALIDATION: 'VALIDATION',
   BAD_GATEWAY: 'BAD_GATEWAY',
   UNKNOWN: 'UNKNOWN',
@@ -145,10 +145,10 @@ export type Bookmark = {
    */
   author: string | null
   /**
-   * @description URL of the archived version of the bookmark\'s thumbnail
-   * @type string,null, uri
+   * @description Storage path of the archived version of the bookmark\'s thumbnail
+   * @type string,null
    */
-  archivedUrl: string | null
+  archivedPath: string | null
   /**
    * @description Timestamp at which the bookmark was created
    * @type string, date-time
@@ -359,11 +359,7 @@ export type CodePayload = {
   /**
    * @type string
    */
-  codeVerifier: string
-  /**
-   * @type string
-   */
-  nonce: string
+  state: string
 }
 
 export type Collection = {
@@ -408,6 +404,11 @@ export type CollectionUpdate = {
  * @description API config
  */
 export type Config = {
+  /**
+   * @description API server config
+   * @type object
+   */
+  server: ServerConfig
   /**
    * @description API OIDC config
    * @type object | undefined
@@ -619,20 +620,10 @@ export type LoginPayload = {
  */
 export type OidcConfig = {
   /**
-   * @description OIDC client ID
+   * @description OIDC sign in button text
    * @type string
    */
-  clientId: string
-  /**
-   * @description OIDC issuer URL
-   * @type string, uri
-   */
-  issuer: string
-  /**
-   * @description OIDC redirect URI
-   * @type string, uri
-   */
-  redirectUri: string
+  signInText: string
 }
 
 /**
@@ -947,6 +938,17 @@ export type RegisterPayload = {
 }
 
 /**
+ * @description API server config
+ */
+export type ServerConfig = {
+  /**
+   * @description Server base URL
+   * @type string, uri
+   */
+  baseUrl: string
+}
+
+/**
  * @description API storage config
  */
 export type StorageConfig = {
@@ -954,7 +956,7 @@ export type StorageConfig = {
    * @description Base URL for the image storage server
    * @type string, uri
    */
-  baseUrl: string
+  imageBaseUrl: string
 }
 
 export type Stream = {
@@ -1693,14 +1695,31 @@ export type LogoutUserMutation = {
 }
 
 /**
+ * @description Redirect to OIDC authorization endpoint
+ */
+export type RedirectOidc303 = any
+
+/**
+ * @description Unknown error
+ */
+export type RedirectOidcError = ApiError
+
+export type RedirectOidcQueryResponse = any
+
+export type RedirectOidcQuery = {
+  Response: any
+  Errors: any
+}
+
+/**
  * @description Access token for autheticated user
  */
 export type ExchangeCode200 = TokenData
 
 /**
- * @description Bad credentials
+ * @description Missing OAuth cookies
  */
-export type ExchangeCode401 = ApiError
+export type ExchangeCode409 = ApiError
 
 /**
  * @description Invalid input
@@ -1719,7 +1738,7 @@ export type ExchangeCodeMutationResponse = ExchangeCode200
 export type ExchangeCodeMutation = {
   Response: ExchangeCode200
   Request: ExchangeCodeMutationRequest
-  Errors: ExchangeCode401 | ExchangeCode422
+  Errors: ExchangeCode409 | ExchangeCode422
 }
 
 export type ListBookmarksQueryParams = {

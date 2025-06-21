@@ -1,26 +1,33 @@
+import client from '@colette/core/client'
+import { useLogoutUserMutation } from '@colette/query'
+import { useRouter } from '@colette/router'
 import { Menu, Sidebar } from '@colette/ui'
-import { useOIDCConfig, useUser } from '@colette/util'
+import { useUser } from '@colette/util'
 import { ChevronsUpDown, User } from 'lucide-react'
-import * as client from 'openid-client'
 
 export const UserCard = () => {
-  const oidcConfig = useOIDCConfig()
+  const router = useRouter()
   const user = useUser()
 
-  async function onLogout() {
-    if (!oidcConfig) return
+  const logoutUser = useLogoutUserMutation()
 
-    const refreshToken = localStorage.getItem('colette-refresh-token')
-    if (refreshToken) {
-      await client.tokenRevocation(oidcConfig.clientConfig, refreshToken, {
-        token_type_hint: 'refresh_token',
-      })
-    }
+  function onLogout() {
+    logoutUser.mutate(undefined, {
+      onSuccess: () => {
+        client.setConfig({
+          ...client.getConfig(),
+          accessToken: undefined,
+        })
 
-    localStorage.removeItem('colette-access-token')
-    localStorage.removeItem('colette-refresh-token')
-
-    window.location.href = '/login?loggedOut=true'
+        router.navigate({
+          to: '/login',
+          state: {
+            loggedOut: true,
+          },
+          replace: true,
+        })
+      },
+    })
   }
 
   return (

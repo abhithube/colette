@@ -21,7 +21,6 @@
     "@kubb/plugin-oas": "^3.10.12",
     "@kubb/plugin-ts": "^3.10.12",
     "@kubb/plugin-zod": "^3.10.12",
-    "openid-client": "*",
     "typescript": "*"
   }
 }

@@ -1,4 +1,5 @@
-import * as oidcClient from 'openid-client'
+import { refreshToken } from './gen/http'
+import { ApiError } from './gen/types'
 
 export type RequestConfig<TData = unknown> = {
   baseURL?: string
@@ -15,18 +16,7 @@ export type RequestConfig<TData = unknown> = {
     | 'stream'
   signal?: AbortSignal
   headers?: Headers | Record<string, string>
-  tokenConfig?: TokenConfig
-  oidcConfig?: oidcClient.Configuration
-}
-
-export type TokenConfig = {
-  accessManager: TokenManager
-  refreshManager: TokenManager
-}
-
-export interface TokenManager {
-  get: () => string | null
-  set: (token: string) => void
+  accessToken?: string
 }
 
 export type ResponseConfig<TData = unknown> = {
@@ -47,40 +37,29 @@ const setConfig = (config: Partial<RequestConfig>) => {
   return getConfig()
 }
 
-const refreshToken = async (
-  oidcConfig: oidcClient.Configuration,
-  tokenConfig: TokenConfig,
-): Promise<string | null> => {
-  const refreshToken = tokenConfig.refreshManager.get()
-  if (!refreshToken) return null
-
+const handleRefresh = async (): Promise<string | null> => {
   try {
-    const res = await oidcClient.refreshTokenGrant(oidcConfig, refreshToken)
+    const data = await refreshToken()
 
-    tokenConfig.accessManager.set(res.access_token)
-    if (res.refresh_token) {
-      tokenConfig.refreshManager.set(res.refresh_token)
-    }
+    setConfig({
+      ...getConfig(),
+      accessToken: data.accessToken,
+    })
 
-    return res.access_token
-  } catch (error) {
-    console.error(error)
+    return data.accessToken
+  } catch {
+    return null
   }
-
-  return null
 }
 
 let _refreshPromise: Promise<string | null> | null = null
 
-const getOrRefreshToken = async (
-  oidcConfig: oidcClient.Configuration,
-  tokenConfig: TokenConfig,
-): Promise<string | null> => {
+const getOrHandleRefresh = async (): Promise<string | null> => {
   if (_refreshPromise) {
     return _refreshPromise
   }
 
-  _refreshPromise = refreshToken(oidcConfig, tokenConfig)
+  _refreshPromise = handleRefresh()
 
   try {
     const token = await _refreshPromise
@@ -115,11 +94,8 @@ export const client = async <TData, _TError = unknown, TVariables = unknown>(
       headers.set('Content-Type', 'application/json')
     }
 
-    if (config.tokenConfig) {
-      const accessToken = config.tokenConfig.accessManager.get()
-      if (accessToken) {
-        headers.set('Authorization', `Bearer ${accessToken}`)
-      }
+    if (config.accessToken) {
+      headers.set('Authorization', `Bearer ${config.accessToken}`)
     }
 
     return fetch(targetUrl, {
@@ -127,23 +103,24 @@ export const client = async <TData, _TError = unknown, TVariables = unknown>(
       body: JSON.stringify(config.data),
       signal: config.signal,
       headers,
+      credentials: 'include',
     })
   }
 
   let res = await makeRequest()
 
-  if (res.status === 401 && config.oidcConfig && config.tokenConfig) {
-    const newToken = await getOrRefreshToken(
-      config.oidcConfig,
-      config.tokenConfig,
-    )
+  if (res.status === 401 && !res.url.endsWith('/auth/token')) {
+    const newToken = await getOrHandleRefresh()
     if (newToken) {
       res = await makeRequest()
     }
   }
 
-  const data =
-    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json()
+  const data = [204].includes(res.status) || !res.body ? {} : await res.json()
+
+  if (!res.ok) {
+    throw new Error((data as ApiError).message)
+  }
 
   return {
     data: data as TData,

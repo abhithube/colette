@@ -4,11 +4,13 @@ import { EditBookmarkTagsModal } from './edit-bookmark-tags-modal'
 import { BookmarkDetails } from '@colette/core/types'
 import { Button, Card, Dialog, Favicon, Menu } from '@colette/ui'
 import { Separator } from '@colette/ui'
-import { formatRelativeDate } from '@colette/util'
+import { formatRelativeDate, useConfig } from '@colette/util'
 import { ExternalLink, MoreHorizontal, Pencil, Tag } from 'lucide-react'
 import { useState } from 'react'
 
 export const BookmarkCard = (props: { details: BookmarkDetails }) => {
+  const config = useConfig()
+
   const [isMetadataDialogOpen, setMetadataDialogOpen] = useState(false)
   const [isTagsDialogOpen, setTagsDialogOpen] = useState(false)
 
@@ -16,9 +18,9 @@ export const BookmarkCard = (props: { details: BookmarkDetails }) => {
     <Card.Root className="overflow-hidden pt-0">
       <Thumbnail
         src={
-          props.details.bookmark.archivedUrl ??
-          props.details.bookmark.thumbnailUrl ??
-          undefined
+          props.details.bookmark.archivedPath
+            ? `${config.storage.imageBaseUrl}/${props.details.bookmark.archivedPath}`
+            : (props.details.bookmark.thumbnailUrl ?? undefined)
         }
         alt={props.details.bookmark.title}
       />

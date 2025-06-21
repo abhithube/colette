@@ -19,6 +19,7 @@ import {
   getActiveUserQueryResponseSchema,
   refreshTokenMutationResponseSchema,
   logoutUserMutationResponseSchema,
+  redirectOidcQueryResponseSchema,
   exchangeCodeMutationResponseSchema,
   exchangeCodeMutationRequestSchema,
   listBookmarksQueryResponseSchema,
@@ -118,9 +119,10 @@ import type {
   RefreshToken422,
   LogoutUserMutationResponse,
   LogoutUser401,
+  RedirectOidcQueryResponse,
   ExchangeCodeMutationRequest,
   ExchangeCodeMutationResponse,
-  ExchangeCode401,
+  ExchangeCode409,
   ExchangeCode422,
   ListBookmarksQueryResponse,
   ListBookmarksQueryParams,
@@ -584,13 +586,38 @@ export async function logoutUser(
   return logoutUserMutationResponseSchema.parse(res.data)
 }
 
+function getRedirectOidcUrl() {
+  return `/auth/oidc/redirect` as const
+}
+
+/**
+ * @description Initiate the OIDC flow by redirecting to the authorization URL
+ * {@link /auth/oidc/redirect}
+ */
+export async function redirectOidc(
+  config: Partial<RequestConfig> & { client?: typeof client } = {},
+) {
+  const { client: request = client, ...requestConfig } = config
+
+  const res = await request<
+    RedirectOidcQueryResponse,
+    ResponseErrorConfig<Error>,
+    unknown
+  >({
+    method: 'GET',
+    url: getRedirectOidcUrl().toString(),
+    ...requestConfig,
+  })
+  return redirectOidcQueryResponseSchema.parse(res.data)
+}
+
 function getExchangeCodeUrl() {
-  return `/auth/code` as const
+  return `/auth/oidc/code` as const
 }
 
 /**
  * @description Log in, and optionally register, a user from an OAuth authorization code
- * {@link /auth/code}
+ * {@link /auth/oidc/code}
  */
 export async function exchangeCode(
   data: ExchangeCodeMutationRequest,
@@ -602,7 +629,7 @@ export async function exchangeCode(
 
   const res = await request<
     ExchangeCodeMutationResponse,
-    ResponseErrorConfig<ExchangeCode401 | ExchangeCode422>,
+    ResponseErrorConfig<ExchangeCode409 | ExchangeCode422>,
     ExchangeCodeMutationRequest
   >({
     method: 'POST',

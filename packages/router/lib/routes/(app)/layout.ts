@@ -6,7 +6,7 @@ export const layoutRoute = createRoute({
   id: 'layout',
   beforeLoad: async ({ context, location }) => {
     if (!context.user) {
-      sessionStorage.setItem('colette-from', location.href)
+      sessionStorage.setItem('colette_from', location.href)
 
       throw redirect({
         to: '/login',
