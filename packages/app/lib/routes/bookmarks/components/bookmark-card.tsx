@@ -1,11 +1,12 @@
 import { Thumbnail } from '../../../components/thumbnail'
+import { DeleteBookmarkAlert } from './delete-bookmark-alert'
 import { EditBookmarkModal } from './edit-bookmark-modal'
 import { EditBookmarkTagsModal } from './edit-bookmark-tags-modal'
 import { BookmarkDetails } from '@colette/core/types'
 import { Button, Card, Dialog, Favicon, Menu } from '@colette/ui'
 import { Separator } from '@colette/ui'
 import { formatRelativeDate, useConfig } from '@colette/util'
-import { ExternalLink, MoreHorizontal, Pencil, Tag } from 'lucide-react'
+import { ExternalLink, MoreHorizontal, Pencil, Tag, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 export const BookmarkCard = (props: { details: BookmarkDetails }) => {
@@ -13,6 +14,7 @@ export const BookmarkCard = (props: { details: BookmarkDetails }) => {
 
   const [isMetadataDialogOpen, setMetadataDialogOpen] = useState(false)
   const [isTagsDialogOpen, setTagsDialogOpen] = useState(false)
+  const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false)
 
   return (
     <Card.Root className="overflow-hidden pt-0">
@@ -61,6 +63,9 @@ export const BookmarkCard = (props: { details: BookmarkDetails }) => {
               case 'edit-tags':
                 setTagsDialogOpen(true)
                 break
+              case 'delete':
+                setDeleteAlertOpen(true)
+                break
             }
           }}
         >
@@ -89,6 +94,10 @@ export const BookmarkCard = (props: { details: BookmarkDetails }) => {
               <Tag />
               Edit Tags
             </Menu.Item>
+            <Menu.Item value="delete">
+              <Trash2 />
+              Delete
+            </Menu.Item>
           </Menu.Content>
         </Menu.Root>
         <Dialog.Root
@@ -114,6 +123,20 @@ export const BookmarkCard = (props: { details: BookmarkDetails }) => {
             {(dialogProps) => (
               <EditBookmarkTagsModal
                 details={props.details}
+                close={() => dialogProps.setOpen(false)}
+              />
+            )}
+          </Dialog.Context>
+        </Dialog.Root>
+        <Dialog.Root
+          lazyMount
+          open={isDeleteAlertOpen}
+          onOpenChange={(details) => setDeleteAlertOpen(details.open)}
+        >
+          <Dialog.Context>
+            {(dialogProps) => (
+              <DeleteBookmarkAlert
+                bookmark={props.details.bookmark}
                 close={() => dialogProps.setOpen(false)}
               />
             )}
