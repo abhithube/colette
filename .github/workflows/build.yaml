@@ -101,7 +101,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binary-${{ matrix.target }}
           path: |
             dist/*.tar.gz
             dist/*.zip
@@ -115,8 +115,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: binaries
-          path: artifacts
+          path: artifacts/
 
       - name: Release binaries
         uses: softprops/action-gh-release@v2
