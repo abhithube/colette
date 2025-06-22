@@ -1,10 +1,12 @@
-name: Release Binaries
+name: Build and Release Binaries
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
+    tags:
+      - v*
+  workflow_dispatch:
 
 jobs:
   build:
@@ -31,7 +33,7 @@ jobs:
             target: x86_64-pc-windows-msvc
 
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -64,7 +66,7 @@ jobs:
           echo "CC_aarch64_unknown_linux_musl=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
           echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
 
-      - name: Cache
+      - name: Cache dependencies
         uses: actions/cache@v4
         with:
           path: |
@@ -75,10 +77,10 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build
+      - name: Build binaries
         run: cargo build --release --target ${{ matrix.target }} -p ${{ env.app_name }}
 
-      - name: Package (Unix)
+      - name: Package binaries (Unix)
         if: matrix.os != 'windows-latest'
         run: |
           mkdir -p dist
@@ -86,7 +88,7 @@ jobs:
           cd dist
           tar czf ${{ env.app_name }}-${{ matrix.target }}.tar.gz ${{ env.app_name }}
 
-      - name: Package (Windows)
+      - name: Package binaries (Windows)
         if: matrix.os == 'windows-latest'
         shell: bash
         run: |
@@ -95,10 +97,27 @@ jobs:
           cd dist
           7z a ${{ env.app_name }}-${{ matrix.target }}.zip ${{ env.app_name }}.exe
 
-      - name: Release
-        uses: softprops/action-gh-release@v2
-        if: github.ref_type == 'tag'
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: |
+          name: binaries
+          path: |
             dist/*.tar.gz
             dist/*.zip
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: binaries
+          path: artifacts
+
+      - name: Release binaries
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
