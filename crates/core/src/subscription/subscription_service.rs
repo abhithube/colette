@@ -310,7 +310,9 @@ impl SubscriptionService {
                 ..Default::default()
             };
 
-            if let Some(tags) = subscription.tags {
+            if let Some(tags) = subscription.tags
+                && !tags.is_empty()
+            {
                 for tag in tags {
                     outline_map
                         .entry(tag.id)

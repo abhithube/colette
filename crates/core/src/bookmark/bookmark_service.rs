@@ -433,7 +433,9 @@ impl BookmarkService {
                 ..Default::default()
             };
 
-            if let Some(tags) = bookmark.tags {
+            if let Some(tags) = bookmark.tags
+                && !tags.is_empty()
+            {
                 for tag in tags {
                     item_map
                         .entry(tag.id)
