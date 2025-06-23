@@ -53,16 +53,10 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install musl
+      - name: Install cross
         if: contains(matrix.target, 'musl')
         run: |
-          sudo apt-get update
-          sudo apt-get install -y musl-tools
-
-      - name: Setup aarch64 cross-compilation
-        if: matrix.target == 'aarch64-unknown-linux-musl'
-        run: |
-          sudo apt-get install -y gcc-aarch64-linux-gnu
+          cargo install --locked cross
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -75,20 +69,13 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build binaries
-        run: cargo build --release --target ${{ matrix.target }} -p ${{ env.app_name }}
-        env:
-          CC_aarch64_unknown_linux_musl: aarch64-linux-gnu-gcc
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
-          CFLAGS_aarch64_unknown_linux_musl: -D_FORTIFY_SOURCE=0 -Dfcntl64=fcntl
+      - name: Build binaries (musl)
+        if: contains(matrix.target, 'musl')
+        run: cross build --release --target ${{ matrix.target }} -p ${{ env.app_name }}
 
-      - name: Package binaries (Unix)
-        if: matrix.os != 'windows-latest'
-        run: |
-          mkdir -p dist
-          cp target/${{ matrix.target }}/release/${{ env.app_name }} dist/
-          cd dist
-          tar czf ${{ env.app_name }}-${{ matrix.target }}.tar.gz ${{ env.app_name }}
+      - name: Build binaries (non-musl)
+        if: ! contains(matrix.target , 'musl')
+        run: cargo build --release --target ${{ matrix.target }} -p ${{ env.app_name }}
 
       - name: Package binaries (Windows)
         if: matrix.os == 'windows-latest'
@@ -98,6 +85,14 @@ jobs:
           cp target/${{ matrix.target }}/release/${{ env.app_name }}.exe dist/
           cd dist
           7z a ${{ env.app_name }}-${{ matrix.target }}.zip ${{ env.app_name }}.exe
+
+      - name: Package binaries (non-Windows)
+        if: matrix.os != 'windows-latest'
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/${{ env.app_name }} dist/
+          cd dist
+          tar czf ${{ env.app_name }}-${{ matrix.target }}.tar.gz ${{ env.app_name }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
