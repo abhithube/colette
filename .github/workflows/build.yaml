@@ -76,7 +76,7 @@ jobs:
         run: cross build --release --target ${{ matrix.target }} -p ${{ env.app_name }}
 
       - name: Build binaries (non-musl)
-        if: ! contains(matrix.target , 'musl')
+        if: "!contains(matrix.target, 'musl')"
         run: cargo build --release --target ${{ matrix.target }} -p ${{ env.app_name }}
 
       - name: Package binaries (Windows)
