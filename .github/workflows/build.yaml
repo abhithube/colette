@@ -53,9 +53,11 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install cross
+      - name: Setup musl builds
         if: contains(matrix.target, 'musl')
         run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
           cargo install --locked cross
 
       - name: Cache dependencies
