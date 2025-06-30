@@ -1,4 +1,4 @@
-import { subscriptionsRoute } from '../subscriptions'
+import { layoutRoute } from '../layout'
 import {
   getSubscriptionOptions,
   listSubscriptionEntriesOptions,
@@ -6,12 +6,14 @@ import {
 import { createRoute } from '@tanstack/react-router'
 
 export const subscriptionsIdRoute = createRoute({
-  getParentRoute: () => subscriptionsRoute,
-  path: '$subscriptionId',
+  getParentRoute: () => layoutRoute,
+  path: 'subscriptions/$subscriptionId',
   loader: async ({ context, params }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(
-        getSubscriptionOptions(params.subscriptionId),
+        getSubscriptionOptions(params.subscriptionId, {
+          withFeed: true,
+        }),
       ),
       context.queryClient.ensureInfiniteQueryData(
         listSubscriptionEntriesOptions({

@@ -64,7 +64,6 @@ const routerMap = {
   '/layout': Layout,
   '/layout/': HomePage,
   '/layout/subscriptions': SubscriptionsPage,
-  '/layout/subscriptions/': () => <div></div>,
   '/layout/subscriptions/$subscriptionId': SubscriptionPage,
   '/layout/stash': StashPage,
   '/layout/streams': () => <div></div>,

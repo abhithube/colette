@@ -7,7 +7,6 @@ import { stashRoute } from './routes/(app)/stash'
 import { streamsRoute } from './routes/(app)/streams'
 import { streamsIdRoute } from './routes/(app)/streams/$id'
 import { streamsIndexRoute } from './routes/(app)/streams/index'
-import { subscriptionsRoute } from './routes/(app)/subscriptions'
 import { subscriptionsIdRoute } from './routes/(app)/subscriptions/$id'
 import { subscriptionsIndexRoute } from './routes/(app)/subscriptions/index'
 import { authCallbackRoute } from './routes/(auth)/auth-callback'
@@ -23,10 +22,8 @@ const routeTree = rootRoute.addChildren([
   authCallbackRoute,
   layoutRoute.addChildren([
     indexRoute,
-    subscriptionsRoute.addChildren([
-      subscriptionsIndexRoute,
-      subscriptionsIdRoute,
-    ]),
+    subscriptionsIndexRoute,
+    subscriptionsIdRoute,
     stashRoute,
     streamsRoute.addChildren([streamsIndexRoute, streamsIdRoute]),
     collectionsRoute.addChildren([collectionsIndexRoute, collectionsIdRoute]),

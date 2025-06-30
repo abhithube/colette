@@ -1,8 +1,16 @@
 import { Thumbnail } from '../../../components/thumbnail'
 import { SubscriptionEntryDetails } from '@colette/core/types'
+import { Link } from '@colette/router'
 import { Card, Separator, Favicon, Menu, Button } from '@colette/ui'
 import { formatRelativeDate } from '@colette/util'
-import { ExternalLink, MoreHorizontal, Square, SquareCheck } from 'lucide-react'
+import {
+  ArrowRight,
+  Clipboard,
+  ExternalLink,
+  MoreHorizontal,
+  Square,
+  SquareCheck,
+} from 'lucide-react'
 
 export const EntryCard = (props: { details: SubscriptionEntryDetails }) => {
   const entry = props.details.feedEntry!
@@ -42,6 +50,16 @@ export const EntryCard = (props: { details: SubscriptionEntryDetails }) => {
               </a>
             </Menu.Item>
             <Menu.Item
+              value="copy-link"
+              onSelect={() => {
+                navigator.clipboard.writeText(entry.link)
+              }}
+            >
+              <Clipboard />
+              Copy link
+            </Menu.Item>
+            <Menu.Separator />
+            <Menu.Item
               value={
                 props.details.subscriptionEntry.hasRead
                   ? 'mark-as-unread'
@@ -57,6 +75,19 @@ export const EntryCard = (props: { details: SubscriptionEntryDetails }) => {
                   <SquareCheck /> Mark as read
                 </>
               )}
+            </Menu.Item>
+            <Menu.Separator />
+            <Menu.Item asChild value="view-feed">
+              <Link
+                to="/subscriptions/$subscriptionId"
+                params={{
+                  subscriptionId:
+                    props.details.subscriptionEntry.subscriptionId,
+                }}
+              >
+                <ArrowRight />
+                View feed
+              </Link>
             </Menu.Item>
           </Menu.Content>
         </Menu.Root>
