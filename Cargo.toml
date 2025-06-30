@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "apps/dioxus",
   "apps/server",
   "crates/api",
   "crates/core",
@@ -114,3 +115,13 @@ lto = true
 opt-level = "z"
 panic = "abort"
 strip = true
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
