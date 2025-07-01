@@ -1,7 +1,11 @@
 import { Thumbnail } from '../../../components/thumbnail'
 import { SubscriptionEntryDetails } from '@colette/core/types'
+import {
+  useMarkSubscriptionEntryAsReadMutation,
+  useMarkSubscriptionEntryAsUnreadMutation,
+} from '@colette/query'
 import { Link } from '@colette/router'
-import { Card, Separator, Favicon, Menu, Button } from '@colette/ui'
+import { Button, Card, Favicon, Menu, Separator } from '@colette/ui'
 import { formatRelativeDate } from '@colette/util'
 import {
   ArrowRight,
@@ -14,6 +18,15 @@ import {
 
 export const EntryCard = (props: { details: SubscriptionEntryDetails }) => {
   const entry = props.details.feedEntry!
+
+  const markAsRead = useMarkSubscriptionEntryAsReadMutation(
+    props.details.subscriptionEntry.subscriptionId,
+    props.details.subscriptionEntry.feedEntryId,
+  )
+  const markAsUnread = useMarkSubscriptionEntryAsUnreadMutation(
+    props.details.subscriptionEntry.subscriptionId,
+    props.details.subscriptionEntry.feedEntryId,
+  )
 
   return (
     <Card.Root className="overflow-hidden pt-0">
@@ -35,7 +48,23 @@ export const EntryCard = (props: { details: SubscriptionEntryDetails }) => {
             {formatRelativeDate(entry.publishedAt)}
           </span>
         </div>
-        <Menu.Root defaultHighlightedValue="open-link" lazyMount>
+        <Menu.Root
+          defaultHighlightedValue="open-link"
+          onSelect={(details) => {
+            switch (details.value) {
+              case 'copy-link':
+                navigator.clipboard.writeText(entry.link)
+                break
+              case 'mark-as-read':
+                markAsRead.mutate()
+                break
+              case 'mark-as-unread':
+                markAsUnread.mutate()
+                break
+            }
+          }}
+          lazyMount
+        >
           <Menu.Trigger asChild>
             <Button variant="ghost" size="icon">
               <MoreHorizontal />
@@ -49,12 +78,7 @@ export const EntryCard = (props: { details: SubscriptionEntryDetails }) => {
                 Open link
               </a>
             </Menu.Item>
-            <Menu.Item
-              value="copy-link"
-              onSelect={() => {
-                navigator.clipboard.writeText(entry.link)
-              }}
-            >
+            <Menu.Item value="copy-link">
               <Clipboard />
               Copy link
             </Menu.Item>
