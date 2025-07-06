@@ -413,6 +413,66 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+  /backups/import:
+    post:
+      tags:
+      - Backups
+      description: Import backup into user account
+      operationId: importBackup
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              type: array
+              items:
+                type: integer
+                format: int32
+                minimum: 0
+        required: true
+      responses:
+        '204':
+          description: Successfully started import
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /backups/export:
+    post:
+      tags:
+      - Backups
+      description: Export user backup
+      operationId: exportBackup
+      responses:
+        '200':
+          description: JSON backup file
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: integer
+                  format: int32
+                  minimum: 0
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
   /bookmarks:
     get:
       tags:

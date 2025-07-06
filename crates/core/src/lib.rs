@@ -1,6 +1,7 @@
 #![feature(bufreader_peek)]
 pub use account::Account;
 pub use api_key::ApiKey;
+pub use backup::Backup;
 pub use bookmark::Bookmark;
 pub use collection::Collection;
 pub use feed::Feed;
@@ -14,6 +15,7 @@ pub use user::User;
 pub mod account;
 pub mod api_key;
 pub mod auth;
+pub mod backup;
 pub mod bookmark;
 pub mod collection;
 pub mod common;

@@ -4,7 +4,7 @@ use colette_core::{
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
-    tag::{TagDelete, TagInsert},
+    tag::{TagBase, TagDelete, TagInsert},
 };
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
@@ -40,11 +40,13 @@ impl TagRepository for PostgresTagRepository {
         let client = self.pool.get().await?;
 
         let (sql, values) = TagInsert {
-            id: data.id,
-            title: &data.title,
+            tags: [TagBase {
+                id: data.id,
+                title: &data.title,
+                created_at: data.created_at,
+                updated_at: data.updated_at,
+            }],
             user_id: data.user_id,
-            created_at: data.created_at,
-            updated_at: data.updated_at,
             upsert: false,
         }
         .into_insert()
@@ -64,9 +66,12 @@ impl TagRepository for PostgresTagRepository {
     async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
         let client = self.pool.get().await?;
 
-        let (sql, values) = TagDelete { id }
-            .into_delete()
-            .build_postgres(PostgresQueryBuilder);
+        let (sql, values) = TagDelete {
+            id: Some(id),
+            ..Default::default()
+        }
+        .into_delete()
+        .build_postgres(PostgresQueryBuilder);
 
         client.execute_prepared(&sql, &values).await?;
 

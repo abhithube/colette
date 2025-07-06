@@ -115,16 +115,20 @@ impl IntoSelect for TagParams {
     }
 }
 
-pub struct TagInsert<'a> {
-    pub id: Uuid,
-    pub title: &'a str,
+pub struct TagInsert<I> {
+    pub tags: I,
     pub user_id: Uuid,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
     pub upsert: bool,
 }
 
-impl IntoInsert for TagInsert<'_> {
+pub struct TagBase<'a> {
+    pub id: Uuid,
+    pub title: &'a str,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl<'a, I: IntoIterator<Item = TagBase<'a>>> IntoInsert for TagInsert<I> {
     fn into_insert(self) -> InsertStatement {
         let mut query = Query::insert()
             .into_table(Tag::Table)
@@ -134,13 +138,6 @@ impl IntoInsert for TagInsert<'_> {
                 Tag::UserId,
                 Tag::CreatedAt,
                 Tag::UpdatedAt,
-            ])
-            .values_panic([
-                self.id.into(),
-                self.title.into(),
-                self.user_id.into(),
-                self.created_at.into(),
-                self.updated_at.into(),
             ])
             .to_owned();
 
@@ -160,19 +157,32 @@ impl IntoInsert for TagInsert<'_> {
             );
         }
 
+        for tag in self.tags.into_iter() {
+            query.values_panic([
+                tag.id.into(),
+                tag.title.into(),
+                self.user_id.into(),
+                tag.created_at.into(),
+                tag.updated_at.into(),
+            ]);
+        }
+
         query
     }
 }
 
+#[derive(Default)]
 pub struct TagDelete {
-    pub id: Uuid,
+    pub id: Option<Uuid>,
+    pub user_id: Option<Uuid>,
 }
 
 impl IntoDelete for TagDelete {
     fn into_delete(self) -> DeleteStatement {
         Query::delete()
             .from_table(Tag::Table)
-            .and_where(Expr::col(Tag::Id).eq(self.id))
+            .and_where_option(self.id.map(|e| Expr::col(Tag::Id).eq(e)))
+            .and_where_option(self.user_id.map(|e| Expr::col(Tag::UserId).eq(e)))
             .to_owned()
     }
 }

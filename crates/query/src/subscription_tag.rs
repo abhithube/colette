@@ -29,12 +29,18 @@ impl Iden for SubscriptionTag {
 }
 
 pub struct SubscriptionTagInsert<I> {
+    pub subscription_tags: I,
+}
+
+pub struct SubscriptionTagBase<I> {
     pub subscription_id: Uuid,
     pub user_id: Uuid,
     pub tag_ids: I,
 }
 
-impl<I: IntoIterator<Item = Uuid>> IntoInsert for SubscriptionTagInsert<I> {
+impl<I: IntoIterator<Item = Uuid>, J: IntoIterator<Item = SubscriptionTagBase<I>>> IntoInsert
+    for SubscriptionTagInsert<J>
+{
     fn into_insert(self) -> InsertStatement {
         let mut query = Query::insert()
             .into_table(SubscriptionTag::Table)
@@ -50,12 +56,14 @@ impl<I: IntoIterator<Item = Uuid>> IntoInsert for SubscriptionTagInsert<I> {
             )
             .to_owned();
 
-        for tag_id in self.tag_ids {
-            query.values_panic([
-                self.subscription_id.into(),
-                tag_id.into(),
-                self.user_id.into(),
-            ]);
+        for subscription_tag in self.subscription_tags {
+            for tag_id in subscription_tag.tag_ids {
+                query.values_panic([
+                    subscription_tag.subscription_id.into(),
+                    tag_id.into(),
+                    subscription_tag.user_id.into(),
+                ]);
+            }
         }
 
         query

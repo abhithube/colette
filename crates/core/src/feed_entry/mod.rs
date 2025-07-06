@@ -9,7 +9,7 @@ use crate::stream;
 mod feed_entry_repository;
 mod feed_entry_service;
 
-#[derive(Debug, Clone, bon::Builder)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, bon::Builder)]
 pub struct FeedEntry {
     #[builder(default = Uuid::new_v4())]
     pub id: Uuid,

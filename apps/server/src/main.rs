@@ -7,6 +7,7 @@ use colette_core::{
     account::AccountRepository,
     api_key::{ApiKeyRepository, ApiKeyService},
     auth::{AuthConfig, AuthService, JwtConfig, OidcConfig},
+    backup::{BackupRepository, BackupService},
     bookmark::{BookmarkRepository, BookmarkService},
     collection::{CollectionRepository, CollectionService},
     feed::{FeedRepository, FeedService},
@@ -29,16 +30,18 @@ use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::{JobConsumerAdapter, JobProducerAdapter, LocalQueue};
 use colette_repository::{
     postgres::{
-        PostgresAccountRepository, PostgresApiKeyRepository, PostgresBookmarkRepository,
-        PostgresCollectionRepository, PostgresFeedEntryRepository, PostgresFeedRepository,
-        PostgresJobRepository, PostgresStreamRepository, PostgresSubscriptionEntryRepository,
-        PostgresSubscriptionRepository, PostgresTagRepository, PostgresUserRepository,
+        PostgresAccountRepository, PostgresApiKeyRepository, PostgresBackupRepository,
+        PostgresBookmarkRepository, PostgresCollectionRepository, PostgresFeedEntryRepository,
+        PostgresFeedRepository, PostgresJobRepository, PostgresStreamRepository,
+        PostgresSubscriptionEntryRepository, PostgresSubscriptionRepository, PostgresTagRepository,
+        PostgresUserRepository,
     },
     sqlite::{
-        SqliteAccountRepository, SqliteApiKeyRepository, SqliteBookmarkRepository,
-        SqliteCollectionRepository, SqliteFeedEntryRepository, SqliteFeedRepository,
-        SqliteJobRepository, SqliteStreamRepository, SqliteSubscriptionEntryRepository,
-        SqliteSubscriptionRepository, SqliteTagRepository, SqliteUserRepository,
+        SqliteAccountRepository, SqliteApiKeyRepository, SqliteBackupRepository,
+        SqliteBookmarkRepository, SqliteCollectionRepository, SqliteFeedEntryRepository,
+        SqliteFeedRepository, SqliteJobRepository, SqliteStreamRepository,
+        SqliteSubscriptionEntryRepository, SqliteSubscriptionRepository, SqliteTagRepository,
+        SqliteUserRepository,
     },
 };
 use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
@@ -118,6 +121,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Repositories {
                 account: Arc::new(SqliteAccountRepository::new(pool.clone())),
                 api_key: Arc::new(SqliteApiKeyRepository::new(pool.clone())),
+                backup: Arc::new(SqliteBackupRepository::new(pool.clone())),
                 bookmark: Arc::new(SqliteBookmarkRepository::new(pool.clone())),
                 collection: Arc::new(SqliteCollectionRepository::new(pool.clone())),
                 feed: Arc::new(SqliteFeedRepository::new(pool.clone())),
@@ -155,6 +159,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Repositories {
                 account: Arc::new(PostgresAccountRepository::new(pool.clone())),
                 api_key: Arc::new(PostgresApiKeyRepository::new(pool.clone())),
+                backup: Arc::new(PostgresBackupRepository::new(pool.clone())),
                 bookmark: Arc::new(PostgresBookmarkRepository::new(pool.clone())),
                 collection: Arc::new(PostgresCollectionRepository::new(pool.clone())),
                 feed: Arc::new(PostgresFeedRepository::new(pool.clone())),
@@ -271,7 +276,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
     let job_service = Arc::new(JobService::new(repositories.job.clone()));
     let subscription_service = Arc::new(SubscriptionService::new(
-        repositories.subscription,
+        repositories.subscription.clone(),
         repositories.tag.clone(),
         repositories.subscription_entry.clone(),
         repositories.job,
@@ -315,6 +320,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 },
                 oidc: oidc_config.clone(),
             },
+        )),
+        backup_service: Arc::new(BackupService::new(
+            repositories.backup,
+            repositories.bookmark.clone(),
+            repositories.subscription,
+            repositories.tag.clone(),
         )),
         bookmark_service: bookmark_service.clone(),
         collection_service: Arc::new(CollectionService::new(repositories.collection)),
@@ -451,6 +462,7 @@ mod sqlite_migrations {
 pub struct Repositories {
     account: Arc<dyn AccountRepository>,
     api_key: Arc<dyn ApiKeyRepository>,
+    backup: Arc<dyn BackupRepository>,
     bookmark: Arc<dyn BookmarkRepository>,
     collection: Arc<dyn CollectionRepository>,
     feed: Arc<dyn FeedRepository>,

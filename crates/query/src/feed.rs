@@ -46,8 +46,11 @@ impl IntoSelect for FeedParams {
             .apply_if(self.id, |query, id| {
                 query.and_where(Expr::col((Feed::Table, Feed::Id)).eq(id));
             })
-            .apply_if(self.source_url, |query, source_url| {
-                query.and_where(Expr::col((Feed::Table, Feed::SourceUrl)).eq(source_url.as_str()));
+            .apply_if(self.source_urls, |query, source_urls| {
+                query.and_where(
+                    Expr::col((Feed::Table, Feed::SourceUrl))
+                        .is_in(source_urls.iter().map(|e| e.as_str())),
+                );
             })
             .apply_if(self.cursor, |query, link| {
                 query.and_where(Expr::col((Feed::Table, Feed::Link)).gt(Expr::val(link)));
@@ -63,7 +66,12 @@ impl IntoSelect for FeedParams {
     }
 }
 
-pub struct FeedInsert<'a> {
+pub struct FeedInsert<I> {
+    pub feeds: I,
+    pub upsert: bool,
+}
+
+pub struct FeedBase<'a> {
     pub id: Uuid,
     pub source_url: &'a str,
     pub link: &'a str,
@@ -73,9 +81,9 @@ pub struct FeedInsert<'a> {
     pub is_custom: bool,
 }
 
-impl IntoInsert for FeedInsert<'_> {
+impl<'a, I: IntoIterator<Item = FeedBase<'a>>> IntoInsert for FeedInsert<I> {
     fn into_insert(self) -> InsertStatement {
-        Query::insert()
+        let mut query = Query::insert()
             .into_table(Feed::Table)
             .columns([
                 Feed::Id,
@@ -86,16 +94,11 @@ impl IntoInsert for FeedInsert<'_> {
                 Feed::RefreshedAt,
                 Feed::IsCustom,
             ])
-            .values_panic([
-                self.id.into(),
-                self.source_url.into(),
-                self.link.into(),
-                self.title.into(),
-                self.description.into(),
-                self.refreshed_at.into(),
-                self.is_custom.into(),
-            ])
-            .on_conflict(
+            .returning_col(Feed::Id)
+            .to_owned();
+
+        if self.upsert {
+            query.on_conflict(
                 OnConflict::column(Feed::SourceUrl)
                     .update_columns([
                         Feed::Link,
@@ -105,8 +108,23 @@ impl IntoInsert for FeedInsert<'_> {
                         Feed::IsCustom,
                     ])
                     .to_owned(),
-            )
-            .returning_col(Feed::Id)
-            .to_owned()
+            );
+        } else {
+            query.on_conflict(OnConflict::column(Feed::SourceUrl).do_nothing().to_owned());
+        }
+
+        for feed in self.feeds.into_iter() {
+            query.values_panic([
+                feed.id.into(),
+                feed.source_url.into(),
+                feed.link.into(),
+                feed.title.into(),
+                feed.description.into(),
+                feed.refreshed_at.into(),
+                feed.is_custom.into(),
+            ]);
+        }
+
+        query
     }
 }

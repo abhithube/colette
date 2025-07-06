@@ -12,7 +12,7 @@ use axum_extra::{
 };
 use chrono::{DateTime, Utc};
 use colette_core::{
-    api_key::ApiKeyService, auth::AuthService, bookmark::BookmarkService,
+    api_key::ApiKeyService, auth::AuthService, backup::BackupService, bookmark::BookmarkService,
     collection::CollectionService, common, feed::FeedService, feed_entry::FeedEntryService, filter,
     job::JobService, stream::StreamService, subscription::SubscriptionService,
     subscription_entry::SubscriptionEntryService, tag::TagService,
@@ -62,6 +62,7 @@ pub struct StorageConfig {
 pub struct ApiState {
     pub api_key_service: Arc<ApiKeyService>,
     pub auth_service: Arc<AuthService>,
+    pub backup_service: Arc<BackupService>,
     pub bookmark_service: Arc<BookmarkService>,
     pub collection_service: Arc<CollectionService>,
     pub feed_service: Arc<FeedService>,

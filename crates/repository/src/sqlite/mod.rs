@@ -1,5 +1,6 @@
 pub use account::SqliteAccountRepository;
 pub use api_key::SqliteApiKeyRepository;
+pub use backup::SqliteBackupRepository;
 pub use bookmark::SqliteBookmarkRepository;
 pub use collection::SqliteCollectionRepository;
 pub use feed::SqliteFeedRepository;
@@ -16,6 +17,7 @@ use uuid::Uuid;
 
 mod account;
 mod api_key;
+mod backup;
 mod bookmark;
 mod collection;
 mod feed;

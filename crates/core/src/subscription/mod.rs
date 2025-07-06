@@ -8,20 +8,24 @@ use crate::{Feed, Tag, job, subscription_entry, tag};
 mod subscription_repository;
 mod subscription_service;
 
-#[derive(Debug, Clone, bon::Builder)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, bon::Builder)]
 pub struct Subscription {
     #[builder(default = Uuid::new_v4())]
     pub id: Uuid,
     pub title: String,
     pub description: Option<String>,
     pub feed_id: Uuid,
+    #[serde(skip_serializing)]
     pub user_id: Uuid,
     #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,
     #[builder(default = Utc::now())]
     pub updated_at: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub feed: Option<Feed>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<Tag>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub unread_count: Option<i64>,
 }
 

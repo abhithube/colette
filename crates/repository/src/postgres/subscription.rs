@@ -6,10 +6,10 @@ use colette_core::{
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
-    feed::FeedInsert,
-    subscription::{SubscriptionDelete, SubscriptionInsert, SubscriptionSelect},
-    subscription_tag::{SubscriptionTagDelete, SubscriptionTagInsert},
-    tag::TagInsert,
+    feed::{FeedBase, FeedInsert},
+    subscription::{SubscriptionBase, SubscriptionDelete, SubscriptionInsert, SubscriptionSelect},
+    subscription_tag::{SubscriptionTagBase, SubscriptionTagDelete, SubscriptionTagInsert},
+    tag::{TagBase, TagInsert},
 };
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
@@ -49,13 +49,15 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
 
         {
             let (sql, values) = SubscriptionInsert {
-                id: data.id,
-                title: &data.title,
-                description: data.description.as_deref(),
-                feed_id: data.feed_id,
+                subscriptions: [SubscriptionBase {
+                    id: data.id,
+                    title: &data.title,
+                    description: data.description.as_deref(),
+                    feed_id: data.feed_id,
+                    created_at: data.created_at,
+                    updated_at: data.updated_at,
+                }],
                 user_id: data.user_id,
-                created_at: data.created_at,
-                updated_at: data.updated_at,
                 upsert: false,
             }
             .into_insert()
@@ -81,9 +83,11 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
 
             if !tags.is_empty() {
                 let (sql, values) = SubscriptionTagInsert {
-                    subscription_id: data.id,
-                    user_id: data.user_id,
-                    tag_ids: tags.iter().map(|e| e.id),
+                    subscription_tags: [SubscriptionTagBase {
+                        subscription_id: data.id,
+                        user_id: data.user_id,
+                        tag_ids: tags.iter().map(|e| e.id),
+                    }],
                 }
                 .into_insert()
                 .build_postgres(PostgresQueryBuilder);
@@ -100,9 +104,12 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
     async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
         let client = self.pool.get().await?;
 
-        let (sql, values) = SubscriptionDelete { id }
-            .into_delete()
-            .build_postgres(PostgresQueryBuilder);
+        let (sql, values) = SubscriptionDelete {
+            id: Some(id),
+            ..Default::default()
+        }
+        .into_delete()
+        .build_postgres(PostgresQueryBuilder);
 
         client.execute_prepared(&sql, &values).await?;
 
@@ -135,11 +142,13 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                         Some(tag) => tag.id,
                         _ => {
                             let (sql, values) = TagInsert {
-                                id: Uuid::new_v4(),
-                                title: &outline.text,
+                                tags: [TagBase {
+                                    id: Uuid::new_v4(),
+                                    title: &outline.text,
+                                    created_at: Utc::now(),
+                                    updated_at: Utc::now(),
+                                }],
                                 user_id: data.user_id,
-                                created_at: Utc::now(),
-                                updated_at: Utc::now(),
                                 upsert: true,
                             }
                             .into_insert()
@@ -158,13 +167,16 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 let title = outline.title.unwrap_or(outline.text);
 
                 let feed = FeedInsert {
-                    id: Uuid::new_v4(),
-                    source_url: &xml_url,
-                    link: &link,
-                    title: &title,
-                    description: None,
-                    refreshed_at: None,
-                    is_custom: false,
+                    feeds: [FeedBase {
+                        id: Uuid::new_v4(),
+                        source_url: &xml_url,
+                        link: &link,
+                        title: &title,
+                        description: None,
+                        refreshed_at: None,
+                        is_custom: false,
+                    }],
+                    upsert: false,
                 };
 
                 let (sql, values) = feed.into_insert().build_postgres(PostgresQueryBuilder);
@@ -172,13 +184,15 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
 
                 let subscription_id = {
                     let (sql, values) = SubscriptionInsert {
-                        id: Uuid::new_v4(),
-                        title: &title,
-                        description: None,
-                        feed_id: feed.id,
+                        subscriptions: [SubscriptionBase {
+                            id: Uuid::new_v4(),
+                            title: &title,
+                            description: None,
+                            feed_id: feed.id,
+                            created_at: Utc::now(),
+                            updated_at: Utc::now(),
+                        }],
                         user_id: data.user_id,
-                        created_at: Utc::now(),
-                        updated_at: Utc::now(),
                         upsert: true,
                     }
                     .into_insert()
@@ -190,9 +204,11 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
 
                 if let Some(tag_id) = parent_id {
                     let subscription_tag = SubscriptionTagInsert {
-                        subscription_id,
-                        user_id: data.user_id,
-                        tag_ids: vec![tag_id],
+                        subscription_tags: [SubscriptionTagBase {
+                            subscription_id,
+                            user_id: data.user_id,
+                            tag_ids: vec![tag_id],
+                        }],
                     };
 
                     let (sql, values) = subscription_tag

@@ -4,7 +4,7 @@ use colette_core::{
 };
 use colette_query::{
     IntoInsert, IntoSelect,
-    feed::FeedInsert,
+    feed::{FeedBase, FeedInsert},
     feed_entry::{FeedEntryInsert, FeedEntryInsertBatch},
 };
 use deadpool_postgres::Pool;
@@ -41,13 +41,16 @@ impl FeedRepository for PostgresFeedRepository {
 
         data.id = {
             let feed = FeedInsert {
-                id: data.id,
-                source_url: data.source_url.as_str(),
-                link: data.link.as_str(),
-                title: &data.title,
-                description: data.description.as_deref(),
-                refreshed_at: data.refreshed_at,
-                is_custom: data.is_custom,
+                feeds: [FeedBase {
+                    id: data.id,
+                    source_url: data.source_url.as_str(),
+                    link: data.link.as_str(),
+                    title: &data.title,
+                    description: data.description.as_deref(),
+                    refreshed_at: data.refreshed_at,
+                    is_custom: data.is_custom,
+                }],
+                upsert: true,
             };
 
             let (sql, values) = feed.into_insert().build_postgres(PostgresQueryBuilder);

@@ -226,18 +226,22 @@ impl IntoSelect for SubscriptionSelect {
     }
 }
 
-pub struct SubscriptionInsert<'a> {
+pub struct SubscriptionInsert<I> {
+    pub subscriptions: I,
+    pub user_id: Uuid,
+    pub upsert: bool,
+}
+
+pub struct SubscriptionBase<'a> {
     pub id: Uuid,
     pub title: &'a str,
     pub description: Option<&'a str>,
     pub feed_id: Uuid,
-    pub user_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub upsert: bool,
 }
 
-impl IntoInsert for SubscriptionInsert<'_> {
+impl<'a, I: IntoIterator<Item = SubscriptionBase<'a>>> IntoInsert for SubscriptionInsert<I> {
     fn into_insert(self) -> InsertStatement {
         let mut query = Query::insert()
             .into_table(Subscription::Table)
@@ -249,15 +253,6 @@ impl IntoInsert for SubscriptionInsert<'_> {
                 Subscription::UserId,
                 Subscription::CreatedAt,
                 Subscription::UpdatedAt,
-            ])
-            .values_panic([
-                self.id.into(),
-                self.title.into(),
-                self.description.into(),
-                self.feed_id.into(),
-                self.user_id.into(),
-                self.created_at.into(),
-                self.updated_at.into(),
             ])
             .to_owned();
 
@@ -277,19 +272,34 @@ impl IntoInsert for SubscriptionInsert<'_> {
             );
         }
 
+        for subscription in self.subscriptions.into_iter() {
+            query.values_panic([
+                subscription.id.into(),
+                subscription.title.into(),
+                subscription.description.into(),
+                subscription.feed_id.into(),
+                self.user_id.into(),
+                subscription.created_at.into(),
+                subscription.updated_at.into(),
+            ]);
+        }
+
         query
     }
 }
 
+#[derive(Default)]
 pub struct SubscriptionDelete {
-    pub id: Uuid,
+    pub id: Option<Uuid>,
+    pub user_id: Option<Uuid>,
 }
 
 impl IntoDelete for SubscriptionDelete {
     fn into_delete(self) -> DeleteStatement {
         Query::delete()
             .from_table(Subscription::Table)
-            .and_where(Expr::col(Subscription::Id).eq(self.id))
+            .and_where_option(self.id.map(|e| Expr::col(Subscription::Id).eq(e)))
+            .and_where_option(self.user_id.map(|e| Expr::col(Subscription::UserId).eq(e)))
             .to_owned()
     }
 }

@@ -1,0 +1,256 @@
+use std::collections::HashMap;
+
+use chrono::Utc;
+use colette_core::{
+    Feed, Tag,
+    backup::{BackupRepository, Error, ImportBackupData},
+    feed::FeedParams,
+    tag::TagParams,
+};
+use colette_query::{
+    IntoDelete, IntoInsert, IntoSelect,
+    bookmark::{BookmarkBase, BookmarkDelete, BookmarkInsert},
+    bookmark_tag::{BookmarkTagBase, BookmarkTagInsert},
+    feed::{FeedBase, FeedInsert},
+    subscription::{SubscriptionBase, SubscriptionDelete, SubscriptionInsert},
+    subscription_tag::{SubscriptionTagBase, SubscriptionTagInsert},
+    tag::{TagBase, TagDelete, TagInsert},
+};
+use deadpool_sqlite::Pool;
+use sea_query::SqliteQueryBuilder;
+use sea_query_rusqlite::RusqliteBinder as _;
+use url::Url;
+use uuid::Uuid;
+
+use super::PreparedClient as _;
+
+#[derive(Debug, Clone)]
+pub struct SqliteBackupRepository {
+    pool: Pool,
+}
+
+impl SqliteBackupRepository {
+    pub fn new(pool: Pool) -> Self {
+        Self { pool }
+    }
+}
+
+#[async_trait::async_trait]
+impl BackupRepository for SqliteBackupRepository {
+    async fn import(&self, data: ImportBackupData) -> Result<(), Error> {
+        let client = self.pool.get().await?;
+
+        client
+            .interact(move |conn| {
+                let tx = conn.transaction()?;
+
+                let tag_map = {
+                    let (sql, values) = TagDelete {
+                        user_id: Some(data.user_id),
+                        ..Default::default()
+                    }
+                    .into_delete()
+                    .build_rusqlite(SqliteQueryBuilder);
+                    tx.execute_prepared(&sql, &values)?;
+
+                    {
+                        let tags = data
+                            .backup
+                            .tags
+                            .iter()
+                            .map(|e| TagBase {
+                                id: Uuid::new_v4(),
+                                title: &e.title,
+                                created_at: Utc::now(),
+                                updated_at: Utc::now(),
+                            })
+                            .collect::<Vec<_>>();
+
+                        let (sql, values) = TagInsert {
+                            tags,
+                            user_id: data.user_id,
+                            upsert: false,
+                        }
+                        .into_insert()
+                        .build_rusqlite(SqliteQueryBuilder);
+                        tx.execute_prepared(&sql, &values)?;
+                    }
+
+                    let (sql, values) = TagParams {
+                        user_id: Some(data.user_id),
+                        ..Default::default()
+                    }
+                    .into_select()
+                    .build_rusqlite(SqliteQueryBuilder);
+                    let tags = tx.query_prepared::<Tag>(&sql, &values)?;
+
+                    tags.into_iter()
+                        .map(|e| (e.title.clone(), e))
+                        .collect::<HashMap<_, _>>()
+                };
+
+                {
+                    let (sql, values) = SubscriptionDelete {
+                        user_id: Some(data.user_id),
+                        ..Default::default()
+                    }
+                    .into_delete()
+                    .build_rusqlite(SqliteQueryBuilder);
+                    tx.execute_prepared(&sql, &values)?;
+
+                    let feed_map = {
+                        let mut source_urls = Vec::<Url>::new();
+                        let mut feeds = Vec::<FeedBase>::new();
+
+                        for subscription in data.backup.subscriptions.iter() {
+                            if let Some(ref feed) = subscription.feed {
+                                feeds.push(FeedBase {
+                                    id: Uuid::new_v4(),
+                                    source_url: feed.source_url.as_str(),
+                                    link: feed.link.as_str(),
+                                    title: &feed.title,
+                                    description: feed.description.as_deref(),
+                                    refreshed_at: feed.refreshed_at,
+                                    is_custom: feed.is_custom,
+                                });
+
+                                source_urls.push(feed.source_url.clone());
+                            }
+                        }
+
+                        let (sql, values) = FeedInsert {
+                            feeds,
+                            upsert: false,
+                        }
+                        .into_insert()
+                        .build_rusqlite(SqliteQueryBuilder);
+                        tx.execute_prepared(&sql, &values)?;
+
+                        let (sql, values) = FeedParams {
+                            source_urls: Some(source_urls),
+                            ..Default::default()
+                        }
+                        .into_select()
+                        .build_rusqlite(SqliteQueryBuilder);
+                        let feeds = tx.query_prepared::<Feed>(&sql, &values)?;
+
+                        feeds
+                            .into_iter()
+                            .map(|e| (e.source_url.clone(), e))
+                            .collect::<HashMap<_, _>>()
+                    };
+
+                    let mut subscriptions = Vec::<SubscriptionBase>::new();
+                    let mut subscription_tags = Vec::<SubscriptionTagBase<Vec<Uuid>>>::new();
+
+                    for subscription in data.backup.subscriptions.iter() {
+                        if let Some(ref f) = subscription.feed
+                            && let Some(feed) = feed_map.get(&f.source_url)
+                        {
+                            let id = Uuid::new_v4();
+
+                            subscriptions.push(SubscriptionBase {
+                                id,
+                                title: &subscription.title,
+                                description: subscription.description.as_deref(),
+                                feed_id: feed.id,
+                                created_at: subscription.created_at,
+                                updated_at: subscription.updated_at,
+                            });
+
+                            if let Some(tag) = subscription.tags.as_deref() {
+                                let tag_ids = tag
+                                    .iter()
+                                    .flat_map(|e| tag_map.get(&e.title).map(|e| e.id))
+                                    .collect::<Vec<_>>();
+
+                                subscription_tags.push(SubscriptionTagBase {
+                                    subscription_id: id,
+                                    user_id: data.user_id,
+                                    tag_ids,
+                                });
+                            }
+                        }
+                    }
+
+                    SubscriptionInsert {
+                        subscriptions,
+                        user_id: data.user_id,
+                        upsert: false,
+                    }
+                    .into_insert()
+                    .build_rusqlite(SqliteQueryBuilder);
+                    tx.execute_prepared(&sql, &values)?;
+
+                    SubscriptionTagInsert { subscription_tags }
+                        .into_insert()
+                        .build_rusqlite(SqliteQueryBuilder);
+                    tx.execute_prepared(&sql, &values)?;
+                }
+
+                {
+                    let (sql, values) = BookmarkDelete {
+                        user_id: Some(data.user_id),
+                        ..Default::default()
+                    }
+                    .into_delete()
+                    .build_rusqlite(SqliteQueryBuilder);
+                    tx.execute_prepared(&sql, &values)?;
+
+                    let mut bookmarks = Vec::<BookmarkBase>::new();
+                    let mut bookmark_tags = Vec::<BookmarkTagBase<Vec<Uuid>>>::new();
+
+                    for bookmark in data.backup.bookmarks.iter() {
+                        let id = Uuid::new_v4();
+
+                        bookmarks.push(BookmarkBase {
+                            id,
+                            link: bookmark.link.as_str(),
+                            title: &bookmark.title,
+                            thumbnail_url: bookmark.thumbnail_url.as_ref().map(|e| e.as_str()),
+                            published_at: bookmark.published_at,
+                            author: bookmark.author.as_deref(),
+                            archived_path: bookmark.archived_path.as_deref(),
+                            created_at: bookmark.created_at,
+                            updated_at: bookmark.updated_at,
+                        });
+
+                        if let Some(tag) = bookmark.tags.as_deref() {
+                            let tag_ids = tag
+                                .iter()
+                                .flat_map(|e| tag_map.get(&e.title).map(|e| e.id))
+                                .collect::<Vec<_>>();
+
+                            bookmark_tags.push(BookmarkTagBase {
+                                bookmark_id: id,
+                                user_id: data.user_id,
+                                tag_ids,
+                            });
+                        }
+                    }
+
+                    BookmarkInsert {
+                        bookmarks,
+                        user_id: data.user_id,
+                        upsert: false,
+                    }
+                    .into_insert()
+                    .build_rusqlite(SqliteQueryBuilder);
+                    tx.execute_prepared(&sql, &values)?;
+
+                    BookmarkTagInsert { bookmark_tags }
+                        .into_insert()
+                        .build_rusqlite(SqliteQueryBuilder);
+                    tx.execute_prepared(&sql, &values)?;
+                }
+
+                tx.commit()?;
+
+                Ok::<_, Error>(())
+            })
+            .await
+            .unwrap()?;
+
+        Ok(())
+    }
+}

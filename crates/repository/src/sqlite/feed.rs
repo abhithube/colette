@@ -4,7 +4,7 @@ use colette_core::{
 };
 use colette_query::{
     IntoInsert, IntoSelect,
-    feed::FeedInsert,
+    feed::{FeedBase, FeedInsert},
     feed_entry::{FeedEntryInsert, FeedEntryInsertBatch},
 };
 use deadpool_sqlite::Pool;
@@ -51,13 +51,16 @@ impl FeedRepository for SqliteFeedRepository {
 
                 let feed_id = {
                     let feed = FeedInsert {
-                        id: feed.id,
-                        source_url: feed.source_url.as_str(),
-                        link: feed.link.as_str(),
-                        title: &feed.title,
-                        description: feed.description.as_deref(),
-                        refreshed_at: feed.refreshed_at,
-                        is_custom: feed.is_custom,
+                        feeds: [FeedBase {
+                            id: feed.id,
+                            source_url: feed.source_url.as_str(),
+                            link: feed.link.as_str(),
+                            title: &feed.title,
+                            description: feed.description.as_deref(),
+                            refreshed_at: feed.refreshed_at,
+                            is_custom: feed.is_custom,
+                        }],
+                        upsert: true,
                     };
 
                     let (sql, values) = feed.into_insert().build_rusqlite(SqliteQueryBuilder);

@@ -4,7 +4,7 @@ use colette_core::{
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
-    tag::{TagDelete, TagInsert},
+    tag::{TagBase, TagDelete, TagInsert},
 };
 use deadpool_sqlite::Pool;
 use sea_query::SqliteQueryBuilder;
@@ -48,11 +48,13 @@ impl TagRepository for SqliteTagRepository {
         client
             .interact(move |conn| {
                 let (sql, values) = TagInsert {
-                    id: data.id,
-                    title: &data.title,
+                    tags: [TagBase {
+                        id: data.id,
+                        title: &data.title,
+                        created_at: data.created_at,
+                        updated_at: data.updated_at,
+                    }],
                     user_id: data.user_id,
-                    created_at: data.created_at,
-                    updated_at: data.updated_at,
                     upsert: false,
                 }
                 .into_insert()
@@ -77,9 +79,12 @@ impl TagRepository for SqliteTagRepository {
 
         client
             .interact(move |conn| {
-                let (sql, values) = TagDelete { id }
-                    .into_delete()
-                    .build_rusqlite(SqliteQueryBuilder);
+                let (sql, values) = TagDelete {
+                    id: Some(id),
+                    ..Default::default()
+                }
+                .into_delete()
+                .build_rusqlite(SqliteQueryBuilder);
                 conn.execute_prepared(&sql, &values)
             })
             .await

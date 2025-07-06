@@ -6,9 +6,9 @@ use colette_core::{
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
-    bookmark::{BookmarkDelete, BookmarkInsert, BookmarkSelect, BookmarkUpdate},
-    bookmark_tag::{BookmarkTagDelete, BookmarkTagInsert},
-    tag::TagInsert,
+    bookmark::{BookmarkBase, BookmarkDelete, BookmarkInsert, BookmarkSelect, BookmarkUpdate},
+    bookmark_tag::{BookmarkTagBase, BookmarkTagDelete, BookmarkTagInsert},
+    tag::{TagBase, TagInsert},
 };
 use deadpool_sqlite::Pool;
 use sea_query::SqliteQueryBuilder;
@@ -57,16 +57,18 @@ impl BookmarkRepository for SqliteBookmarkRepository {
 
                 {
                     let (sql, values) = BookmarkInsert {
-                        id: data.id,
-                        link: data.link.as_str(),
-                        title: &data.title,
-                        thumbnail_url: data.thumbnail_url.as_ref().map(|e| e.as_str()),
-                        published_at: data.published_at,
-                        author: data.author.as_deref(),
-                        archived_path: data.archived_path.as_deref(),
+                        bookmarks: [BookmarkBase {
+                            id: data.id,
+                            link: data.link.as_str(),
+                            title: &data.title,
+                            thumbnail_url: data.thumbnail_url.as_ref().map(|e| e.as_str()),
+                            published_at: data.published_at,
+                            author: data.author.as_deref(),
+                            archived_path: data.archived_path.as_deref(),
+                            created_at: data.created_at,
+                            updated_at: data.updated_at,
+                        }],
                         user_id: data.user_id,
-                        created_at: data.created_at,
-                        updated_at: data.updated_at,
                         upsert: false,
                     }
                     .into_insert()
@@ -94,9 +96,11 @@ impl BookmarkRepository for SqliteBookmarkRepository {
 
                     if !tags.is_empty() {
                         let (sql, values) = BookmarkTagInsert {
-                            bookmark_id: data.id,
-                            user_id: data.user_id,
-                            tag_ids: tags.iter().map(|e| e.id),
+                            bookmark_tags: [BookmarkTagBase {
+                                bookmark_id: data.id,
+                                user_id: data.user_id,
+                                tag_ids: tags.iter().map(|e| e.id),
+                            }],
                         }
                         .into_insert()
                         .build_rusqlite(SqliteQueryBuilder);
@@ -123,16 +127,18 @@ impl BookmarkRepository for SqliteBookmarkRepository {
         client
             .interact(move |conn| {
                 let (sql, values) = BookmarkInsert {
-                    id: data.id,
-                    link: data.link.as_str(),
-                    title: &data.title,
-                    thumbnail_url: data.thumbnail_url.as_ref().map(|e| e.as_str()),
-                    published_at: data.published_at,
-                    author: data.author.as_deref(),
-                    archived_path: data.archived_path.as_deref(),
+                    bookmarks: [BookmarkBase {
+                        id: data.id,
+                        link: data.link.as_str(),
+                        title: &data.title,
+                        thumbnail_url: data.thumbnail_url.as_ref().map(|e| e.as_str()),
+                        published_at: data.published_at,
+                        author: data.author.as_deref(),
+                        archived_path: data.archived_path.as_deref(),
+                        created_at: data.created_at,
+                        updated_at: data.updated_at,
+                    }],
                     user_id: data.user_id,
-                    created_at: data.created_at,
-                    updated_at: data.updated_at,
                     upsert: true,
                 }
                 .into_insert()
@@ -174,9 +180,12 @@ impl BookmarkRepository for SqliteBookmarkRepository {
 
         client
             .interact(move |conn| {
-                let (sql, values) = BookmarkDelete { id }
-                    .into_delete()
-                    .build_rusqlite(SqliteQueryBuilder);
+                let (sql, values) = BookmarkDelete {
+                    id: Some(id),
+                    ..Default::default()
+                }
+                .into_delete()
+                .build_rusqlite(SqliteQueryBuilder);
                 conn.execute_prepared(&sql, &values)
             })
             .await
@@ -211,11 +220,13 @@ impl BookmarkRepository for SqliteBookmarkRepository {
                                 Some(tag) => tag.id,
                                 _ => {
                                     let (sql, values) = TagInsert {
-                                        id: Uuid::new_v4(),
-                                        title: &item.title,
+                                        tags: [TagBase {
+                                            id: Uuid::new_v4(),
+                                            title: &item.title,
+                                            created_at: Utc::now(),
+                                            updated_at: Utc::now(),
+                                        }],
                                         user_id: data.user_id,
-                                        created_at: Utc::now(),
-                                        updated_at: Utc::now(),
                                         upsert: true,
                                     }
                                     .into_insert()
@@ -233,16 +244,18 @@ impl BookmarkRepository for SqliteBookmarkRepository {
                     } else if let Some(link) = item.href {
                         let bookmark_id = {
                             let (sql, values) = BookmarkInsert {
-                                id: Uuid::new_v4(),
-                                link: &link,
-                                title: &item.title,
-                                thumbnail_url: None,
-                                published_at: None,
-                                author: None,
-                                archived_path: None,
+                                bookmarks: [BookmarkBase {
+                                    id: Uuid::new_v4(),
+                                    link: &link,
+                                    title: &item.title,
+                                    thumbnail_url: None,
+                                    published_at: None,
+                                    author: None,
+                                    archived_path: None,
+                                    created_at: Utc::now(),
+                                    updated_at: Utc::now(),
+                                }],
                                 user_id: data.user_id,
-                                created_at: Utc::now(),
-                                updated_at: Utc::now(),
                                 upsert: true,
                             }
                             .into_insert()
@@ -254,9 +267,11 @@ impl BookmarkRepository for SqliteBookmarkRepository {
 
                         if let Some(tag_id) = parent_id {
                             let bookmark_tag = BookmarkTagInsert {
-                                bookmark_id,
-                                user_id: data.user_id,
-                                tag_ids: vec![tag_id],
+                                bookmark_tags: [BookmarkTagBase {
+                                    bookmark_id,
+                                    user_id: data.user_id,
+                                    tag_ids: vec![tag_id],
+                                }],
                             };
 
                             let (sql, values) = bookmark_tag

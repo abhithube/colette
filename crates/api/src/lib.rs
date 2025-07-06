@@ -30,8 +30,11 @@ use utoipa::{
 };
 use utoipa_scalar::{Scalar, Servable};
 
+use crate::backup::BackupApi;
+
 pub mod api_key;
 mod auth;
+mod backup;
 mod bookmark;
 mod collection;
 mod common;
@@ -55,6 +58,7 @@ const API_PREFIX: &str = "/api";
     nest(
         (path = "/apiKeys", api = ApiKeyApi),
         (path = "/auth", api = AuthApi),
+        (path = "/backups", api = BackupApi),
         (path = "/bookmarks", api = BookmarkApi),
         (path = "/collections", api = CollectionApi),
         (path = "/config", api = ConfigApi),
@@ -111,6 +115,7 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<Url>>) -> Rout
     let authenticated_router = Router::new()
         .nest("/apiKeys", ApiKeyApi::router())
         .nest("/auth", AuthApi::authenticated())
+        .nest("/backups", BackupApi::router())
         .nest("/bookmarks", BookmarkApi::router())
         .nest("/collections", CollectionApi::router())
         .nest("/feedEntries", FeedEntryApi::router())

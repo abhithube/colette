@@ -29,12 +29,18 @@ impl Iden for BookmarkTag {
 }
 
 pub struct BookmarkTagInsert<I> {
+    pub bookmark_tags: I,
+}
+
+pub struct BookmarkTagBase<I> {
     pub bookmark_id: Uuid,
     pub user_id: Uuid,
     pub tag_ids: I,
 }
 
-impl<I: IntoIterator<Item = Uuid>> IntoInsert for BookmarkTagInsert<I> {
+impl<I: IntoIterator<Item = Uuid>, J: IntoIterator<Item = BookmarkTagBase<I>>> IntoInsert
+    for BookmarkTagInsert<J>
+{
     fn into_insert(self) -> InsertStatement {
         let mut query = Query::insert()
             .into_table(BookmarkTag::Table)
@@ -50,8 +56,14 @@ impl<I: IntoIterator<Item = Uuid>> IntoInsert for BookmarkTagInsert<I> {
             )
             .to_owned();
 
-        for tag_id in self.tag_ids {
-            query.values_panic([self.bookmark_id.into(), tag_id.into(), self.user_id.into()]);
+        for bookmark_tag in self.bookmark_tags {
+            for tag_id in bookmark_tag.tag_ids {
+                query.values_panic([
+                    bookmark_tag.bookmark_id.into(),
+                    tag_id.into(),
+                    bookmark_tag.user_id.into(),
+                ]);
+            }
         }
 
         query

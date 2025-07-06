@@ -12,7 +12,7 @@ use crate::FeedEntry;
 mod feed_repository;
 mod feed_service;
 
-#[derive(Debug, Clone, bon::Builder)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, bon::Builder)]
 pub struct Feed {
     #[builder(default = Uuid::new_v4())]
     pub id: Uuid,
@@ -23,6 +23,7 @@ pub struct Feed {
     pub refreshed_at: Option<DateTime<Utc>>,
     #[builder(default = false)]
     pub is_custom: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub entries: Option<Vec<FeedEntry>>,
 }
 

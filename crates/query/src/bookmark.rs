@@ -166,7 +166,13 @@ impl IntoSelect for BookmarkSelect {
     }
 }
 
-pub struct BookmarkInsert<'a> {
+pub struct BookmarkInsert<I> {
+    pub bookmarks: I,
+    pub user_id: Uuid,
+    pub upsert: bool,
+}
+
+pub struct BookmarkBase<'a> {
     pub id: Uuid,
     pub link: &'a str,
     pub title: &'a str,
@@ -174,13 +180,11 @@ pub struct BookmarkInsert<'a> {
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<&'a str>,
     pub archived_path: Option<&'a str>,
-    pub user_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub upsert: bool,
 }
 
-impl IntoInsert for BookmarkInsert<'_> {
+impl<'a, I: IntoIterator<Item = BookmarkBase<'a>>> IntoInsert for BookmarkInsert<I> {
     fn into_insert(self) -> InsertStatement {
         let mut query = Query::insert()
             .into_table(Bookmark::Table)
@@ -195,18 +199,6 @@ impl IntoInsert for BookmarkInsert<'_> {
                 Bookmark::UserId,
                 Bookmark::CreatedAt,
                 Bookmark::UpdatedAt,
-            ])
-            .values_panic([
-                self.id.into(),
-                self.link.into(),
-                self.title.into(),
-                self.thumbnail_url.into(),
-                self.published_at.into(),
-                self.author.into(),
-                self.archived_path.into(),
-                self.user_id.into(),
-                self.created_at.into(),
-                self.updated_at.into(),
             ])
             .to_owned();
 
@@ -240,6 +232,21 @@ impl IntoInsert for BookmarkInsert<'_> {
             );
         }
 
+        for bookmark in self.bookmarks.into_iter() {
+            query.values_panic([
+                bookmark.id.into(),
+                bookmark.link.into(),
+                bookmark.title.into(),
+                bookmark.thumbnail_url.into(),
+                bookmark.published_at.into(),
+                bookmark.author.into(),
+                bookmark.archived_path.into(),
+                self.user_id.into(),
+                bookmark.created_at.into(),
+                bookmark.updated_at.into(),
+            ]);
+        }
+
         query
     }
 }
@@ -266,15 +273,18 @@ impl IntoUpdate for BookmarkUpdate<'_> {
     }
 }
 
+#[derive(Default)]
 pub struct BookmarkDelete {
-    pub id: Uuid,
+    pub id: Option<Uuid>,
+    pub user_id: Option<Uuid>,
 }
 
 impl IntoDelete for BookmarkDelete {
     fn into_delete(self) -> DeleteStatement {
         Query::delete()
             .from_table(Bookmark::Table)
-            .and_where(Expr::col(Bookmark::Id).eq(self.id))
+            .and_where_option(self.id.map(|e| Expr::col(Bookmark::Id).eq(e)))
+            .and_where_option(self.user_id.map(|e| Expr::col(Bookmark::UserId).eq(e)))
             .to_owned()
     }
 }
