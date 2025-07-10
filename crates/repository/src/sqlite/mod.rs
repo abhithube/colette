@@ -6,7 +6,7 @@ pub use collection::SqliteCollectionRepository;
 pub use feed::SqliteFeedRepository;
 pub use feed_entry::SqliteFeedEntryRepository;
 pub use job::SqliteJobRepository;
-use rusqlite::{Connection, OptionalExtension, Row, Transaction};
+use rusqlite::{Connection, Row, Transaction};
 use sea_query_rusqlite::RusqliteValues;
 pub use stream::SqliteStreamRepository;
 pub use subscription::SqliteSubscriptionRepository;
@@ -50,12 +50,6 @@ trait PreparedClient {
         values: &RusqliteValues,
     ) -> Result<Vec<T>, rusqlite::Error>;
 
-    fn query_opt_prepared<T: for<'a> From<SqliteRow<'a>>>(
-        &self,
-        sql: &str,
-        values: &RusqliteValues,
-    ) -> Result<Option<T>, rusqlite::Error>;
-
     fn query_one_prepared<T: for<'a> From<SqliteRow<'a>>>(
         &self,
         sql: &str,
@@ -84,16 +78,6 @@ impl PreparedClient for Connection {
         }
 
         Ok(mapped)
-    }
-
-    fn query_opt_prepared<T: for<'a> From<SqliteRow<'a>>>(
-        &self,
-        sql: &str,
-        values: &RusqliteValues,
-    ) -> Result<Option<T>, rusqlite::Error> {
-        let mut stmt = self.prepare_cached(sql)?;
-        stmt.query_row(&*values.as_params(), |e| Ok(SqliteRow(e).into()))
-            .optional()
     }
 
     fn query_one_prepared<T: for<'a> From<SqliteRow<'a>>>(
@@ -130,16 +114,6 @@ impl PreparedClient for Transaction<'_> {
         }
 
         Ok(mapped)
-    }
-
-    fn query_opt_prepared<T: for<'a> From<SqliteRow<'a>>>(
-        &self,
-        sql: &str,
-        values: &RusqliteValues,
-    ) -> Result<Option<T>, rusqlite::Error> {
-        let mut stmt = self.prepare_cached(sql)?;
-        stmt.query_row(&*values.as_params(), |e| Ok(SqliteRow(e).into()))
-            .optional()
     }
 
     fn query_one_prepared<T: for<'a> From<SqliteRow<'a>>>(

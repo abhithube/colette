@@ -1,14 +1,15 @@
+use std::collections::HashMap;
+
 use chrono::Utc;
 use colette_core::{
     Bookmark, Tag,
     bookmark::{BookmarkParams, BookmarkRepository, Error, ImportBookmarksData},
-    tag::TagParams,
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
     bookmark::{BookmarkBase, BookmarkDelete, BookmarkInsert, BookmarkSelect, BookmarkUpdate},
     bookmark_tag::{BookmarkTagBase, BookmarkTagDelete, BookmarkTagInsert},
-    tag::{TagBase, TagInsert},
+    tag::{TagBase, TagInsert, TagSelect},
 };
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
@@ -16,7 +17,7 @@ use sea_query_postgres::PostgresBinder as _;
 use tokio_postgres::{error::SqlState, types::Json};
 use uuid::Uuid;
 
-use super::{IdRow, PgRow, PreparedClient as _};
+use super::{PgRow, PreparedClient as _};
 
 #[derive(Debug, Clone)]
 pub struct PostgresBookmarkRepository {
@@ -64,7 +65,6 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             }
             .into_insert()
             .build_postgres(PostgresQueryBuilder);
-
             tx.execute_prepared(&sql, &values)
                 .await
                 .map_err(|e| match e.code() {
@@ -80,20 +80,18 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             }
             .into_delete()
             .build_postgres(PostgresQueryBuilder);
-
             tx.execute_prepared(&sql, &values).await?;
 
             if !tags.is_empty() {
                 let (sql, values) = BookmarkTagInsert {
                     bookmark_tags: [BookmarkTagBase {
                         bookmark_id: data.id,
-                        user_id: data.user_id,
                         tag_ids: tags.iter().map(|e| e.id),
                     }],
+                    user_id: data.user_id,
                 }
                 .into_insert()
                 .build_postgres(PostgresQueryBuilder);
-
                 tx.execute_prepared(&sql, &values).await?;
             }
         }
@@ -123,7 +121,6 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         }
         .into_insert()
         .build_postgres(PostgresQueryBuilder);
-
         client.execute_prepared(&sql, &values).await?;
 
         Ok(())
@@ -143,7 +140,6 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         }
         .into_update()
         .build_postgres(PostgresQueryBuilder);
-
         client.execute_prepared(&sql, &values).await?;
 
         Ok(())
@@ -158,7 +154,6 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         }
         .into_delete()
         .build_postgres(PostgresQueryBuilder);
-
         client.execute_prepared(&sql, &values).await?;
 
         Ok(())
@@ -168,87 +163,114 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         let mut client = self.pool.get().await?;
         let tx = client.transaction().await?;
 
-        let mut stack: Vec<(Option<Uuid>, colette_netscape::Item)> =
-            data.items.into_iter().map(|item| (None, item)).collect();
+        let tag_map = {
+            let mut titles = Vec::<&str>::new();
+            let mut tags = Vec::<TagBase>::new();
 
-        while let Some((parent_id, item)) = stack.pop() {
-            if !item.item.is_empty() {
-                let tag_id = {
-                    let (sql, values) = TagParams {
-                        title: Some(item.title.clone()),
-                        user_id: Some(data.user_id),
-                        ..Default::default()
-                    }
-                    .into_select()
-                    .build_postgres(PostgresQueryBuilder);
-                    let tag = tx.query_opt_prepared::<Tag>(&sql, &values).await?;
+            for tag in data.tags.iter() {
+                titles.push(&tag.title);
 
-                    match tag {
-                        Some(tag) => tag.id,
-                        _ => {
-                            let (sql, values) = TagInsert {
-                                tags: [TagBase {
-                                    id: Uuid::new_v4(),
-                                    title: &item.title,
-                                    created_at: Utc::now(),
-                                    updated_at: Utc::now(),
-                                }],
-                                user_id: data.user_id,
-                                upsert: true,
-                            }
-                            .into_insert()
-                            .build_postgres(PostgresQueryBuilder);
-                            let row = tx.query_one_prepared::<IdRow>(&sql, &values).await?;
+                tags.push(TagBase {
+                    id: tag.id,
+                    title: &tag.title,
+                    created_at: tag.created_at,
+                    updated_at: tag.updated_at,
+                });
+            }
 
-                            row.id
-                        }
-                    }
-                };
+            let (sql, values) = TagInsert {
+                tags,
+                user_id: data.user_id,
+                upsert: true,
+            }
+            .into_insert()
+            .build_postgres(PostgresQueryBuilder);
+            tx.execute_prepared(&sql, &values).await?;
 
-                for child in item.item {
-                    stack.push((Some(tag_id), child));
+            let (sql, values) = TagSelect {
+                titles: Some(titles),
+                user_id: Some(data.user_id),
+                ..Default::default()
+            }
+            .into_select()
+            .build_postgres(PostgresQueryBuilder);
+            let tags = tx.query_prepared::<Tag>(&sql, &values).await?;
+
+            tags.into_iter()
+                .map(|e| (e.title, e.id))
+                .collect::<HashMap<_, _>>()
+        };
+
+        let mut bookmark_map = {
+            let (sql, values) = BookmarkSelect::postgres(BookmarkParams {
+                user_id: Some(data.user_id),
+                ..Default::default()
+            })
+            .into_select()
+            .build_postgres(PostgresQueryBuilder);
+            let bookmarks = tx.query_prepared::<Bookmark>(&sql, &values).await?;
+
+            bookmarks
+                .into_iter()
+                .map(|e| (e.link, e.id))
+                .collect::<HashMap<_, _>>()
+        };
+
+        {
+            let mut bookmarks = Vec::<BookmarkBase>::new();
+            let mut bookmark_tags = Vec::<BookmarkTagBase<Vec<Uuid>>>::new();
+
+            for bookmark in data.bookmarks.iter() {
+                if !bookmark_map.contains_key(&bookmark.link) {
+                    let id = Uuid::new_v4();
+
+                    bookmarks.push(BookmarkBase {
+                        id: bookmark.id,
+                        link: bookmark.link.as_str(),
+                        title: &bookmark.title,
+                        thumbnail_url: bookmark.thumbnail_url.as_ref().map(|e| e.as_str()),
+                        published_at: bookmark.published_at,
+                        author: bookmark.author.as_deref(),
+                        archived_path: bookmark.archived_path.as_deref(),
+                        created_at: bookmark.created_at,
+                        updated_at: bookmark.updated_at,
+                    });
+
+                    bookmark_map.insert(bookmark.link.clone(), id);
                 }
-            } else if let Some(link) = item.href {
-                let bookmark_id = {
-                    let (sql, values) = BookmarkInsert {
-                        bookmarks: [BookmarkBase {
-                            id: Uuid::new_v4(),
-                            link: &link,
-                            title: &item.title,
-                            thumbnail_url: None,
-                            published_at: None,
-                            author: None,
-                            archived_path: None,
-                            created_at: Utc::now(),
-                            updated_at: Utc::now(),
-                        }],
-                        user_id: data.user_id,
-                        upsert: true,
-                    }
-                    .into_insert()
-                    .build_postgres(PostgresQueryBuilder);
-                    let row = tx.query_one_prepared::<IdRow>(&sql, &values).await?;
 
-                    row.id
-                };
+                if let Some(ref tags) = bookmark.tags
+                    && let Some(bookmark_id) = bookmark_map.get(&bookmark.link).copied()
+                {
+                    let tag_ids = tags
+                        .iter()
+                        .flat_map(|e| tag_map.get(&e.title).copied())
+                        .collect();
 
-                if let Some(tag_id) = parent_id {
-                    let bookmark_tag = BookmarkTagInsert {
-                        bookmark_tags: [BookmarkTagBase {
-                            bookmark_id,
-                            user_id: data.user_id,
-                            tag_ids: vec![tag_id],
-                        }],
-                    };
-
-                    let (sql, values) = bookmark_tag
-                        .into_insert()
-                        .build_postgres(PostgresQueryBuilder);
-
-                    tx.execute_prepared(&sql, &values).await?;
+                    bookmark_tags.push(BookmarkTagBase {
+                        bookmark_id,
+                        tag_ids,
+                    });
                 }
             }
-        }
+
+            let (sql, values) = BookmarkInsert {
+                bookmarks,
+                user_id: data.user_id,
+                upsert: true,
+            }
+            .into_insert()
+            .build_postgres(PostgresQueryBuilder);
+            tx.execute_prepared(&sql, &values).await?;
+
+            let (sql, values) = BookmarkTagInsert {
+                bookmark_tags,
+                user_id: data.user_id,
+            }
+            .into_insert()
+            .build_postgres(PostgresQueryBuilder);
+            tx.execute_prepared(&sql, &values).await?;
+        };
 
         tx.commit().await?;
 

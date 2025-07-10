@@ -1,7 +1,7 @@
-use colette_opml::Outline;
 use uuid::Uuid;
 
 use super::{Error, Subscription};
+use crate::Tag;
 
 #[async_trait::async_trait]
 pub trait SubscriptionRepository: Send + Sync + 'static {
@@ -38,6 +38,7 @@ pub struct SubscriptionParams {
 }
 
 pub struct ImportSubscriptionsData {
-    pub outlines: Vec<Outline>,
+    pub subscriptions: Vec<Subscription>,
+    pub tags: Vec<Tag>,
     pub user_id: Uuid,
 }

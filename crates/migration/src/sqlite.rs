@@ -21,7 +21,6 @@ impl<'a> SqliteMigrator<'a> {
             let count = conn.query_row(r#"SELECT count(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"#, [], |e| e.get::<_, i64>(0))?;
 
             Ok::<_, deadpool_sqlite::PoolError>(count)
-            // Ok(stmt)
         }).await.unwrap()?;
 
         Ok(count == 0)

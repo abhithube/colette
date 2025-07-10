@@ -52,12 +52,6 @@ trait PreparedClient {
         values: &PostgresValues,
     ) -> Result<Vec<T>, tokio_postgres::Error>;
 
-    async fn query_opt_prepared<T: for<'a> From<PgRow<'a>>>(
-        &self,
-        sql: &str,
-        values: &PostgresValues,
-    ) -> Result<Option<T>, tokio_postgres::Error>;
-
     async fn query_one_prepared<T: for<'a> From<PgRow<'a>>>(
         &self,
         sql: &str,
@@ -82,17 +76,6 @@ impl PreparedClient for Object {
         let rows = self.query(&stmt, &values.as_params()).await?;
 
         Ok(rows.into_iter().map(|e| PgRow(&e).into()).collect())
-    }
-
-    async fn query_opt_prepared<T: for<'a> From<PgRow<'a>>>(
-        &self,
-        sql: &str,
-        values: &PostgresValues,
-    ) -> Result<Option<T>, tokio_postgres::Error> {
-        let stmt = self.prepare_cached(sql).await?;
-        let row = self.query_opt(&stmt, &values.as_params()).await?;
-
-        Ok(row.map(|e| PgRow(&e).into()))
     }
 
     async fn query_one_prepared<T: for<'a> From<PgRow<'a>>>(
@@ -127,17 +110,6 @@ impl PreparedClient for Transaction<'_> {
         let rows = self.query(&stmt, &values.as_params()).await?;
 
         Ok(rows.into_iter().map(|e| PgRow(&e).into()).collect())
-    }
-
-    async fn query_opt_prepared<T: for<'a> From<PgRow<'a>>>(
-        &self,
-        sql: &str,
-        values: &PostgresValues,
-    ) -> Result<Option<T>, tokio_postgres::Error> {
-        let stmt = self.prepare_cached(sql).await?;
-        let row = self.query_opt(&stmt, &values.as_params()).await?;
-
-        Ok(row.map(|e| PgRow(&e).into()))
     }
 
     async fn query_one_prepared<T: for<'a> From<PgRow<'a>>>(

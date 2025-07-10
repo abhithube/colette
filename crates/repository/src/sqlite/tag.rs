@@ -1,10 +1,10 @@
 use colette_core::{
     Tag,
-    tag::{Error, TagParams, TagRepository},
+    tag::{Error, TagParams, TagRepository, TagType},
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
-    tag::{TagBase, TagDelete, TagInsert},
+    tag::{TagBase, TagDelete, TagInsert, TagSelect},
 };
 use deadpool_sqlite::Pool;
 use sea_query::SqliteQueryBuilder;
@@ -31,7 +31,23 @@ impl TagRepository for SqliteTagRepository {
 
         let tags = client
             .interact(move |conn| {
-                let (sql, values) = params.into_select().build_rusqlite(SqliteQueryBuilder);
+                let (sql, values) = TagSelect {
+                    ids: params.ids,
+                    tag_type: params.tag_type.map(|e| match e {
+                        TagType::Bookmarks => colette_query::tag::TagType::Bookmarks,
+                        TagType::Feeds => colette_query::tag::TagType::Feeds,
+                    }),
+                    feed_id: params.feed_id,
+                    bookmark_id: params.bookmark_id,
+                    user_id: params.user_id,
+                    cursor: params.cursor.as_deref(),
+                    limit: params.limit,
+                    with_subscription_count: params.with_subscription_count,
+                    with_bookmark_count: params.with_bookmark_count,
+                    ..Default::default()
+                }
+                .into_select()
+                .build_rusqlite(SqliteQueryBuilder);
                 conn.query_prepared::<Tag>(&sql, &values)
             })
             .await

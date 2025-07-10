@@ -580,8 +580,6 @@ dependencies = [
  "async-trait",
  "chrono",
  "colette-core",
- "colette-netscape",
- "colette-opml",
  "colette-query",
  "deadpool-postgres",
  "deadpool-sqlite",

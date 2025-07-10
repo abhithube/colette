@@ -5,7 +5,6 @@ use colette_core::{
     Feed, Tag,
     backup::{BackupRepository, Error, ImportBackupData},
     feed::FeedParams,
-    tag::TagParams,
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
@@ -14,7 +13,7 @@ use colette_query::{
     feed::{FeedBase, FeedInsert},
     subscription::{SubscriptionBase, SubscriptionDelete, SubscriptionInsert},
     subscription_tag::{SubscriptionTagBase, SubscriptionTagInsert},
-    tag::{TagBase, TagDelete, TagInsert},
+    tag::{TagBase, TagDelete, TagInsert, TagSelect},
 };
 use deadpool_sqlite::Pool;
 use sea_query::SqliteQueryBuilder;
@@ -53,30 +52,28 @@ impl BackupRepository for SqliteBackupRepository {
                     .build_rusqlite(SqliteQueryBuilder);
                     tx.execute_prepared(&sql, &values)?;
 
-                    {
-                        let tags = data
-                            .backup
-                            .tags
-                            .iter()
-                            .map(|e| TagBase {
-                                id: Uuid::new_v4(),
-                                title: &e.title,
-                                created_at: Utc::now(),
-                                updated_at: Utc::now(),
-                            })
-                            .collect::<Vec<_>>();
+                    let tags = data
+                        .backup
+                        .tags
+                        .iter()
+                        .map(|e| TagBase {
+                            id: Uuid::new_v4(),
+                            title: &e.title,
+                            created_at: Utc::now(),
+                            updated_at: Utc::now(),
+                        })
+                        .collect::<Vec<_>>();
 
-                        let (sql, values) = TagInsert {
-                            tags,
-                            user_id: data.user_id,
-                            upsert: false,
-                        }
-                        .into_insert()
-                        .build_rusqlite(SqliteQueryBuilder);
-                        tx.execute_prepared(&sql, &values)?;
+                    let (sql, values) = TagInsert {
+                        tags,
+                        user_id: data.user_id,
+                        upsert: false,
                     }
+                    .into_insert()
+                    .build_rusqlite(SqliteQueryBuilder);
+                    tx.execute_prepared(&sql, &values)?;
 
-                    let (sql, values) = TagParams {
+                    let (sql, values) = TagSelect {
                         user_id: Some(data.user_id),
                         ..Default::default()
                     }
@@ -85,7 +82,7 @@ impl BackupRepository for SqliteBackupRepository {
                     let tags = tx.query_prepared::<Tag>(&sql, &values)?;
 
                     tags.into_iter()
-                        .map(|e| (e.title.clone(), e))
+                        .map(|e| (e.title, e.id))
                         .collect::<HashMap<_, _>>()
                 };
 
@@ -161,7 +158,7 @@ impl BackupRepository for SqliteBackupRepository {
                             if let Some(tag) = subscription.tags.as_deref() {
                                 let tag_ids = tag
                                     .iter()
-                                    .flat_map(|e| tag_map.get(&e.title).map(|e| e.id))
+                                    .flat_map(|e| tag_map.get(&e.title).copied())
                                     .collect::<Vec<_>>();
 
                                 subscription_tags.push(SubscriptionTagBase {
@@ -218,12 +215,11 @@ impl BackupRepository for SqliteBackupRepository {
                         if let Some(tag) = bookmark.tags.as_deref() {
                             let tag_ids = tag
                                 .iter()
-                                .flat_map(|e| tag_map.get(&e.title).map(|e| e.id))
+                                .flat_map(|e| tag_map.get(&e.title).copied())
                                 .collect::<Vec<_>>();
 
                             bookmark_tags.push(BookmarkTagBase {
                                 bookmark_id: id,
-                                user_id: data.user_id,
                                 tag_ids,
                             });
                         }
@@ -238,9 +234,12 @@ impl BackupRepository for SqliteBackupRepository {
                     .build_rusqlite(SqliteQueryBuilder);
                     tx.execute_prepared(&sql, &values)?;
 
-                    BookmarkTagInsert { bookmark_tags }
-                        .into_insert()
-                        .build_rusqlite(SqliteQueryBuilder);
+                    BookmarkTagInsert {
+                        bookmark_tags,
+                        user_id: data.user_id,
+                    }
+                    .into_insert()
+                    .build_rusqlite(SqliteQueryBuilder);
                     tx.execute_prepared(&sql, &values)?;
                 }
 

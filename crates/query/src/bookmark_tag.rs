@@ -30,11 +30,11 @@ impl Iden for BookmarkTag {
 
 pub struct BookmarkTagInsert<I> {
     pub bookmark_tags: I,
+    pub user_id: Uuid,
 }
 
 pub struct BookmarkTagBase<I> {
     pub bookmark_id: Uuid,
-    pub user_id: Uuid,
     pub tag_ids: I,
 }
 
@@ -61,7 +61,7 @@ impl<I: IntoIterator<Item = Uuid>, J: IntoIterator<Item = BookmarkTagBase<I>>> I
                 query.values_panic([
                     bookmark_tag.bookmark_id.into(),
                     tag_id.into(),
-                    bookmark_tag.user_id.into(),
+                    self.user_id.into(),
                 ]);
             }
         }

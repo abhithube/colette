@@ -5,13 +5,14 @@ use chrono::Utc;
 use colette_opml::{Body, Opml, Outline, OutlineType};
 use colette_queue::JobProducer;
 use tokio::sync::Mutex;
+use url::Url;
 use uuid::Uuid;
 
 use super::{
     Error, ImportSubscriptionsData, Subscription, SubscriptionParams, SubscriptionRepository,
 };
 use crate::{
-    SubscriptionEntry,
+    Feed, SubscriptionEntry, Tag,
     common::Paginated,
     job::{Job, JobRepository},
     subscription_entry::{SubscriptionEntryParams, SubscriptionEntryRepository},
@@ -259,9 +260,58 @@ impl SubscriptionService {
     pub async fn import_subscriptions(&self, raw: Bytes, user_id: Uuid) -> Result<(), Error> {
         let opml = colette_opml::from_reader(raw.reader())?;
 
+        let mut stack: Vec<(Option<String>, Outline)> =
+            opml.body.outlines.into_iter().map(|e| (None, e)).collect();
+
+        let mut tag_map = HashMap::<String, Tag>::new();
+        let mut subscription_map = HashMap::<Url, Subscription>::new();
+
+        while let Some((parent_title, outline)) = stack.pop() {
+            if !outline.outline.is_empty() {
+                let tag = Tag::builder().title(outline.text).user_id(user_id).build();
+
+                for child in outline.outline {
+                    stack.push((Some(tag.title.clone()), child));
+                }
+
+                tag_map.insert(tag.title.clone(), tag);
+            } else if let Some(xml_url) = outline.xml_url {
+                let xml_url = xml_url.parse::<Url>().unwrap();
+
+                let subscription = subscription_map.entry(xml_url.clone()).or_insert_with(|| {
+                    let feed = Feed::builder()
+                        .source_url(xml_url.clone())
+                        .link(
+                            outline
+                                .html_url
+                                .and_then(|e| e.parse().ok())
+                                .unwrap_or(xml_url),
+                        )
+                        .title(outline.title.unwrap_or(outline.text))
+                        .build();
+
+                    Subscription::builder()
+                        .title(feed.title.clone())
+                        .feed_id(feed.id)
+                        .user_id(user_id)
+                        .build()
+                });
+
+                if let Some(title) = parent_title
+                    && let Some(tag) = tag_map.get(&title)
+                {
+                    subscription
+                        .tags
+                        .get_or_insert_default()
+                        .push(tag.to_owned());
+                }
+            }
+        }
+
         self.subscription_repository
             .import(ImportSubscriptionsData {
-                outlines: opml.body.outlines,
+                subscriptions: subscription_map.into_values().collect(),
+                tags: tag_map.into_values().collect(),
                 user_id,
             })
             .await?;

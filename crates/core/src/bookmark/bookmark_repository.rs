@@ -1,9 +1,8 @@
 use chrono::{DateTime, Utc};
-use colette_netscape::Item;
 use uuid::Uuid;
 
 use super::{Bookmark, Error};
-use crate::bookmark::BookmarkFilter;
+use crate::{Tag, bookmark::BookmarkFilter};
 
 #[async_trait::async_trait]
 pub trait BookmarkRepository: Send + Sync + 'static {
@@ -52,6 +51,7 @@ pub enum BookmarkUpsertType {
 }
 
 pub struct ImportBookmarksData {
-    pub items: Vec<Item>,
+    pub bookmarks: Vec<Bookmark>,
+    pub tags: Vec<Tag>,
     pub user_id: Uuid,
 }

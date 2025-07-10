@@ -1,7 +1,6 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use colette_core::subscription::SubscriptionParams;
 use sea_query::{
     Alias, Asterisk, DeleteStatement, Expr, Func, Iden, InsertStatement, JoinType, OnConflict,
     Order, Query, SelectStatement,
@@ -44,25 +43,18 @@ impl Iden for Subscription {
     }
 }
 
+#[derive(Default)]
 pub struct SubscriptionSelect {
-    params: SubscriptionParams,
-    dialect: Dialect,
-}
-
-impl SubscriptionSelect {
-    pub fn postgres(params: SubscriptionParams) -> Self {
-        Self {
-            params,
-            dialect: Dialect::Postgres,
-        }
-    }
-
-    pub fn sqlite(params: SubscriptionParams) -> Self {
-        Self {
-            params,
-            dialect: Dialect::Sqlite,
-        }
-    }
+    pub id: Option<Uuid>,
+    pub feeds: Option<Vec<Uuid>>,
+    pub tags: Option<Vec<Uuid>>,
+    pub user_id: Option<Uuid>,
+    pub cursor: Option<(String, Uuid)>,
+    pub limit: Option<u64>,
+    pub with_feed: bool,
+    pub with_unread_count: bool,
+    pub with_tags: bool,
+    pub dialect: Dialect,
 }
 
 impl IntoSelect for SubscriptionSelect {
@@ -70,13 +62,17 @@ impl IntoSelect for SubscriptionSelect {
         let mut query = Query::select()
             .column((Subscription::Table, Asterisk))
             .from(Subscription::Table)
-            .apply_if(self.params.id, |query, id| {
+            .apply_if(self.id, |query, id| {
                 query.and_where(Expr::col((Subscription::Table, Subscription::Id)).eq(id));
             })
-            .apply_if(self.params.user_id, |query, user_id| {
+            .apply_if(self.feeds, |query, feeds| {
+                query
+                    .and_where(Expr::col((Subscription::Table, Subscription::FeedId)).is_in(feeds));
+            })
+            .apply_if(self.user_id, |query, user_id| {
                 query.and_where(Expr::col((Subscription::Table, Subscription::UserId)).eq(user_id));
             })
-            .apply_if(self.params.tags, |query, tags| {
+            .apply_if(self.tags, |query, tags| {
                 query.and_where(Expr::exists(
                     Query::select()
                         .expr(Expr::val("1"))
@@ -91,7 +87,7 @@ impl IntoSelect for SubscriptionSelect {
                         .to_owned(),
                 ));
             })
-            .apply_if(self.params.cursor, |query, (title, id)| {
+            .apply_if(self.cursor, |query, (title, id)| {
                 query.and_where(
                     Expr::tuple([
                         Expr::col(Subscription::Title).into(),
@@ -104,7 +100,7 @@ impl IntoSelect for SubscriptionSelect {
             .order_by((Subscription::Table, Subscription::Id), Order::Asc)
             .to_owned();
 
-        if self.params.with_feed {
+        if self.with_feed {
             query
                 .columns([
                     (Feed::Table, Feed::SourceUrl),
@@ -124,7 +120,7 @@ impl IntoSelect for SubscriptionSelect {
                 );
         }
 
-        if self.params.with_unread_count {
+        if self.with_unread_count {
             let uc_agg = Alias::new("uc_agg");
             let unread_count = Alias::new("unread_count");
 
@@ -175,7 +171,7 @@ impl IntoSelect for SubscriptionSelect {
                 );
         }
 
-        if self.params.with_tags {
+        if self.with_tags {
             let tags_agg = Alias::new("tags_agg");
             let tags = Alias::new("tags");
             let t = Alias::new("t");
@@ -218,7 +214,7 @@ impl IntoSelect for SubscriptionSelect {
                 );
         }
 
-        if let Some(limit) = self.params.limit {
+        if let Some(limit) = self.limit {
             query.limit(limit);
         }
 
@@ -260,7 +256,11 @@ impl<'a, I: IntoIterator<Item = SubscriptionBase<'a>>> IntoInsert for Subscripti
             query
                 .on_conflict(
                     OnConflict::columns([Subscription::UserId, Subscription::FeedId])
-                        .update_columns([Subscription::Title, Subscription::UpdatedAt])
+                        .update_columns([
+                            Subscription::Title,
+                            Subscription::Description,
+                            Subscription::UpdatedAt,
+                        ])
                         .to_owned(),
                 )
                 .returning_col(Subscription::Id);

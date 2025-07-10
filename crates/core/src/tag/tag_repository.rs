@@ -26,7 +26,6 @@ pub trait TagRepository: Send + Sync + 'static {
 #[derive(Debug, Clone, Default)]
 pub struct TagParams {
     pub ids: Option<Vec<Uuid>>,
-    pub title: Option<String>,
     pub tag_type: Option<TagType>,
     pub feed_id: Option<Uuid>,
     pub bookmark_id: Option<Uuid>,

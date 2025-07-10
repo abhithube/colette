@@ -17,6 +17,7 @@ use super::{
     bookmark_repository::{BookmarkParams, BookmarkRepository},
 };
 use crate::{
+    Tag,
     collection::{CollectionParams, CollectionRepository},
     common::{PAGINATION_LIMIT, Paginated},
     job::{Job, JobRepository},
@@ -388,9 +389,63 @@ impl BookmarkService {
     pub async fn import_bookmarks(&self, raw: Bytes, user_id: Uuid) -> Result<(), Error> {
         let netscape = colette_netscape::from_reader(raw.reader())?;
 
+        let mut stack: Vec<(Option<String>, Item)> =
+            netscape.items.into_iter().map(|e| (None, e)).collect();
+
+        let mut tag_map = HashMap::<String, Tag>::new();
+        let mut bookmark_map = HashMap::<Url, Bookmark>::new();
+
+        while let Some((parent_title, item)) = stack.pop() {
+            if !item.item.is_empty() {
+                let tag = Tag::builder()
+                    .title(item.title)
+                    .user_id(user_id)
+                    .maybe_created_at(
+                        item.add_date
+                            .and_then(|e| DateTime::<Utc>::from_timestamp(e, 0)),
+                    )
+                    .maybe_updated_at(
+                        item.last_modified
+                            .and_then(|e| DateTime::<Utc>::from_timestamp(e, 0)),
+                    )
+                    .build();
+
+                for child in item.item {
+                    stack.push((Some(tag.title.clone()), child));
+                }
+
+                tag_map.insert(tag.title.clone(), tag);
+            } else if let Some(link) = item.href {
+                let link = link.parse::<Url>().unwrap();
+
+                let bookmark = bookmark_map.entry(link.clone()).or_insert_with(|| {
+                    Bookmark::builder()
+                        .link(link)
+                        .title(item.title)
+                        .user_id(user_id)
+                        .maybe_created_at(
+                            item.add_date
+                                .and_then(|e| DateTime::<Utc>::from_timestamp(e, 0)),
+                        )
+                        .maybe_updated_at(
+                            item.last_modified
+                                .and_then(|e| DateTime::<Utc>::from_timestamp(e, 0)),
+                        )
+                        .build()
+                });
+
+                if let Some(title) = parent_title
+                    && let Some(tag) = tag_map.get(&title)
+                {
+                    bookmark.tags.get_or_insert_default().push(tag.to_owned());
+                }
+            }
+        }
+
         self.bookmark_repository
             .import(ImportBookmarksData {
-                items: netscape.items,
+                bookmarks: bookmark_map.into_values().collect(),
+                tags: tag_map.into_values().collect(),
                 user_id,
             })
             .await?;

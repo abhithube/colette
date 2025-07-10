@@ -5,7 +5,6 @@ use colette_core::{
     Feed, Tag,
     backup::{BackupRepository, Error, ImportBackupData},
     feed::FeedParams,
-    tag::TagParams,
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
@@ -14,7 +13,7 @@ use colette_query::{
     feed::{FeedBase, FeedInsert},
     subscription::{SubscriptionBase, SubscriptionDelete, SubscriptionInsert},
     subscription_tag::{SubscriptionTagBase, SubscriptionTagInsert},
-    tag::{TagBase, TagDelete, TagInsert},
+    tag::{TagBase, TagDelete, TagInsert, TagSelect},
 };
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
@@ -50,30 +49,28 @@ impl BackupRepository for PostgresBackupRepository {
             .build_postgres(PostgresQueryBuilder);
             tx.execute_prepared(&sql, &values).await?;
 
-            {
-                let tags = data
-                    .backup
-                    .tags
-                    .iter()
-                    .map(|e| TagBase {
-                        id: Uuid::new_v4(),
-                        title: &e.title,
-                        created_at: Utc::now(),
-                        updated_at: Utc::now(),
-                    })
-                    .collect::<Vec<_>>();
+            let tags = data
+                .backup
+                .tags
+                .iter()
+                .map(|e| TagBase {
+                    id: Uuid::new_v4(),
+                    title: &e.title,
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                })
+                .collect::<Vec<_>>();
 
-                let (sql, values) = TagInsert {
-                    tags,
-                    user_id: data.user_id,
-                    upsert: false,
-                }
-                .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-                tx.execute_prepared(&sql, &values).await?;
+            let (sql, values) = TagInsert {
+                tags,
+                user_id: data.user_id,
+                upsert: false,
             }
+            .into_insert()
+            .build_postgres(PostgresQueryBuilder);
+            tx.execute_prepared(&sql, &values).await?;
 
-            let (sql, values) = TagParams {
+            let (sql, values) = TagSelect {
                 user_id: Some(data.user_id),
                 ..Default::default()
             }
@@ -82,7 +79,7 @@ impl BackupRepository for PostgresBackupRepository {
             let tags = tx.query_prepared::<Tag>(&sql, &values).await?;
 
             tags.into_iter()
-                .map(|e| (e.title.clone(), e))
+                .map(|e| (e.title, e.id))
                 .collect::<HashMap<_, _>>()
         };
 
@@ -158,7 +155,7 @@ impl BackupRepository for PostgresBackupRepository {
                     if let Some(tag) = subscription.tags.as_deref() {
                         let tag_ids = tag
                             .iter()
-                            .flat_map(|e| tag_map.get(&e.title).map(|e| e.id))
+                            .flat_map(|e| tag_map.get(&e.title).copied())
                             .collect::<Vec<_>>();
 
                         subscription_tags.push(SubscriptionTagBase {
@@ -170,7 +167,7 @@ impl BackupRepository for PostgresBackupRepository {
                 }
             }
 
-            SubscriptionInsert {
+            let (sql, values) = SubscriptionInsert {
                 subscriptions,
                 user_id: data.user_id,
                 upsert: false,
@@ -179,7 +176,7 @@ impl BackupRepository for PostgresBackupRepository {
             .build_postgres(PostgresQueryBuilder);
             tx.execute_prepared(&sql, &values).await?;
 
-            SubscriptionTagInsert { subscription_tags }
+            let (sql, values) = SubscriptionTagInsert { subscription_tags }
                 .into_insert()
                 .build_postgres(PostgresQueryBuilder);
             tx.execute_prepared(&sql, &values).await?;
@@ -215,12 +212,11 @@ impl BackupRepository for PostgresBackupRepository {
                 if let Some(tag) = bookmark.tags.as_deref() {
                     let tag_ids = tag
                         .iter()
-                        .flat_map(|e| tag_map.get(&e.title).map(|e| e.id))
+                        .flat_map(|e| tag_map.get(&e.title).copied())
                         .collect::<Vec<_>>();
 
                     bookmark_tags.push(BookmarkTagBase {
                         bookmark_id: id,
-                        user_id: data.user_id,
                         tag_ids,
                     });
                 }
@@ -235,9 +231,12 @@ impl BackupRepository for PostgresBackupRepository {
             .build_postgres(PostgresQueryBuilder);
             tx.execute_prepared(&sql, &values).await?;
 
-            BookmarkTagInsert { bookmark_tags }
-                .into_insert()
-                .build_postgres(PostgresQueryBuilder);
+            BookmarkTagInsert {
+                bookmark_tags,
+                user_id: data.user_id,
+            }
+            .into_insert()
+            .build_postgres(PostgresQueryBuilder);
             tx.execute_prepared(&sql, &values).await?;
         }
 

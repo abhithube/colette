@@ -1,7 +1,6 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use colette_core::tag::{TagParams, TagType};
 use sea_query::{
     Alias, Asterisk, DeleteStatement, Expr, Func, Iden, InsertStatement, OnConflict, Order, Query,
     SelectStatement,
@@ -43,7 +42,27 @@ impl Iden for Tag {
     }
 }
 
-impl IntoSelect for TagParams {
+#[derive(Default)]
+pub struct TagSelect<'a> {
+    pub ids: Option<Vec<Uuid>>,
+    pub titles: Option<Vec<&'a str>>,
+    pub tag_type: Option<TagType>,
+    pub feed_id: Option<Uuid>,
+    pub bookmark_id: Option<Uuid>,
+    pub user_id: Option<Uuid>,
+    pub cursor: Option<&'a str>,
+    pub limit: Option<u64>,
+    pub with_subscription_count: bool,
+    pub with_bookmark_count: bool,
+}
+
+#[derive(PartialEq)]
+pub enum TagType {
+    Bookmarks,
+    Feeds,
+}
+
+impl<'a> IntoSelect for TagSelect<'a> {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column((Tag::Table, Asterisk))
@@ -51,8 +70,8 @@ impl IntoSelect for TagParams {
             .apply_if(self.ids, |query, ids| {
                 query.and_where(Expr::col((Tag::Table, Tag::Id)).is_in(ids));
             })
-            .apply_if(self.title, |query, title| {
-                query.and_where(Expr::col((Tag::Table, Tag::Title)).eq(title));
+            .apply_if(self.titles, |query, titles| {
+                query.and_where(Expr::col((Tag::Table, Tag::Title)).is_in(titles));
             })
             .apply_if(self.user_id, |query, user_id| {
                 query.and_where(Expr::col((Tag::Table, Tag::UserId)).eq(user_id));

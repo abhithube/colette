@@ -16,8 +16,9 @@ pub mod subscription_tag;
 pub mod tag;
 pub mod user;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub enum Dialect {
+    #[default]
     Postgres,
     Sqlite,
 }
