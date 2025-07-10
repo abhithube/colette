@@ -4,7 +4,7 @@ use colette_core::{
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
-    api_key::{ApiKeyDelete, ApiKeyInsert},
+    api_key::{ApiKeyDelete, ApiKeyInsert, ApiKeySelect},
 };
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
@@ -29,7 +29,15 @@ impl ApiKeyRepository for PostgresApiKeyRepository {
     async fn query(&self, params: ApiKeyParams) -> Result<Vec<ApiKey>, Error> {
         let client = self.pool.get().await?;
 
-        let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let (sql, values) = ApiKeySelect {
+            id: params.id,
+            lookup_hash: params.lookup_hash.as_deref(),
+            user_id: params.user_id,
+            cursor: params.cursor,
+            limit: params.limit,
+        }
+        .into_select()
+        .build_postgres(PostgresQueryBuilder);
         let api_keys = client.query_prepared::<ApiKey>(&sql, &values).await?;
 
         Ok(api_keys)

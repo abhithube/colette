@@ -2,7 +2,11 @@ use colette_core::{
     Account,
     account::{AccountParams, AccountRepository, Error},
 };
-use colette_query::{IntoInsert, IntoSelect, account::AccountInsert, user::UserInsert};
+use colette_query::{
+    IntoInsert, IntoSelect,
+    account::{AccountInsert, AccountSelect},
+    user::UserInsert,
+};
 use deadpool_sqlite::Pool;
 use sea_query::SqliteQueryBuilder;
 use sea_query_rusqlite::RusqliteBinder as _;
@@ -27,7 +31,13 @@ impl AccountRepository for SqliteAccountRepository {
 
         let accounts = client
             .interact(move |conn| {
-                let (sql, values) = params.into_select().build_rusqlite(SqliteQueryBuilder);
+                let (sql, values) = AccountSelect {
+                    id: params.id,
+                    sub: params.sub.as_deref(),
+                    provider: params.provider.as_deref(),
+                }
+                .into_select()
+                .build_rusqlite(SqliteQueryBuilder);
                 conn.query_prepared::<Account>(&sql, &values)
             })
             .await

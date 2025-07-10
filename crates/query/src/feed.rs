@@ -1,7 +1,6 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use colette_core::feed::FeedParams;
 use sea_query::{Asterisk, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement};
 use uuid::Uuid;
 
@@ -38,7 +37,15 @@ impl Iden for Feed {
     }
 }
 
-impl IntoSelect for FeedParams {
+#[derive(Default)]
+pub struct FeedSelect<'a> {
+    pub id: Option<Uuid>,
+    pub source_urls: Option<Vec<&'a str>>,
+    pub cursor: Option<&'a str>,
+    pub limit: Option<u64>,
+}
+
+impl IntoSelect for FeedSelect<'_> {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)
@@ -47,10 +54,7 @@ impl IntoSelect for FeedParams {
                 query.and_where(Expr::col((Feed::Table, Feed::Id)).eq(id));
             })
             .apply_if(self.source_urls, |query, source_urls| {
-                query.and_where(
-                    Expr::col((Feed::Table, Feed::SourceUrl))
-                        .is_in(source_urls.iter().map(|e| e.as_str())),
-                );
+                query.and_where(Expr::col((Feed::Table, Feed::SourceUrl)).is_in(source_urls));
             })
             .apply_if(self.cursor, |query, link| {
                 query.and_where(Expr::col((Feed::Table, Feed::Link)).gt(Expr::val(link)));

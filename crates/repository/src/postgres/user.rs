@@ -2,7 +2,7 @@ use colette_core::{
     User,
     user::{Error, UserParams, UserRepository},
 };
-use colette_query::IntoSelect;
+use colette_query::{IntoSelect, user::UserSelect};
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
 use sea_query_postgres::PostgresBinder as _;
@@ -25,7 +25,12 @@ impl UserRepository for PostgresUserRepository {
     async fn query(&self, params: UserParams) -> Result<Vec<User>, Error> {
         let client = self.pool.get().await?;
 
-        let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let (sql, values) = UserSelect {
+            id: params.id,
+            email: params.email.as_deref(),
+        }
+        .into_select()
+        .build_postgres(PostgresQueryBuilder);
         let users = client.query_prepared::<User>(&sql, &values).await?;
 
         Ok(users)

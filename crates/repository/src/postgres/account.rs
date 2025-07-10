@@ -2,7 +2,11 @@ use colette_core::{
     Account,
     account::{AccountParams, AccountRepository, Error},
 };
-use colette_query::{IntoInsert, IntoSelect, account::AccountInsert, user::UserInsert};
+use colette_query::{
+    IntoInsert, IntoSelect,
+    account::{AccountInsert, AccountSelect},
+    user::UserInsert,
+};
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
 use sea_query_postgres::PostgresBinder as _;
@@ -25,7 +29,13 @@ impl AccountRepository for PostgresAccountRepository {
     async fn query(&self, params: AccountParams) -> Result<Vec<Account>, Error> {
         let client = self.pool.get().await?;
 
-        let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let (sql, values) = AccountSelect {
+            id: params.id,
+            sub: params.sub.as_deref(),
+            provider: params.provider.as_deref(),
+        }
+        .into_select()
+        .build_postgres(PostgresQueryBuilder);
         let accounts = client.query_prepared::<Account>(&sql, &values).await?;
 
         Ok(accounts)

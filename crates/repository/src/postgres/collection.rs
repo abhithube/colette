@@ -4,7 +4,7 @@ use colette_core::{
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
-    collection::{CollectionDelete, CollectionInsert},
+    collection::{CollectionDelete, CollectionInsert, CollectionSelect},
 };
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
@@ -30,7 +30,14 @@ impl CollectionRepository for PostgresCollectionRepository {
     async fn query(&self, params: CollectionParams) -> Result<Vec<Collection>, Error> {
         let client = self.pool.get().await?;
 
-        let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let (sql, values) = CollectionSelect {
+            id: params.id,
+            user_id: params.user_id,
+            cursor: params.cursor.as_deref(),
+            limit: params.limit,
+        }
+        .into_select()
+        .build_postgres(PostgresQueryBuilder);
         let collections = client.query_prepared::<Collection>(&sql, &values).await?;
 
         Ok(collections)

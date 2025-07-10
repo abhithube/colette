@@ -1,7 +1,7 @@
 use colette_core::job::{Error, Job, JobParams, JobRepository};
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
-    job::{JobDelete, JobInsert},
+    job::{JobDelete, JobInsert, JobSelect},
 };
 use deadpool_sqlite::Pool;
 use sea_query::SqliteQueryBuilder;
@@ -28,7 +28,12 @@ impl JobRepository for SqliteJobRepository {
 
         let jobs = client
             .interact(move |conn| {
-                let (sql, values) = params.into_select().build_rusqlite(SqliteQueryBuilder);
+                let (sql, values) = JobSelect {
+                    id: params.id,
+                    group_identifier: params.group_identifier.as_deref(),
+                }
+                .into_select()
+                .build_rusqlite(SqliteQueryBuilder);
                 conn.query_prepared::<Job>(&sql, &values)
             })
             .await

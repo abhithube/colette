@@ -44,12 +44,12 @@ impl Iden for Subscription {
 }
 
 #[derive(Default)]
-pub struct SubscriptionSelect {
+pub struct SubscriptionSelect<'a> {
     pub id: Option<Uuid>,
     pub feeds: Option<Vec<Uuid>>,
     pub tags: Option<Vec<Uuid>>,
     pub user_id: Option<Uuid>,
-    pub cursor: Option<(String, Uuid)>,
+    pub cursor: Option<(&'a str, Uuid)>,
     pub limit: Option<u64>,
     pub with_feed: bool,
     pub with_unread_count: bool,
@@ -57,7 +57,7 @@ pub struct SubscriptionSelect {
     pub dialect: Dialect,
 }
 
-impl IntoSelect for SubscriptionSelect {
+impl IntoSelect for SubscriptionSelect<'_> {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column((Subscription::Table, Asterisk))

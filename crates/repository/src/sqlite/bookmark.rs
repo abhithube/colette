@@ -6,7 +6,7 @@ use colette_core::{
     bookmark::{BookmarkParams, BookmarkRepository, Error, ImportBookmarksData},
 };
 use colette_query::{
-    IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
+    Dialect, IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
     bookmark::{BookmarkBase, BookmarkDelete, BookmarkInsert, BookmarkSelect, BookmarkUpdate},
     bookmark_tag::{BookmarkTagBase, BookmarkTagDelete, BookmarkTagInsert},
     tag::{TagBase, TagInsert, TagSelect},
@@ -36,9 +36,18 @@ impl BookmarkRepository for SqliteBookmarkRepository {
 
         let bookmarks = client
             .interact(move |conn| {
-                let (sql, values) = BookmarkSelect::sqlite(params)
-                    .into_select()
-                    .build_rusqlite(SqliteQueryBuilder);
+                let (sql, values) = BookmarkSelect {
+                    id: params.id,
+                    filter: params.filter,
+                    tags: params.tags,
+                    user_id: params.user_id,
+                    cursor: params.cursor,
+                    limit: params.limit,
+                    with_tags: params.with_tags,
+                    dialect: Dialect::Sqlite,
+                }
+                .into_select()
+                .build_rusqlite(SqliteQueryBuilder);
                 conn.query_prepared::<Bookmark>(&sql, &values)
             })
             .await
@@ -245,10 +254,11 @@ impl BookmarkRepository for SqliteBookmarkRepository {
                 }
 
                 let mut bookmark_map = {
-                    let (sql, values) = BookmarkSelect::sqlite(BookmarkParams {
+                    let (sql, values) = BookmarkSelect {
                         user_id: Some(data.user_id),
+                        dialect: Dialect::Sqlite,
                         ..Default::default()
-                    })
+                    }
                     .into_select()
                     .build_rusqlite(SqliteQueryBuilder);
                     let tags = tx.query_prepared::<Bookmark>(&sql, &values)?;

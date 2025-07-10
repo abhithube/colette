@@ -2,12 +2,11 @@ use std::collections::HashMap;
 
 use colette_core::{
     Feed, Subscription, Tag,
-    feed::FeedParams,
     subscription::{Error, ImportSubscriptionsData, SubscriptionParams, SubscriptionRepository},
 };
 use colette_query::{
     Dialect, IntoDelete, IntoInsert, IntoSelect,
-    feed::{FeedBase, FeedInsert},
+    feed::{FeedBase, FeedInsert, FeedSelect},
     subscription::{SubscriptionBase, SubscriptionDelete, SubscriptionInsert, SubscriptionSelect},
     subscription_tag::{SubscriptionTagBase, SubscriptionTagDelete, SubscriptionTagInsert},
     tag::{TagBase, TagInsert, TagSelect},
@@ -42,7 +41,7 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
                     id: params.id,
                     tags: params.tags,
                     user_id: params.user_id,
-                    cursor: params.cursor,
+                    cursor: params.cursor.as_ref().map(|(x, y)| (x.as_str(), *y)),
                     limit: params.limit,
                     with_feed: params.with_feed,
                     with_unread_count: params.with_unread_count,
@@ -222,8 +221,8 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
                     .build_rusqlite(SqliteQueryBuilder);
                     tx.execute_prepared(&sql, &values)?;
 
-                    let (sql, values) = FeedParams {
-                        source_urls: Some(source_urls),
+                    let (sql, values) = FeedSelect {
+                        source_urls: Some(source_urls.iter().map(|e| e.as_str()).collect()),
                         ..Default::default()
                     }
                     .into_select()

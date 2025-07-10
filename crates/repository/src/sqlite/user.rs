@@ -2,7 +2,7 @@ use colette_core::{
     User,
     user::{Error, UserParams, UserRepository},
 };
-use colette_query::IntoSelect;
+use colette_query::{IntoSelect, user::UserSelect};
 use deadpool_sqlite::Pool;
 use sea_query::SqliteQueryBuilder;
 use sea_query_rusqlite::RusqliteBinder as _;
@@ -27,7 +27,12 @@ impl UserRepository for SqliteUserRepository {
 
         let users = client
             .interact(move |conn| {
-                let (sql, values) = params.into_select().build_rusqlite(SqliteQueryBuilder);
+                let (sql, values) = UserSelect {
+                    id: params.id,
+                    email: params.email.as_deref(),
+                }
+                .into_select()
+                .build_rusqlite(SqliteQueryBuilder);
                 conn.query_prepared::<User>(&sql, &values)
             })
             .await

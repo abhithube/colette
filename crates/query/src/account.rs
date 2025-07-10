@@ -1,7 +1,6 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use colette_core::account::AccountParams;
 use sea_query::{Asterisk, Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
 use uuid::Uuid;
 
@@ -38,7 +37,14 @@ impl Iden for Account {
     }
 }
 
-impl IntoSelect for AccountParams {
+#[derive(Default)]
+pub struct AccountSelect<'a> {
+    pub id: Option<Uuid>,
+    pub sub: Option<&'a str>,
+    pub provider: Option<&'a str>,
+}
+
+impl IntoSelect for AccountSelect<'_> {
     fn into_select(self) -> SelectStatement {
         Query::select()
             .column(Asterisk)

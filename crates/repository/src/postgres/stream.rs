@@ -4,7 +4,7 @@ use colette_core::{
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
-    stream::{StreamDelete, StreamInsert},
+    stream::{StreamDelete, StreamInsert, StreamSelect},
 };
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
@@ -30,7 +30,14 @@ impl StreamRepository for PostgresStreamRepository {
     async fn query(&self, params: StreamParams) -> Result<Vec<Stream>, Error> {
         let client = self.pool.get().await?;
 
-        let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let (sql, values) = StreamSelect {
+            id: params.id,
+            user_id: params.user_id,
+            cursor: params.cursor.as_deref(),
+            limit: params.limit,
+        }
+        .into_select()
+        .build_postgres(PostgresQueryBuilder);
         let streams = client.query_prepared::<Stream>(&sql, &values).await?;
 
         Ok(streams)

@@ -1,7 +1,6 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use colette_core::collection::CollectionParams;
 use sea_query::{
     Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
     SelectStatement,
@@ -40,7 +39,15 @@ impl Iden for Collection {
     }
 }
 
-impl IntoSelect for CollectionParams {
+#[derive(Default)]
+pub struct CollectionSelect<'a> {
+    pub id: Option<Uuid>,
+    pub user_id: Option<Uuid>,
+    pub cursor: Option<&'a str>,
+    pub limit: Option<u64>,
+}
+
+impl IntoSelect for CollectionSelect<'_> {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)

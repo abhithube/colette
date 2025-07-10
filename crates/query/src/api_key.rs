@@ -1,7 +1,6 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use colette_core::api_key::ApiKeyParams;
 use sea_query::{
     Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
     SelectStatement,
@@ -43,7 +42,16 @@ impl Iden for ApiKey {
     }
 }
 
-impl IntoSelect for ApiKeyParams {
+#[derive(Default)]
+pub struct ApiKeySelect<'a> {
+    pub id: Option<Uuid>,
+    pub lookup_hash: Option<&'a str>,
+    pub user_id: Option<Uuid>,
+    pub cursor: Option<DateTime<Utc>>,
+    pub limit: Option<u64>,
+}
+
+impl IntoSelect for ApiKeySelect<'_> {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)

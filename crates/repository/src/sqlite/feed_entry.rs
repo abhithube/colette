@@ -2,7 +2,7 @@ use colette_core::{
     FeedEntry,
     feed_entry::{Error, FeedEntryParams, FeedEntryRepository},
 };
-use colette_query::IntoSelect;
+use colette_query::{IntoSelect, feed_entry::FeedEntrySelect};
 use deadpool_sqlite::Pool;
 use sea_query::SqliteQueryBuilder;
 use sea_query_rusqlite::RusqliteBinder as _;
@@ -27,7 +27,14 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
 
         let feed_entries = client
             .interact(move |conn| {
-                let (sql, values) = params.into_select().build_rusqlite(SqliteQueryBuilder);
+                let (sql, values) = FeedEntrySelect {
+                    id: params.id,
+                    feed_id: params.feed_id,
+                    cursor: params.cursor,
+                    limit: params.limit,
+                }
+                .into_select()
+                .build_rusqlite(SqliteQueryBuilder);
                 conn.query_prepared::<FeedEntry>(&sql, &values)
             })
             .await

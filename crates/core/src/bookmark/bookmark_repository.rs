@@ -38,8 +38,8 @@ pub trait BookmarkRepository: Send + Sync + 'static {
 pub struct BookmarkParams {
     pub id: Option<Uuid>,
     pub filter: Option<BookmarkFilter>,
-    pub user_id: Option<Uuid>,
     pub tags: Option<Vec<Uuid>>,
+    pub user_id: Option<Uuid>,
     pub cursor: Option<DateTime<Utc>>,
     pub limit: Option<u64>,
     pub with_tags: bool,

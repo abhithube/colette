@@ -1,9 +1,7 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use colette_core::bookmark::{
-    BookmarkDateField, BookmarkFilter, BookmarkParams, BookmarkTextField,
-};
+use colette_core::bookmark::{BookmarkDateField, BookmarkFilter, BookmarkTextField};
 use sea_query::{
     Alias, Asterisk, DeleteStatement, Expr, Func, Iden, InsertStatement, JoinType, OnConflict,
     Order, Query, SelectStatement, SimpleExpr, UpdateStatement,
@@ -54,25 +52,16 @@ impl Iden for Bookmark {
     }
 }
 
+#[derive(Default)]
 pub struct BookmarkSelect {
-    params: BookmarkParams,
-    dialect: Dialect,
-}
-
-impl BookmarkSelect {
-    pub fn postgres(params: BookmarkParams) -> Self {
-        Self {
-            params,
-            dialect: Dialect::Postgres,
-        }
-    }
-
-    pub fn sqlite(params: BookmarkParams) -> Self {
-        Self {
-            params,
-            dialect: Dialect::Sqlite,
-        }
-    }
+    pub id: Option<Uuid>,
+    pub filter: Option<BookmarkFilter>,
+    pub tags: Option<Vec<Uuid>>,
+    pub user_id: Option<Uuid>,
+    pub cursor: Option<DateTime<Utc>>,
+    pub limit: Option<u64>,
+    pub with_tags: bool,
+    pub dialect: Dialect,
 }
 
 impl IntoSelect for BookmarkSelect {
@@ -80,10 +69,10 @@ impl IntoSelect for BookmarkSelect {
         let mut query = Query::select()
             .column((Bookmark::Table, Asterisk))
             .from(Bookmark::Table)
-            .apply_if(self.params.user_id, |query, user_id| {
+            .apply_if(self.user_id, |query, user_id| {
                 query.and_where(Expr::col((Bookmark::Table, Bookmark::UserId)).eq(user_id));
             })
-            .apply_if(self.params.cursor, |query, created_at| {
+            .apply_if(self.cursor, |query, created_at| {
                 query.and_where(
                     Expr::col((Bookmark::Table, Bookmark::CreatedAt)).lt(Expr::val(created_at)),
                 );
@@ -91,14 +80,14 @@ impl IntoSelect for BookmarkSelect {
             .order_by((Bookmark::Table, Bookmark::CreatedAt), Order::Desc)
             .to_owned();
 
-        if let Some(filter) = self.params.filter {
+        if let Some(filter) = self.filter {
             query.and_where((filter, self.dialect.clone()).to_sql());
         } else {
             query
-                .apply_if(self.params.id, |query, id| {
+                .apply_if(self.id, |query, id| {
                     query.and_where(Expr::col((Bookmark::Table, Bookmark::Id)).eq(id));
                 })
-                .apply_if(self.params.tags, |query, tags| {
+                .apply_if(self.tags, |query, tags| {
                     query.and_where(Expr::exists(
                         Query::select()
                             .expr(Expr::val("1"))
@@ -115,7 +104,7 @@ impl IntoSelect for BookmarkSelect {
                 });
         }
 
-        if self.params.with_tags {
+        if self.with_tags {
             let tags_agg = Alias::new("tags_agg");
             let tags = Alias::new("tags");
             let t = Alias::new("t");
@@ -158,7 +147,7 @@ impl IntoSelect for BookmarkSelect {
                 );
         }
 
-        if let Some(limit) = self.params.limit {
+        if let Some(limit) = self.limit {
             query.limit(limit);
         }
 

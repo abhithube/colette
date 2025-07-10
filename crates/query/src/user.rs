@@ -1,7 +1,6 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use colette_core::user::UserParams;
 use sea_query::{Asterisk, Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
 use uuid::Uuid;
 
@@ -36,7 +35,13 @@ impl Iden for User {
     }
 }
 
-impl IntoSelect for UserParams {
+#[derive(Default)]
+pub struct UserSelect<'a> {
+    pub id: Option<Uuid>,
+    pub email: Option<&'a str>,
+}
+
+impl IntoSelect for UserSelect<'_> {
     fn into_select(self) -> SelectStatement {
         Query::select()
             .column(Asterisk)

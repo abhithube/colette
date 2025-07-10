@@ -4,13 +4,12 @@ use chrono::Utc;
 use colette_core::{
     Feed, Tag,
     backup::{BackupRepository, Error, ImportBackupData},
-    feed::FeedParams,
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
     bookmark::{BookmarkBase, BookmarkDelete, BookmarkInsert},
     bookmark_tag::{BookmarkTagBase, BookmarkTagInsert},
-    feed::{FeedBase, FeedInsert},
+    feed::{FeedBase, FeedInsert, FeedSelect},
     subscription::{SubscriptionBase, SubscriptionDelete, SubscriptionInsert},
     subscription_tag::{SubscriptionTagBase, SubscriptionTagInsert},
     tag::{TagBase, TagDelete, TagInsert, TagSelect},
@@ -123,8 +122,8 @@ impl BackupRepository for SqliteBackupRepository {
                         .build_rusqlite(SqliteQueryBuilder);
                         tx.execute_prepared(&sql, &values)?;
 
-                        let (sql, values) = FeedParams {
-                            source_urls: Some(source_urls),
+                        let (sql, values) = FeedSelect {
+                            source_urls: Some(source_urls.iter().map(|e| e.as_str()).collect()),
                             ..Default::default()
                         }
                         .into_select()

@@ -4,7 +4,7 @@ use colette_core::{
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
-    api_key::{ApiKeyDelete, ApiKeyInsert},
+    api_key::{ApiKeyDelete, ApiKeyInsert, ApiKeySelect},
 };
 use deadpool_sqlite::Pool;
 use sea_query::SqliteQueryBuilder;
@@ -31,7 +31,15 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
 
         let api_keys = client
             .interact(move |conn| {
-                let (sql, values) = params.into_select().build_rusqlite(SqliteQueryBuilder);
+                let (sql, values) = ApiKeySelect {
+                    id: params.id,
+                    lookup_hash: params.lookup_hash.as_deref(),
+                    user_id: params.user_id,
+                    cursor: params.cursor,
+                    limit: params.limit,
+                }
+                .into_select()
+                .build_rusqlite(SqliteQueryBuilder);
                 conn.query_prepared::<ApiKey>(&sql, &values)
             })
             .await

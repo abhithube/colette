@@ -4,6 +4,7 @@ use colette_core::{
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
+    collection::CollectionSelect,
     stream::{StreamDelete, StreamInsert},
 };
 use deadpool_sqlite::Pool;
@@ -31,7 +32,14 @@ impl StreamRepository for SqliteStreamRepository {
 
         let streams = client
             .interact(move |conn| {
-                let (sql, values) = params.into_select().build_rusqlite(SqliteQueryBuilder);
+                let (sql, values) = CollectionSelect {
+                    id: params.id,
+                    user_id: params.user_id,
+                    cursor: params.cursor.as_deref(),
+                    limit: params.limit,
+                }
+                .into_select()
+                .build_rusqlite(SqliteQueryBuilder);
                 conn.query_prepared::<Stream>(&sql, &values)
             })
             .await

@@ -1,7 +1,7 @@
 use colette_core::job::{Error, Job, JobParams, JobRepository};
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
-    job::{JobDelete, JobInsert},
+    job::{JobDelete, JobInsert, JobSelect},
 };
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
@@ -26,7 +26,12 @@ impl JobRepository for PostgresJobRepository {
     async fn query(&self, params: JobParams) -> Result<Vec<Job>, Error> {
         let client = self.pool.get().await?;
 
-        let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
+        let (sql, values) = JobSelect {
+            id: params.id,
+            group_identifier: params.group_identifier.as_deref(),
+        }
+        .into_select()
+        .build_postgres(PostgresQueryBuilder);
         let jobs = client.query_prepared::<Job>(&sql, &values).await?;
 
         Ok(jobs)

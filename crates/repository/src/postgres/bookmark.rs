@@ -6,7 +6,7 @@ use colette_core::{
     bookmark::{BookmarkParams, BookmarkRepository, Error, ImportBookmarksData},
 };
 use colette_query::{
-    IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
+    Dialect, IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
     bookmark::{BookmarkBase, BookmarkDelete, BookmarkInsert, BookmarkSelect, BookmarkUpdate},
     bookmark_tag::{BookmarkTagBase, BookmarkTagDelete, BookmarkTagInsert},
     tag::{TagBase, TagInsert, TagSelect},
@@ -35,9 +35,18 @@ impl BookmarkRepository for PostgresBookmarkRepository {
     async fn query(&self, params: BookmarkParams) -> Result<Vec<Bookmark>, Error> {
         let client = self.pool.get().await?;
 
-        let (sql, values) = BookmarkSelect::postgres(params)
-            .into_select()
-            .build_postgres(PostgresQueryBuilder);
+        let (sql, values) = BookmarkSelect {
+            id: params.id,
+            filter: params.filter,
+            tags: params.tags,
+            user_id: params.user_id,
+            cursor: params.cursor,
+            limit: params.limit,
+            with_tags: params.with_tags,
+            dialect: Dialect::Postgres,
+        }
+        .into_select()
+        .build_postgres(PostgresQueryBuilder);
         let bookmarks = client.query_prepared::<Bookmark>(&sql, &values).await?;
 
         Ok(bookmarks)
@@ -202,10 +211,11 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         };
 
         let mut bookmark_map = {
-            let (sql, values) = BookmarkSelect::postgres(BookmarkParams {
+            let (sql, values) = BookmarkSelect {
                 user_id: Some(data.user_id),
+                dialect: Dialect::Postgres,
                 ..Default::default()
-            })
+            }
             .into_select()
             .build_postgres(PostgresQueryBuilder);
             let bookmarks = tx.query_prepared::<Bookmark>(&sql, &values).await?;

@@ -4,7 +4,7 @@ use colette_core::{
     subscription_entry::{Error, SubscriptionEntryParams, SubscriptionEntryRepository},
 };
 use colette_query::{
-    IntoDelete, IntoInsert, IntoSelect,
+    Dialect, IntoDelete, IntoInsert, IntoSelect,
     feed_entry::SubscriptionEntrySelect,
     read_entry::{ReadEntryDelete, ReadEntryInsert},
 };
@@ -35,9 +35,20 @@ impl SubscriptionEntryRepository for SqliteSubscriptionEntryRepository {
 
         let subscription_entries = client
             .interact(move |conn| {
-                let (sql, values) = SubscriptionEntrySelect::sqlite(params)
-                    .into_select()
-                    .build_rusqlite(SqliteQueryBuilder);
+                let (sql, values) = SubscriptionEntrySelect {
+                    filter: params.filter,
+                    subscription_id: params.subscription_id,
+                    feed_entry_id: params.feed_entry_id,
+                    has_read: params.has_read,
+                    tags: params.tags,
+                    user_id: params.user_id,
+                    cursor: params.cursor,
+                    limit: params.limit,
+                    with_read_entry: params.with_read_entry,
+                    dialect: Dialect::Sqlite,
+                }
+                .into_select()
+                .build_rusqlite(SqliteQueryBuilder);
                 conn.query_prepared::<SubscriptionEntry>(&sql, &values)
             })
             .await
