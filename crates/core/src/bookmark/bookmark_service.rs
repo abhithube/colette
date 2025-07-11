@@ -7,19 +7,19 @@ use colette_netscape::{Item, Netscape};
 use colette_queue::JobProducer;
 use colette_scraper::bookmark::BookmarkScraper;
 use colette_storage::StorageClient;
-use colette_util::{base64_decode, base64_encode, hex_encode, sha256_hash};
+use colette_util::{hex_encode, sha256_hash};
 use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
 
 use super::{
-    Bookmark, BookmarkFilter, Cursor, Error, ImportBookmarksData,
+    Bookmark, BookmarkCursor, BookmarkFilter, Error, ImportBookmarksData,
     bookmark_repository::{BookmarkParams, BookmarkRepository},
 };
 use crate::{
     Tag,
     collection::{CollectionParams, CollectionRepository},
-    common::{PAGINATION_LIMIT, Paginated},
+    common::{PAGINATION_LIMIT, Paginated, Paginator},
     job::{Job, JobRepository},
     tag::TagRepository,
 };
@@ -69,11 +69,10 @@ impl BookmarkService {
         query: BookmarkListQuery,
         user_id: Uuid,
     ) -> Result<Paginated<Bookmark>, Error> {
-        let cursor = query.cursor.and_then(|e| {
-            base64_decode(&e)
-                .ok()
-                .and_then(|e| serde_json::from_slice::<Cursor>(&e).ok())
-        });
+        let cursor = query
+            .cursor
+            .map(|e| Paginator::decode_cursor::<BookmarkCursor>(&e))
+            .transpose()?;
 
         let mut filter = Option::<BookmarkFilter>::None;
         if let Some(collection_id) = query.collection_id {
@@ -87,7 +86,7 @@ impl BookmarkService {
                 .await?;
             if collections.is_empty() {
                 return Ok(Paginated {
-                    data: Default::default(),
+                    items: Default::default(),
                     cursor: None,
                 });
             }
@@ -95,7 +94,7 @@ impl BookmarkService {
             filter = Some(collections.swap_remove(0).filter);
         }
 
-        let mut bookmarks = self
+        let bookmarks = self
             .bookmark_repository
             .query(BookmarkParams {
                 filter,
@@ -107,26 +106,10 @@ impl BookmarkService {
                 ..Default::default()
             })
             .await?;
-        let mut cursor: Option<String> = None;
 
-        let limit = PAGINATION_LIMIT as usize;
-        if bookmarks.len() > limit {
-            bookmarks = bookmarks.into_iter().take(limit).collect();
+        let data = Paginator::paginate(bookmarks, PAGINATION_LIMIT)?;
 
-            if let Some(last) = bookmarks.last() {
-                let c = Cursor {
-                    created_at: last.created_at,
-                };
-                let encoded = base64_encode(&serde_json::to_vec(&c)?);
-
-                cursor = Some(encoded);
-            }
-        }
-
-        Ok(Paginated {
-            data: bookmarks,
-            cursor,
-        })
+        Ok(data)
     }
 
     pub async fn get_bookmark(

@@ -3,8 +3,8 @@ use std::sync::Arc;
 use chrono::Utc;
 use uuid::Uuid;
 
-use super::{Error, Stream, StreamParams, StreamRepository, SubscriptionEntryFilter};
-use crate::common::Paginated;
+use super::{Error, Stream, StreamCursor, StreamParams, StreamRepository, SubscriptionEntryFilter};
+use crate::common::{PAGINATION_LIMIT, Paginated, Paginator};
 
 pub struct StreamService {
     repository: Arc<dyn StreamRepository>,
@@ -15,19 +15,29 @@ impl StreamService {
         Self { repository }
     }
 
-    pub async fn list_streams(&self, user_id: Uuid) -> Result<Paginated<Stream>, Error> {
+    pub async fn list_streams(
+        &self,
+        query: StreamListQuery,
+        user_id: Uuid,
+    ) -> Result<Paginated<Stream>, Error> {
+        let cursor = query
+            .cursor
+            .map(|e| Paginator::decode_cursor::<StreamCursor>(&e))
+            .transpose()?;
+
         let streams = self
             .repository
             .query(StreamParams {
                 user_id: Some(user_id),
+                cursor: cursor.map(|e| e.title),
+                limit: Some(PAGINATION_LIMIT + 1),
                 ..Default::default()
             })
             .await?;
 
-        Ok(Paginated {
-            data: streams,
-            cursor: None,
-        })
+        let data = Paginator::paginate(streams, PAGINATION_LIMIT)?;
+
+        Ok(data)
     }
 
     pub async fn get_stream(&self, id: Uuid, user_id: Uuid) -> Result<Stream, Error> {
@@ -100,6 +110,11 @@ impl StreamService {
 
         Ok(())
     }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct StreamListQuery {
+    pub cursor: Option<String>,
 }
 
 #[derive(Debug, Clone)]

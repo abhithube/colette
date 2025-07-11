@@ -9,11 +9,12 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{
-    Error, ImportSubscriptionsData, Subscription, SubscriptionParams, SubscriptionRepository,
+    Error, ImportSubscriptionsData, Subscription, SubscriptionCursor, SubscriptionParams,
+    SubscriptionRepository,
 };
 use crate::{
     Feed, SubscriptionEntry, Tag,
-    common::Paginated,
+    common::{PAGINATION_LIMIT, Paginated, Paginator},
     job::{Job, JobRepository},
     subscription_entry::{SubscriptionEntryParams, SubscriptionEntryRepository},
     tag::TagRepository,
@@ -49,11 +50,18 @@ impl SubscriptionService {
         query: SubscriptionListQuery,
         user_id: Uuid,
     ) -> Result<Paginated<Subscription>, Error> {
+        let cursor = query
+            .cursor
+            .map(|e| Paginator::decode_cursor::<SubscriptionCursor>(&e))
+            .transpose()?;
+
         let subscriptions = self
             .subscription_repository
             .query(SubscriptionParams {
                 tags: query.tags,
                 user_id: Some(user_id),
+                cursor: cursor.map(|e| (e.title, e.id)),
+                limit: Some(PAGINATION_LIMIT + 1),
                 with_feed: query.with_feed,
                 with_unread_count: query.with_unread_count,
                 with_tags: query.with_tags,
@@ -61,10 +69,9 @@ impl SubscriptionService {
             })
             .await?;
 
-        Ok(Paginated {
-            data: subscriptions,
-            cursor: None,
-        })
+        let data = Paginator::paginate(subscriptions, PAGINATION_LIMIT)?;
+
+        Ok(data)
     }
 
     pub async fn get_subscription(
@@ -396,6 +403,7 @@ impl SubscriptionService {
 #[derive(Debug, Clone, Default)]
 pub struct SubscriptionListQuery {
     pub tags: Option<Vec<Uuid>>,
+    pub cursor: Option<String>,
     pub with_feed: bool,
     pub with_unread_count: bool,
     pub with_tags: bool,

@@ -40,6 +40,9 @@ pub(super) struct TagListQuery {
     /// Filter by the type of tag
     #[param(inline)]
     tag_type: Option<TagType>,
+    /// Pagination cursor
+    #[param(nullable = false)]
+    cursor: Option<String>,
     /// Whether to include the count of subscriptions the tag is linked to
     #[serde(default = "with_subscription_count")]
     with_subscription_count: bool,
@@ -60,6 +63,7 @@ impl From<TagListQuery> for tag::TagListQuery {
     fn from(value: TagListQuery) -> Self {
         Self {
             tag_type: value.tag_type.map(Into::into),
+            cursor: value.cursor,
             with_subscription_count: value.with_subscription_count,
             with_bookmark_count: value.with_bookmark_count,
         }

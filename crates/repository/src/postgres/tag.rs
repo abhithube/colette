@@ -40,7 +40,7 @@ impl TagRepository for PostgresTagRepository {
             bookmark_id: params.bookmark_id,
             user_id: params.user_id,
             cursor: params.cursor.as_deref(),
-            limit: params.limit,
+            limit: params.limit.map(|e| e as u64),
             with_subscription_count: params.with_subscription_count,
             with_bookmark_count: params.with_bookmark_count,
             ..Default::default()

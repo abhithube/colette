@@ -3,7 +3,10 @@ pub use stream_repository::*;
 pub use stream_service::*;
 use uuid::Uuid;
 
-use crate::subscription_entry::SubscriptionEntryFilter;
+use crate::{
+    common::{Cursor, CursorError},
+    subscription_entry::SubscriptionEntryFilter,
+};
 
 mod stream_repository;
 mod stream_service;
@@ -22,8 +25,18 @@ pub struct Stream {
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct Cursor {
+pub struct StreamCursor {
     pub title: String,
+}
+
+impl Cursor for Stream {
+    type Data = StreamCursor;
+
+    fn to_cursor(&self) -> Self::Data {
+        Self::Data {
+            title: self.title.clone(),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -38,7 +51,7 @@ pub enum Error {
     Conflict(String),
 
     #[error(transparent)]
-    Serde(#[from] serde::de::value::Error),
+    Cursor(#[from] CursorError),
 
     #[error(transparent)]
     PostgresPool(#[from] deadpool_postgres::PoolError),

@@ -36,6 +36,6 @@ pub struct SubscriptionEntryParams {
     pub tags: Option<Vec<Uuid>>,
     pub user_id: Option<Uuid>,
     pub cursor: Option<(DateTime<Utc>, Uuid)>,
-    pub limit: Option<u64>,
+    pub limit: Option<usize>,
     pub with_read_entry: bool,
 }

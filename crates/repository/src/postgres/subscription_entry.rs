@@ -41,7 +41,7 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
             tags: params.tags,
             user_id: params.user_id,
             cursor: params.cursor,
-            limit: params.limit,
+            limit: params.limit.map(|e| e as u64),
             with_read_entry: params.with_read_entry,
             dialect: Dialect::Postgres,
         }

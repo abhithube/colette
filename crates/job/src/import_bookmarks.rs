@@ -57,9 +57,9 @@ impl Service<Job> for ImportBookmarksHandler {
                 .await
                 .map_err(|e| Error::Service(e.to_string()))?;
 
-            tracing::debug!("Importing {} bookmarks", bookmarks.data.len());
+            tracing::debug!("Importing {} bookmarks", bookmarks.items.len());
 
-            for bookmark in bookmarks.data {
+            for bookmark in bookmarks.items {
                 let data = serde_json::to_value(ScrapeBookmarkJobData {
                     url: bookmark.link,
                     user_id: bookmark.user_id,

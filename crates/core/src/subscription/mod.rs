@@ -3,7 +3,11 @@ pub use subscription_repository::*;
 pub use subscription_service::*;
 use uuid::Uuid;
 
-use crate::{Feed, Tag, job, subscription_entry, tag};
+use crate::{
+    Feed, Tag,
+    common::{Cursor, CursorError},
+    job, subscription_entry, tag,
+};
 
 mod subscription_repository;
 mod subscription_service;
@@ -30,9 +34,20 @@ pub struct Subscription {
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct Cursor {
+pub struct SubscriptionCursor {
     pub title: String,
     pub id: Uuid,
+}
+
+impl Cursor for Subscription {
+    type Data = SubscriptionCursor;
+
+    fn to_cursor(&self) -> Self::Data {
+        Self::Data {
+            title: self.title.clone(),
+            id: self.id,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -62,10 +77,10 @@ pub enum Error {
     Opml(#[from] colette_opml::Error),
 
     #[error(transparent)]
-    SerdeJson(#[from] serde_json::Error),
+    Cursor(#[from] CursorError),
 
     #[error(transparent)]
-    Serde(#[from] serde::de::value::Error),
+    Serde(#[from] serde_json::Error),
 
     #[error(transparent)]
     PostgresPool(#[from] deadpool_postgres::PoolError),

@@ -3,8 +3,11 @@ use std::sync::Arc;
 use chrono::Utc;
 use uuid::Uuid;
 
-use super::{Collection, CollectionParams, CollectionRepository, Error};
-use crate::{bookmark::BookmarkFilter, common::Paginated};
+use super::{Collection, CollectionCursor, CollectionParams, CollectionRepository, Error};
+use crate::{
+    bookmark::BookmarkFilter,
+    common::{PAGINATION_LIMIT, Paginated, Paginator},
+};
 
 pub struct CollectionService {
     repository: Arc<dyn CollectionRepository>,
@@ -15,19 +18,29 @@ impl CollectionService {
         Self { repository }
     }
 
-    pub async fn list_collections(&self, user_id: Uuid) -> Result<Paginated<Collection>, Error> {
+    pub async fn list_collections(
+        &self,
+        query: CollectionListQuery,
+        user_id: Uuid,
+    ) -> Result<Paginated<Collection>, Error> {
+        let cursor = query
+            .cursor
+            .map(|e| Paginator::decode_cursor::<CollectionCursor>(&e))
+            .transpose()?;
+
         let collections = self
             .repository
             .query(CollectionParams {
                 user_id: Some(user_id),
+                cursor: cursor.map(|e| e.title),
+                limit: Some(PAGINATION_LIMIT + 1),
                 ..Default::default()
             })
             .await?;
 
-        Ok(Paginated {
-            data: collections,
-            cursor: None,
-        })
+        let data = Paginator::paginate(collections, PAGINATION_LIMIT)?;
+
+        Ok(data)
     }
 
     pub async fn get_collection(&self, id: Uuid, user_id: Uuid) -> Result<Collection, Error> {
@@ -104,6 +117,11 @@ impl CollectionService {
 
         Ok(())
     }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct CollectionListQuery {
+    pub cursor: Option<String>,
 }
 
 #[derive(Debug, Clone)]

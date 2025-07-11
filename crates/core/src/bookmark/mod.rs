@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::{
     Tag, collection,
+    common::{Cursor, CursorError},
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
     job, tag,
 };
@@ -35,8 +36,18 @@ pub struct Bookmark {
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct Cursor {
+pub struct BookmarkCursor {
     pub created_at: DateTime<Utc>,
+}
+
+impl Cursor for Bookmark {
+    type Data = BookmarkCursor;
+
+    fn to_cursor(&self) -> Self::Data {
+        Self::Data {
+            created_at: self.created_at,
+        }
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -128,7 +139,7 @@ pub enum Error {
     Scraper(#[from] colette_scraper::bookmark::BookmarkError),
 
     #[error(transparent)]
-    Crypto(#[from] colette_util::CryptoError),
+    Cursor(#[from] CursorError),
 
     #[error(transparent)]
     Serde(#[from] serde_json::Error),

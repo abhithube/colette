@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
-use colette_util::{base64_decode, base64_encode};
 use uuid::Uuid;
 
-use super::{Cursor, Error, FeedEntry, FeedEntryParams, FeedEntryRepository};
-use crate::common::{PAGINATION_LIMIT, Paginated};
+use super::{Error, FeedEntry, FeedEntryCursor, FeedEntryParams, FeedEntryRepository};
+use crate::common::{PAGINATION_LIMIT, Paginated, Paginator};
 
 pub struct FeedEntryService {
     repository: Arc<dyn FeedEntryRepository>,
@@ -19,13 +18,12 @@ impl FeedEntryService {
         &self,
         query: FeedEntryListQuery,
     ) -> Result<Paginated<FeedEntry>, Error> {
-        let cursor = query.cursor.and_then(|e| {
-            base64_decode(&e)
-                .ok()
-                .and_then(|e| serde_json::from_slice::<Cursor>(&e).ok())
-        });
+        let cursor = query
+            .cursor
+            .map(|e| Paginator::decode_cursor::<FeedEntryCursor>(&e))
+            .transpose()?;
 
-        let mut feed_entries = self
+        let feed_entries = self
             .repository
             .query(FeedEntryParams {
                 feed_id: query.feed_id,
@@ -34,27 +32,10 @@ impl FeedEntryService {
                 ..Default::default()
             })
             .await?;
-        let mut cursor: Option<String> = None;
 
-        let limit = PAGINATION_LIMIT as usize;
-        if feed_entries.len() > limit {
-            feed_entries = feed_entries.into_iter().take(limit).collect();
+        let data = Paginator::paginate(feed_entries, PAGINATION_LIMIT)?;
 
-            if let Some(last) = feed_entries.last() {
-                let c = Cursor {
-                    published_at: last.published_at,
-                    id: last.id,
-                };
-                let encoded = base64_encode(&serde_json::to_vec(&c)?);
-
-                cursor = Some(encoded);
-            }
-        }
-
-        Ok(Paginated {
-            data: feed_entries,
-            cursor,
-        })
+        Ok(data)
     }
 
     pub async fn get_feed_entry(&self, id: Uuid) -> Result<FeedEntry, Error> {

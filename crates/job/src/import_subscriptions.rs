@@ -58,7 +58,7 @@ impl Service<Job> for ImportSubscriptionsHandler {
                 .await
                 .map_err(|e| Error::Service(e.to_string()))?;
             let feeds = subscriptions
-                .data
+                .items
                 .into_iter()
                 .filter_map(|e| e.feed)
                 .collect::<Vec<_>>();

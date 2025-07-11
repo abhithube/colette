@@ -31,7 +31,7 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
                     id: params.id,
                     feed_id: params.feed_id,
                     cursor: params.cursor,
-                    limit: params.limit,
+                    limit: params.limit.map(|e| e as u64),
                 }
                 .into_select()
                 .build_rusqlite(SqliteQueryBuilder);

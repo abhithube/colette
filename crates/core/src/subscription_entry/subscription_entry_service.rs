@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
-use colette_util::{base64_decode, base64_encode};
 use uuid::Uuid;
 
 use super::{
-    Cursor, Error, SubscriptionEntry, SubscriptionEntryFilter, SubscriptionEntryParams,
-    SubscriptionEntryRepository,
+    Error, SubscriptionEntry, SubscriptionEntryCursor, SubscriptionEntryFilter,
+    SubscriptionEntryParams, SubscriptionEntryRepository,
 };
 use crate::{
-    common::{PAGINATION_LIMIT, Paginated},
+    common::{PAGINATION_LIMIT, Paginated, Paginator},
     stream::{StreamParams, StreamRepository},
 };
 
@@ -33,11 +32,11 @@ impl SubscriptionEntryService {
         query: SubscriptionEntryListQuery,
         user_id: Uuid,
     ) -> Result<Paginated<SubscriptionEntry>, Error> {
-        let cursor = query.cursor.and_then(|e| {
-            base64_decode(&e)
-                .ok()
-                .and_then(|e| serde_json::from_slice::<Cursor>(&e).ok())
-        });
+        let cursor = query
+            .cursor
+            .map(|e| Paginator::decode_cursor::<SubscriptionEntryCursor>(&e))
+            .transpose()?;
+
         let mut filter = Option::<SubscriptionEntryFilter>::None;
         if let Some(stream_id) = query.stream_id {
             let mut streams = self
@@ -50,7 +49,7 @@ impl SubscriptionEntryService {
                 .await?;
             if streams.is_empty() {
                 return Ok(Paginated {
-                    data: Default::default(),
+                    items: Default::default(),
                     cursor: None,
                 });
             }
@@ -58,7 +57,7 @@ impl SubscriptionEntryService {
             filter = Some(streams.swap_remove(0).filter);
         }
 
-        let mut subscription_entries = self
+        let subscription_entries = self
             .subscription_entry_repository
             .query(SubscriptionEntryParams {
                 filter,
@@ -72,29 +71,10 @@ impl SubscriptionEntryService {
                 ..Default::default()
             })
             .await?;
-        let mut cursor: Option<String> = None;
 
-        let limit = PAGINATION_LIMIT as usize;
-        if subscription_entries.len() > limit {
-            subscription_entries = subscription_entries.into_iter().take(limit).collect();
+        let data = Paginator::paginate(subscription_entries, PAGINATION_LIMIT)?;
 
-            if let Some(last) = subscription_entries.last()
-                && let Some(ref entry) = last.feed_entry
-            {
-                let c = Cursor {
-                    published_at: entry.published_at,
-                    id: entry.id,
-                };
-                let encoded = base64_encode(&serde_json::to_vec(&c)?);
-
-                cursor = Some(encoded);
-            }
-        }
-
-        Ok(Paginated {
-            data: subscription_entries,
-            cursor,
-        })
+        Ok(data)
     }
 }
 

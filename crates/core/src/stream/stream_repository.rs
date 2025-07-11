@@ -27,5 +27,5 @@ pub struct StreamParams {
     pub id: Option<Uuid>,
     pub user_id: Option<Uuid>,
     pub cursor: Option<String>,
-    pub limit: Option<u64>,
+    pub limit: Option<usize>,
 }

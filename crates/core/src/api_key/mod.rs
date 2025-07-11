@@ -3,6 +3,8 @@ pub use api_key_service::*;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+use crate::common::{Cursor, CursorError};
+
 mod api_key_repository;
 mod api_key_service;
 
@@ -22,8 +24,18 @@ pub struct ApiKey {
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct Cursor {
+pub struct ApiKeyCursor {
     pub created_at: DateTime<Utc>,
+}
+
+impl Cursor for ApiKey {
+    type Data = ApiKeyCursor;
+
+    fn to_cursor(&self) -> Self::Data {
+        Self::Data {
+            created_at: self.created_at,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -41,7 +53,7 @@ pub enum Error {
     Crypto(#[from] colette_util::CryptoError),
 
     #[error(transparent)]
-    Serde(#[from] serde::de::value::Error),
+    Cursor(#[from] CursorError),
 
     #[error(transparent)]
     PostgresPool(#[from] deadpool_postgres::PoolError),

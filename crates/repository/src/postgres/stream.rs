@@ -34,7 +34,7 @@ impl StreamRepository for PostgresStreamRepository {
             id: params.id,
             user_id: params.user_id,
             cursor: params.cursor.as_deref(),
-            limit: params.limit,
+            limit: params.limit.map(|e| e as u64),
         }
         .into_select()
         .build_postgres(PostgresQueryBuilder);

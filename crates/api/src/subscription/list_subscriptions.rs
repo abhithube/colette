@@ -49,6 +49,9 @@ pub(super) struct SubscriptionListQuery {
     #[param(nullable = false)]
     #[serde(rename = "tag[]")]
     tags: Option<Vec<Uuid>>,
+    /// Pagination cursor
+    #[param(nullable = false)]
+    cursor: Option<String>,
     /// Whether to include the feed associated with the subscription
     #[serde(default = "with_feed")]
     with_feed: bool,
@@ -80,6 +83,7 @@ impl From<SubscriptionListQuery> for subscription::SubscriptionListQuery {
             } else {
                 None
             },
+            cursor: value.cursor,
             with_feed: value.with_feed,
             with_unread_count: value.with_unread_count,
             with_tags: value.with_tags,

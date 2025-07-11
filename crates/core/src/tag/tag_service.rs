@@ -3,8 +3,8 @@ use std::sync::Arc;
 use chrono::Utc;
 use uuid::Uuid;
 
-use super::{Error, Tag, TagParams, TagRepository, TagType};
-use crate::common::Paginated;
+use super::{Error, Tag, TagCursor, TagParams, TagRepository, TagType};
+use crate::common::{PAGINATION_LIMIT, Paginated, Paginator};
 
 pub struct TagService {
     repository: Arc<dyn TagRepository>,
@@ -20,20 +20,26 @@ impl TagService {
         query: TagListQuery,
         user_id: Uuid,
     ) -> Result<Paginated<Tag>, Error> {
+        let cursor = query
+            .cursor
+            .map(|e| Paginator::decode_cursor::<TagCursor>(&e))
+            .transpose()?;
+
         let tags = self
             .repository
             .query(TagParams {
                 tag_type: query.tag_type,
                 user_id: Some(user_id),
+                cursor: cursor.map(|e| e.title),
+                limit: Some(PAGINATION_LIMIT + 1),
                 with_subscription_count: true,
                 ..Default::default()
             })
             .await?;
 
-        Ok(Paginated {
-            data: tags,
-            cursor: None,
-        })
+        let data = Paginator::paginate(tags, PAGINATION_LIMIT)?;
+
+        Ok(data)
     }
 
     pub async fn get_tag(&self, query: TagGetQuery, user_id: Uuid) -> Result<Tag, Error> {
@@ -101,6 +107,7 @@ impl TagService {
 #[derive(Debug, Clone, Default)]
 pub struct TagListQuery {
     pub tag_type: Option<TagType>,
+    pub cursor: Option<String>,
     pub with_subscription_count: bool,
     pub with_bookmark_count: bool,
 }

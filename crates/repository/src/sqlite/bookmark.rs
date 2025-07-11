@@ -42,7 +42,7 @@ impl BookmarkRepository for SqliteBookmarkRepository {
                     tags: params.tags,
                     user_id: params.user_id,
                     cursor: params.cursor,
-                    limit: params.limit,
+                    limit: params.limit.map(|e| e as u64),
                     with_tags: params.with_tags,
                     dialect: Dialect::Sqlite,
                 }

@@ -127,7 +127,7 @@ pub(crate) enum ValidationError {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Paginated<T: utoipa::ToSchema> {
     /// Current set of results
-    pub(crate) data: Vec<T>,
+    pub(crate) items: Vec<T>,
     /// Pagination cursor, only present if more results are available
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -140,7 +140,7 @@ where
 {
     fn from(value: common::Paginated<U>) -> Self {
         Self {
-            data: value.data.into_iter().map(T::from).collect(),
+            items: value.items.into_iter().map(T::from).collect(),
             cursor: value.cursor,
         }
     }

@@ -55,7 +55,7 @@ pub(super) struct SubscriptionEntryListQuery {
     #[param(nullable = false)]
     #[serde(rename = "tag[]")]
     tags: Option<Vec<Uuid>>,
-    /// Pagination cursor from the previous set of results
+    /// Pagination cursor
     #[param(nullable = false)]
     cursor: Option<String>,
 }

@@ -72,9 +72,6 @@ pub enum Error {
     AlreadyCompleted(Uuid),
 
     #[error(transparent)]
-    Serde(#[from] serde::de::value::Error),
-
-    #[error(transparent)]
     PostgresPool(#[from] deadpool_postgres::PoolError),
 
     #[error(transparent)]

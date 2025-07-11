@@ -42,7 +42,7 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
                     tags: params.tags,
                     user_id: params.user_id,
                     cursor: params.cursor.as_ref().map(|(x, y)| (x.as_str(), *y)),
-                    limit: params.limit,
+                    limit: params.limit.map(|e| e as u64),
                     with_feed: params.with_feed,
                     with_unread_count: params.with_unread_count,
                     with_tags: params.with_tags,

@@ -4,7 +4,10 @@ pub use feed_entry_service::*;
 use url::Url;
 use uuid::Uuid;
 
-use crate::stream;
+use crate::{
+    common::{Cursor, CursorError},
+    stream,
+};
 
 mod feed_entry_repository;
 mod feed_entry_service;
@@ -23,9 +26,20 @@ pub struct FeedEntry {
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct Cursor {
+pub struct FeedEntryCursor {
     pub published_at: DateTime<Utc>,
     pub id: Uuid,
+}
+
+impl Cursor for FeedEntry {
+    type Data = FeedEntryCursor;
+
+    fn to_cursor(&self) -> Self::Data {
+        Self::Data {
+            published_at: self.published_at,
+            id: self.id,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -37,13 +51,10 @@ pub enum Error {
     Forbidden(Uuid),
 
     #[error(transparent)]
-    Crypto(#[from] colette_util::CryptoError),
-
-    #[error(transparent)]
     Stream(#[from] stream::Error),
 
     #[error(transparent)]
-    Serde(#[from] serde_json::Error),
+    Cursor(#[from] CursorError),
 
     #[error(transparent)]
     PostgresPool(#[from] deadpool_postgres::PoolError),

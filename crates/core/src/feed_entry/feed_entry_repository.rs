@@ -13,5 +13,5 @@ pub struct FeedEntryParams {
     pub id: Option<Uuid>,
     pub feed_id: Option<Uuid>,
     pub cursor: Option<(DateTime<Utc>, Uuid)>,
-    pub limit: Option<u64>,
+    pub limit: Option<usize>,
 }

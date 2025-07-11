@@ -3,6 +3,8 @@ pub use tag_repository::*;
 pub use tag_service::*;
 use uuid::Uuid;
 
+use crate::common::{Cursor, CursorError};
+
 mod tag_repository;
 mod tag_service;
 
@@ -30,8 +32,18 @@ pub enum TagType {
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct Cursor {
+pub struct TagCursor {
     pub title: String,
+}
+
+impl Cursor for Tag {
+    type Data = TagCursor;
+
+    fn to_cursor(&self) -> Self::Data {
+        Self::Data {
+            title: self.title.clone(),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -46,7 +58,7 @@ pub enum Error {
     Conflict(String),
 
     #[error(transparent)]
-    Serde(#[from] serde::de::value::Error),
+    Cursor(#[from] CursorError),
 
     #[error(transparent)]
     PostgresPool(#[from] deadpool_postgres::PoolError),

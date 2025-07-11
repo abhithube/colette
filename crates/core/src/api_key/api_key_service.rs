@@ -6,8 +6,8 @@ use colette_util::{
 };
 use uuid::Uuid;
 
-use super::{ApiKey, ApiKeyParams, ApiKeyRepository, Error};
-use crate::common::Paginated;
+use super::{ApiKey, ApiKeyCursor, ApiKeyParams, ApiKeyRepository, Error};
+use crate::common::{PAGINATION_LIMIT, Paginated, Paginator};
 
 pub struct ApiKeyService {
     repository: Arc<dyn ApiKeyRepository>,
@@ -18,19 +18,29 @@ impl ApiKeyService {
         Self { repository }
     }
 
-    pub async fn list_api_keys(&self, user_id: Uuid) -> Result<Paginated<ApiKey>, Error> {
+    pub async fn list_api_keys(
+        &self,
+        query: ApiKeyListQuery,
+        user_id: Uuid,
+    ) -> Result<Paginated<ApiKey>, Error> {
+        let cursor = query
+            .cursor
+            .map(|e| Paginator::decode_cursor::<ApiKeyCursor>(&e))
+            .transpose()?;
+
         let api_keys = self
             .repository
             .query(ApiKeyParams {
                 user_id: Some(user_id),
+                cursor: cursor.map(|e| e.created_at),
+                limit: Some(PAGINATION_LIMIT + 1),
                 ..Default::default()
             })
             .await?;
 
-        Ok(Paginated {
-            data: api_keys,
-            cursor: None,
-        })
+        let data = Paginator::paginate(api_keys, PAGINATION_LIMIT)?;
+
+        Ok(data)
     }
 
     pub async fn validate_api_key(&self, value: String) -> Result<ApiKey, Error> {
@@ -135,6 +145,11 @@ impl ApiKeyService {
 
         Ok(())
     }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ApiKeyListQuery {
+    pub cursor: Option<String>,
 }
 
 #[derive(Debug, Clone)]

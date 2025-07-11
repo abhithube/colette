@@ -34,7 +34,7 @@ impl ApiKeyRepository for PostgresApiKeyRepository {
             lookup_hash: params.lookup_hash.as_deref(),
             user_id: params.user_id,
             cursor: params.cursor,
-            limit: params.limit,
+            limit: params.limit.map(|e| e as u64),
         }
         .into_select()
         .build_postgres(PostgresQueryBuilder);

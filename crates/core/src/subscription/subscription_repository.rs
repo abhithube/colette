@@ -31,7 +31,7 @@ pub struct SubscriptionParams {
     pub tags: Option<Vec<Uuid>>,
     pub user_id: Option<Uuid>,
     pub cursor: Option<(String, Uuid)>,
-    pub limit: Option<u64>,
+    pub limit: Option<usize>,
     pub with_feed: bool,
     pub with_unread_count: bool,
     pub with_tags: bool,

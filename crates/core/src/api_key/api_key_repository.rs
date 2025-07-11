@@ -40,5 +40,5 @@ pub struct ApiKeyParams {
     pub lookup_hash: Option<String>,
     pub user_id: Option<Uuid>,
     pub cursor: Option<DateTime<Utc>>,
-    pub limit: Option<u64>,
+    pub limit: Option<usize>,
 }

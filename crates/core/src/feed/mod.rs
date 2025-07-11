@@ -59,11 +59,6 @@ impl From<(Url, ProcessedFeed)> for Feed {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Cursor {
-    pub link: Url,
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("feed not found with ID: {0}")]
@@ -80,9 +75,6 @@ pub enum Error {
 
     #[error(transparent)]
     Scraper(#[from] colette_scraper::feed::FeedError),
-
-    #[error(transparent)]
-    Serde(#[from] serde::de::value::Error),
 
     #[error(transparent)]
     PostgresPool(#[from] deadpool_postgres::PoolError),

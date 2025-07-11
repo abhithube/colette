@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::{
     FeedEntry,
+    common::{Cursor, CursorError},
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
     stream,
 };
@@ -23,9 +24,24 @@ pub struct SubscriptionEntry {
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct Cursor {
+pub struct SubscriptionEntryCursor {
     pub published_at: DateTime<Utc>,
     pub id: Uuid,
+}
+
+impl Cursor for SubscriptionEntry {
+    type Data = SubscriptionEntryCursor;
+
+    fn to_cursor(&self) -> Self::Data {
+        if let Some(ref feed_entry) = self.feed_entry {
+            Self::Data {
+                published_at: feed_entry.published_at,
+                id: feed_entry.id,
+            }
+        } else {
+            Default::default()
+        }
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -88,13 +104,10 @@ pub enum Error {
     Forbidden(Uuid),
 
     #[error(transparent)]
-    Crypto(#[from] colette_util::CryptoError),
-
-    #[error(transparent)]
     Stream(#[from] stream::Error),
 
     #[error(transparent)]
-    Serde(#[from] serde_json::Error),
+    Cursor(#[from] CursorError),
 
     #[error(transparent)]
     PostgresPool(#[from] deadpool_postgres::PoolError),

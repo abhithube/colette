@@ -4,16 +4,18 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use colette_core::stream;
 
 use super::{STREAMS_TAG, Stream};
 use crate::{
     ApiState,
-    common::{ApiError, Auth, Paginated},
+    common::{ApiError, Auth, Paginated, Query},
 };
 
 #[utoipa::path(
     get,
     path = "",
+    params(StreamListQuery),
     responses(OkResponse, ErrResponse),
     operation_id = "listStreams",
     description = "List user streams",
@@ -22,11 +24,33 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
+    Query(query): Query<StreamListQuery>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.stream_service.list_streams(user_id).await {
+    match state
+        .stream_service
+        .list_streams(query.into(), user_id)
+        .await
+    {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
+#[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
+pub(super) struct StreamListQuery {
+    /// Pagination cursor
+    #[param(nullable = false)]
+    cursor: Option<String>,
+}
+
+impl From<StreamListQuery> for stream::StreamListQuery {
+    fn from(value: StreamListQuery) -> Self {
+        Self {
+            cursor: value.cursor,
+        }
     }
 }
 

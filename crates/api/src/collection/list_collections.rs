@@ -8,12 +8,13 @@ use axum::{
 use super::{COLLECTIONS_TAG, Collection};
 use crate::{
     ApiState,
-    common::{ApiError, Auth, Paginated},
+    common::{ApiError, Auth, Paginated, Query},
 };
 
 #[utoipa::path(
     get,
     path = "",
+    params(CollectionListQuery),
     responses(OkResponse, ErrResponse),
     operation_id = "listCollections",
     description = "List user collections",
@@ -22,11 +23,33 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
+    Query(query): Query<CollectionListQuery>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.collection_service.list_collections(user_id).await {
+    match state
+        .collection_service
+        .list_collections(query.into(), user_id)
+        .await
+    {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
+#[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
+pub(super) struct CollectionListQuery {
+    /// Pagination cursor
+    #[param(nullable = false)]
+    cursor: Option<String>,
+}
+
+impl From<CollectionListQuery> for colette_core::collection::CollectionListQuery {
+    fn from(value: CollectionListQuery) -> Self {
+        Self {
+            cursor: value.cursor,
+        }
     }
 }
 

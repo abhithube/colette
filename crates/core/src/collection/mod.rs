@@ -3,7 +3,10 @@ pub use collection_repository::*;
 pub use collection_service::*;
 use uuid::Uuid;
 
-use crate::bookmark::BookmarkFilter;
+use crate::{
+    bookmark::BookmarkFilter,
+    common::{Cursor, CursorError},
+};
 
 mod collection_repository;
 mod collection_service;
@@ -22,8 +25,18 @@ pub struct Collection {
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct Cursor {
+pub struct CollectionCursor {
     pub title: String,
+}
+
+impl Cursor for Collection {
+    type Data = CollectionCursor;
+
+    fn to_cursor(&self) -> Self::Data {
+        Self::Data {
+            title: self.title.clone(),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -38,7 +51,7 @@ pub enum Error {
     Conflict(String),
 
     #[error(transparent)]
-    Serde(#[from] serde::de::value::Error),
+    Cursor(#[from] CursorError),
 
     #[error(transparent)]
     PostgresPool(#[from] deadpool_postgres::PoolError),
