@@ -10,6 +10,7 @@ tailwind_fuse = { version = "0.3.2", default-features = false, features = [
   "tailwind_fuse_macro",
   "variant",
 ] }
+url.workspace = true
 
 [features]
 default = ["web"]

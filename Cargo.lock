@@ -669,6 +669,7 @@ dependencies = [
  "dioxus 0.7.0-alpha.1",
  "dioxus-primitives",
  "tailwind_fuse",
+ "url",
 ]
 
 [[package]]
