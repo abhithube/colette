@@ -21,7 +21,7 @@ export const HomePage = () => {
       </div>
       <main>
         <EntryList
-          entries={query.data.pages.flatMap((page) => page.data)}
+          entries={query.data.pages.flatMap((page) => page.items)}
           hasMore={query.hasNextPage}
           fetchMore={query.fetchNextPage}
         />

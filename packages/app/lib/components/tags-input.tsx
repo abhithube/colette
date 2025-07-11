@@ -92,7 +92,7 @@ export const TagsInner = (props: {
             'hidden',
             search !== '' &&
               !props.state.value.find((tag) => tag === search) &&
-              !query.data?.data.find(
+              !query.data?.items.find(
                 (details) => details.tag.title === search,
               ) &&
               'block',
@@ -105,7 +105,7 @@ export const TagsInner = (props: {
         </Combobox.ItemGroup>
         <Combobox.ItemGroup>
           <Combobox.ItemGroupLabel>Results</Combobox.ItemGroupLabel>
-          {query.data?.data.map((details) => (
+          {query.data?.items.map((details) => (
             <Combobox.Item
               key={details.tag.id}
               className="justify-between"

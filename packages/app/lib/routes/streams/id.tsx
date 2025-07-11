@@ -60,7 +60,7 @@ export const StreamPage = () => {
       </div>
       <main>
         <EntryList
-          entries={entriesQuery.data.pages.flatMap((page) => page.data)}
+          entries={entriesQuery.data.pages.flatMap((page) => page.items)}
           hasMore={entriesQuery.hasNextPage}
           fetchMore={entriesQuery.fetchNextPage}
         />

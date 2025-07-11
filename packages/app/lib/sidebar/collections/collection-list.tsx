@@ -10,7 +10,7 @@ export const CollectionList = () => {
 
   return (
     <Sidebar.Menu>
-      {query.data.data.map((collection) => (
+      {query.data.items.map((collection) => (
         <CollectionItem key={collection.id} collection={collection as never} />
       ))}
     </Sidebar.Menu>

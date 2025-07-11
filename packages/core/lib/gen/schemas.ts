@@ -66,6 +66,7 @@ import type {
   TokenData,
   TokenType,
   User,
+  ListApiKeysQueryParams,
   ListApiKeys200,
   ListApiKeys401,
   ListApiKeysError,
@@ -133,6 +134,15 @@ import type {
   ExchangeCodeError,
   ExchangeCodeMutationRequest,
   ExchangeCodeMutationResponse,
+  ImportBackup204,
+  ImportBackup401,
+  ImportBackupError,
+  ImportBackupMutationRequest,
+  ImportBackupMutationResponse,
+  ExportBackup200,
+  ExportBackup401,
+  ExportBackupError,
+  ExportBackupMutationResponse,
   ListBookmarksQueryParams,
   ListBookmarks200,
   ListBookmarks401,
@@ -194,6 +204,7 @@ import type {
   ExportBookmarks401,
   ExportBookmarksError,
   ExportBookmarksMutationResponse,
+  ListCollectionsQueryParams,
   ListCollections200,
   ListCollections401,
   ListCollectionsError,
@@ -256,6 +267,7 @@ import type {
   ScrapeFeedError,
   ScrapeFeedMutationRequest,
   ScrapeFeedMutationResponse,
+  ListStreamsQueryParams,
   ListStreams200,
   ListStreams401,
   ListStreamsError,
@@ -871,7 +883,7 @@ export const oidcConfigSchema = z
  */
 export const paginatedApiKeySchema = z
   .object({
-    data: z
+    items: z
       .array(
         z
           .object({
@@ -908,7 +920,7 @@ export const paginatedApiKeySchema = z
  */
 export const paginatedBookmarkDetailsSchema = z
   .object({
-    data: z
+    items: z
       .array(
         z
           .object({
@@ -943,7 +955,7 @@ export const paginatedBookmarkDetailsSchema = z
  */
 export const paginatedCollectionSchema = z
   .object({
-    data: z
+    items: z
       .array(
         z.object({
           id: z.string().uuid(),
@@ -968,7 +980,7 @@ export const paginatedCollectionSchema = z
  */
 export const paginatedFeedEntrySchema = z
   .object({
-    data: z
+    items: z
       .array(
         z
           .object({
@@ -1015,7 +1027,7 @@ export const paginatedFeedEntrySchema = z
  */
 export const paginatedStreamSchema = z
   .object({
-    data: z
+    items: z
       .array(
         z.object({
           id: z.string().uuid(),
@@ -1038,7 +1050,7 @@ export const paginatedStreamSchema = z
  */
 export const paginatedSubscriptionDetailsSchema = z
   .object({
-    data: z
+    items: z
       .array(
         z
           .object({
@@ -1084,7 +1096,7 @@ export const paginatedSubscriptionDetailsSchema = z
  */
 export const paginatedSubscriptionEntryDetailsSchema = z
   .object({
-    data: z
+    items: z
       .array(
         z
           .object({
@@ -1115,7 +1127,7 @@ export const paginatedSubscriptionEntryDetailsSchema = z
  */
 export const paginatedTagDetailsSchema = z
   .object({
-    data: z
+    items: z
       .array(
         z
           .object({
@@ -1517,6 +1529,12 @@ export const userSchema = z
   .describe(
     'User account. Supports email/password and OIDC.',
   ) as unknown as ToZod<User>
+
+export const listApiKeysQueryParamsSchema = z
+  .object({
+    cursor: z.string().describe('Pagination cursor').optional(),
+  })
+  .optional() as unknown as ToZod<ListApiKeysQueryParams>
 
 /**
  * @description Paginated list of API keys
@@ -1936,6 +1954,59 @@ export const exchangeCodeMutationResponseSchema = z.lazy(
   () => exchangeCode200Schema,
 ) as unknown as ToZod<ExchangeCodeMutationResponse>
 
+/**
+ * @description Successfully started import
+ */
+export const importBackup204Schema =
+  z.any() as unknown as ToZod<ImportBackup204>
+
+/**
+ * @description User not authenticated
+ */
+export const importBackup401Schema = z.lazy(
+  () => apiErrorSchema,
+) as unknown as ToZod<ImportBackup401>
+
+/**
+ * @description Unknown error
+ */
+export const importBackupErrorSchema = z.lazy(
+  () => apiErrorSchema,
+) as unknown as ToZod<ImportBackupError>
+
+export const importBackupMutationRequestSchema = z.array(
+  z.number().int().min(0),
+) as unknown as ToZod<ImportBackupMutationRequest>
+
+export const importBackupMutationResponseSchema = z.lazy(
+  () => importBackup204Schema,
+) as unknown as ToZod<ImportBackupMutationResponse>
+
+/**
+ * @description JSON backup file
+ */
+export const exportBackup200Schema = z.array(
+  z.number().int().min(0),
+) as unknown as ToZod<ExportBackup200>
+
+/**
+ * @description User not authenticated
+ */
+export const exportBackup401Schema = z.lazy(
+  () => apiErrorSchema,
+) as unknown as ToZod<ExportBackup401>
+
+/**
+ * @description Unknown error
+ */
+export const exportBackupErrorSchema = z.lazy(
+  () => apiErrorSchema,
+) as unknown as ToZod<ExportBackupError>
+
+export const exportBackupMutationResponseSchema = z.lazy(
+  () => exportBackup200Schema,
+) as unknown as ToZod<ExportBackupMutationResponse>
+
 export const listBookmarksQueryParamsSchema = z
   .object({
     collectionId: z
@@ -2336,6 +2407,12 @@ export const exportBookmarksMutationResponseSchema = z.lazy(
   () => exportBookmarks200Schema,
 ) as unknown as ToZod<ExportBookmarksMutationResponse>
 
+export const listCollectionsQueryParamsSchema = z
+  .object({
+    cursor: z.string().describe('Pagination cursor').optional(),
+  })
+  .optional() as unknown as ToZod<ListCollectionsQueryParams>
+
 /**
  * @description Paginated list of collections
  */
@@ -2723,6 +2800,12 @@ export const scrapeFeedMutationResponseSchema = z.lazy(
   () => scrapeFeed201Schema,
 ) as unknown as ToZod<ScrapeFeedMutationResponse>
 
+export const listStreamsQueryParamsSchema = z
+  .object({
+    cursor: z.string().describe('Pagination cursor').optional(),
+  })
+  .optional() as unknown as ToZod<ListStreamsQueryParams>
+
 /**
  * @description Paginated list of streams
  */
@@ -2940,6 +3023,7 @@ export const listSubscriptionsQueryParamsSchema = z
       .array(z.string().uuid())
       .describe('Filter by the IDs of the tags linked to the subscription')
       .optional(),
+    cursor: z.string().describe('Pagination cursor').optional(),
     withFeed: z
       .boolean()
       .describe('Whether to include the feed associated with the subscription')
@@ -3447,10 +3531,7 @@ export const listSubscriptionEntriesQueryParamsSchema = z
         'Filter by the IDs of the tags linked to the associated subscription',
       )
       .optional(),
-    cursor: z
-      .string()
-      .describe('Pagination cursor from the previous set of results')
-      .optional(),
+    cursor: z.string().describe('Pagination cursor').optional(),
   })
   .optional() as unknown as ToZod<ListSubscriptionEntriesQueryParams>
 
@@ -3487,6 +3568,7 @@ export const listTagsQueryParamsSchema = z
       .enum(['bookmarks', 'feeds'])
       .describe('Filter by the type of tag')
       .optional(),
+    cursor: z.string().describe('Pagination cursor').optional(),
     withSubscriptionCount: z
       .boolean()
       .describe(

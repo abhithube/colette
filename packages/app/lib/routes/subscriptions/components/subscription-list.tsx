@@ -9,7 +9,7 @@ export const SubscriptionList = () => {
 
   return (
     <div className="flex flex-col gap-4 px-8">
-      {query.data.data.map((details) => (
+      {query.data.items.map((details) => (
         <SubscriptionItem key={details.subscription.id} details={details} />
       ))}
     </div>

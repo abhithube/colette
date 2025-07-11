@@ -35,7 +35,7 @@ export const StashPage = () => {
       </div>
       <main>
         <BookmarkGrid
-          bookmarks={query.data.pages.flatMap((page) => page.data)}
+          bookmarks={query.data.pages.flatMap((page) => page.items)}
           hasMore={query.hasNextPage}
           fetchMore={query.fetchNextPage}
         />

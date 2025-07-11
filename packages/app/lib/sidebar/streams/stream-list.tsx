@@ -10,7 +10,7 @@ export const StreamList = () => {
 
   return (
     <Sidebar.Menu>
-      {query.data.data.map((stream) => (
+      {query.data.items.map((stream) => (
         <StreamItem key={stream.id} stream={stream as never} />
       ))}
     </Sidebar.Menu>

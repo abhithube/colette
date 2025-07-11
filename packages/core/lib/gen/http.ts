@@ -22,6 +22,9 @@ import {
   redirectOidcQueryResponseSchema,
   exchangeCodeMutationResponseSchema,
   exchangeCodeMutationRequestSchema,
+  importBackupMutationResponseSchema,
+  importBackupMutationRequestSchema,
+  exportBackupMutationResponseSchema,
   listBookmarksQueryResponseSchema,
   createBookmarkMutationResponseSchema,
   createBookmarkMutationRequestSchema,
@@ -82,6 +85,7 @@ import {
 } from './schemas.ts'
 import type {
   ListApiKeysQueryResponse,
+  ListApiKeysQueryParams,
   ListApiKeys401,
   CreateApiKeyMutationRequest,
   CreateApiKeyMutationResponse,
@@ -124,6 +128,11 @@ import type {
   ExchangeCodeMutationResponse,
   ExchangeCode409,
   ExchangeCode422,
+  ImportBackupMutationRequest,
+  ImportBackupMutationResponse,
+  ImportBackup401,
+  ExportBackupMutationResponse,
+  ExportBackup401,
   ListBookmarksQueryResponse,
   ListBookmarksQueryParams,
   ListBookmarks401,
@@ -168,6 +177,7 @@ import type {
   ExportBookmarksMutationResponse,
   ExportBookmarks401,
   ListCollectionsQueryResponse,
+  ListCollectionsQueryParams,
   ListCollections401,
   CreateCollectionMutationRequest,
   CreateCollectionMutationResponse,
@@ -211,6 +221,7 @@ import type {
   ScrapeFeed422,
   ScrapeFeed502,
   ListStreamsQueryResponse,
+  ListStreamsQueryParams,
   ListStreams401,
   CreateStreamMutationRequest,
   CreateStreamMutationResponse,
@@ -324,6 +335,7 @@ function getListApiKeysUrl() {
  * {@link /apiKeys}
  */
 export async function listApiKeys(
+  params?: ListApiKeysQueryParams,
   config: Partial<RequestConfig> & { client?: typeof client } = {},
 ) {
   const { client: request = client, ...requestConfig } = config
@@ -335,6 +347,7 @@ export async function listApiKeys(
   >({
     method: 'GET',
     url: getListApiKeysUrl().toString(),
+    params,
     ...requestConfig,
   })
   return listApiKeysQueryResponseSchema.parse(res.data)
@@ -640,6 +653,64 @@ export async function exchangeCode(
   return exchangeCodeMutationResponseSchema.parse(res.data)
 }
 
+function getImportBackupUrl() {
+  return `/backups/import` as const
+}
+
+/**
+ * @description Import backup into user account
+ * {@link /backups/import}
+ */
+export async function importBackup(
+  data?: ImportBackupMutationRequest,
+  config: Partial<RequestConfig<ImportBackupMutationRequest>> & {
+    client?: typeof client
+  } = {},
+) {
+  const { client: request = client, ...requestConfig } = config
+
+  const res = await request<
+    ImportBackupMutationResponse,
+    ResponseErrorConfig<ImportBackup401>,
+    ImportBackupMutationRequest
+  >({
+    method: 'POST',
+    url: getImportBackupUrl().toString(),
+    data: importBackupMutationRequestSchema.parse(data),
+    ...requestConfig,
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      ...requestConfig.headers,
+    },
+  })
+  return importBackupMutationResponseSchema.parse(res.data)
+}
+
+function getExportBackupUrl() {
+  return `/backups/export` as const
+}
+
+/**
+ * @description Export user backup
+ * {@link /backups/export}
+ */
+export async function exportBackup(
+  config: Partial<RequestConfig> & { client?: typeof client } = {},
+) {
+  const { client: request = client, ...requestConfig } = config
+
+  const res = await request<
+    ExportBackupMutationResponse,
+    ResponseErrorConfig<ExportBackup401>,
+    unknown
+  >({
+    method: 'POST',
+    url: getExportBackupUrl().toString(),
+    ...requestConfig,
+  })
+  return exportBackupMutationResponseSchema.parse(res.data)
+}
+
 function getListBookmarksUrl() {
   return `/bookmarks` as const
 }
@@ -922,6 +993,7 @@ function getListCollectionsUrl() {
  * {@link /collections}
  */
 export async function listCollections(
+  params?: ListCollectionsQueryParams,
   config: Partial<RequestConfig> & { client?: typeof client } = {},
 ) {
   const { client: request = client, ...requestConfig } = config
@@ -933,6 +1005,7 @@ export async function listCollections(
   >({
     method: 'GET',
     url: getListCollectionsUrl().toString(),
+    params,
     ...requestConfig,
   })
   return listCollectionsQueryResponseSchema.parse(res.data)
@@ -1199,6 +1272,7 @@ function getListStreamsUrl() {
  * {@link /streams}
  */
 export async function listStreams(
+  params?: ListStreamsQueryParams,
   config: Partial<RequestConfig> & { client?: typeof client } = {},
 ) {
   const { client: request = client, ...requestConfig } = config
@@ -1210,6 +1284,7 @@ export async function listStreams(
   >({
     method: 'GET',
     url: getListStreamsUrl().toString(),
+    params,
     ...requestConfig,
   })
   return listStreamsQueryResponseSchema.parse(res.data)

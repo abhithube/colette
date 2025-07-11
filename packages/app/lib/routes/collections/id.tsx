@@ -59,7 +59,7 @@ export const CollectionPage = () => {
       </div>
       <main>
         <BookmarkGrid
-          bookmarks={bookmarksQuery.data.pages.flatMap((page) => page.data)}
+          bookmarks={bookmarksQuery.data.pages.flatMap((page) => page.items)}
           hasMore={bookmarksQuery.hasNextPage}
           fetchMore={bookmarksQuery.fetchNextPage}
         />

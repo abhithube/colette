@@ -634,7 +634,7 @@ export type PaginatedApiKey = {
    * @description Current set of results
    * @type array
    */
-  data: {
+  items: {
     /**
      * @description Unique identifier of the API key
      * @type string, uuid
@@ -676,7 +676,7 @@ export type PaginatedBookmarkDetails = {
    * @description Current set of results
    * @type array
    */
-  data: {
+  items: {
     /**
      * @description Bookmark to a webpage
      * @type object
@@ -703,7 +703,7 @@ export type PaginatedCollection = {
    * @description Current set of results
    * @type array
    */
-  data: {
+  items: {
     /**
      * @type string, uuid
      */
@@ -737,7 +737,7 @@ export type PaginatedFeedEntry = {
    * @description Current set of results
    * @type array
    */
-  data: {
+  items: {
     /**
      * @description Unique identifier of the feed entry
      * @type string, uuid
@@ -794,7 +794,7 @@ export type PaginatedStream = {
    * @description Current set of results
    * @type array
    */
-  data: {
+  items: {
     /**
      * @type string, uuid
      */
@@ -828,7 +828,7 @@ export type PaginatedSubscriptionDetails = {
    * @description Current set of results
    * @type array
    */
-  data: {
+  items: {
     /**
      * @description User subscription to an RSS feed
      * @type object
@@ -865,7 +865,7 @@ export type PaginatedSubscriptionEntryDetails = {
    * @description Current set of results
    * @type array
    */
-  data: {
+  items: {
     /**
      * @description Association of a RSS feed entry to a user subscription. The pairing of subscription ID and feed entry ID is unique.
      * @type object
@@ -892,7 +892,7 @@ export type PaginatedTagDetails = {
    * @description Current set of results
    * @type array
    */
-  data: {
+  items: {
     /**
      * @description Tag that can be attached to subscriptions and bookmarks
      * @type object
@@ -1380,6 +1380,14 @@ export type User = {
   updatedAt: string
 }
 
+export type ListApiKeysQueryParams = {
+  /**
+   * @description Pagination cursor
+   * @type string | undefined
+   */
+  cursor?: string
+}
+
 /**
  * @description Paginated list of API keys
  */
@@ -1399,6 +1407,7 @@ export type ListApiKeysQueryResponse = ListApiKeys200
 
 export type ListApiKeysQuery = {
   Response: ListApiKeys200
+  QueryParams: ListApiKeysQueryParams
   Errors: ListApiKeys401
 }
 
@@ -1739,6 +1748,53 @@ export type ExchangeCodeMutation = {
   Response: ExchangeCode200
   Request: ExchangeCodeMutationRequest
   Errors: ExchangeCode409 | ExchangeCode422
+}
+
+/**
+ * @description Successfully started import
+ */
+export type ImportBackup204 = any
+
+/**
+ * @description User not authenticated
+ */
+export type ImportBackup401 = ApiError
+
+/**
+ * @description Unknown error
+ */
+export type ImportBackupError = ApiError
+
+export type ImportBackupMutationRequest = number[]
+
+export type ImportBackupMutationResponse = ImportBackup204
+
+export type ImportBackupMutation = {
+  Response: ImportBackup204
+  Request: ImportBackupMutationRequest
+  Errors: ImportBackup401
+}
+
+/**
+ * @description JSON backup file
+ */
+export type ExportBackup200 = number[]
+
+/**
+ * @description User not authenticated
+ */
+export type ExportBackup401 = ApiError
+
+/**
+ * @description Unknown error
+ */
+export type ExportBackupError = ApiError
+
+export type ExportBackupMutationResponse = ExportBackup200
+
+export type ExportBackupMutation = {
+  Response: ExportBackup200
+  Errors: ExportBackup401
 }
 
 export type ListBookmarksQueryParams = {
@@ -2106,6 +2162,14 @@ export type ExportBookmarksMutation = {
   Errors: ExportBookmarks401
 }
 
+export type ListCollectionsQueryParams = {
+  /**
+   * @description Pagination cursor
+   * @type string | undefined
+   */
+  cursor?: string
+}
+
 /**
  * @description Paginated list of collections
  */
@@ -2125,6 +2189,7 @@ export type ListCollectionsQueryResponse = ListCollections200
 
 export type ListCollectionsQuery = {
   Response: ListCollections200
+  QueryParams: ListCollectionsQueryParams
   Errors: ListCollections401
 }
 
@@ -2457,6 +2522,14 @@ export type ScrapeFeedMutation = {
   Errors: ScrapeFeed401 | ScrapeFeed422 | ScrapeFeed502
 }
 
+export type ListStreamsQueryParams = {
+  /**
+   * @description Pagination cursor
+   * @type string | undefined
+   */
+  cursor?: string
+}
+
 /**
  * @description Paginated list of streams
  */
@@ -2476,6 +2549,7 @@ export type ListStreamsQueryResponse = ListStreams200
 
 export type ListStreamsQuery = {
   Response: ListStreams200
+  QueryParams: ListStreamsQueryParams
   Errors: ListStreams401
 }
 
@@ -2656,6 +2730,11 @@ export type ListSubscriptionsQueryParams = {
    * @type array | undefined
    */
   'tag[]'?: string[]
+  /**
+   * @description Pagination cursor
+   * @type string | undefined
+   */
+  cursor?: string
   /**
    * @description Whether to include the feed associated with the subscription
    * @type boolean | undefined
@@ -3119,7 +3198,7 @@ export type ListSubscriptionEntriesQueryParams = {
    */
   'tag[]'?: string[]
   /**
-   * @description Pagination cursor from the previous set of results
+   * @description Pagination cursor
    * @type string | undefined
    */
   cursor?: string
@@ -3162,6 +3241,11 @@ export type ListTagsQueryParams = {
    * @type string | undefined
    */
   tagType?: ListTagsQueryParamsTagTypeEnum
+  /**
+   * @description Pagination cursor
+   * @type string | undefined
+   */
+  cursor?: string
   /**
    * @description Whether to include the count of subscriptions the tag is linked to
    * @type boolean | undefined
