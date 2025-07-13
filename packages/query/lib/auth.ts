@@ -4,7 +4,7 @@ import {
   loginUser,
   logoutUser,
 } from '@colette/core/http'
-import { LoginPayload, RegisterPayload } from '@colette/core/types'
+import type { LoginPayload, RegisterPayload } from '@colette/core/types'
 import {
   queryOptions,
   useMutation,

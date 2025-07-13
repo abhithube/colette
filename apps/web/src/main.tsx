@@ -18,14 +18,14 @@ import {
   buildRouter,
   getRouteApi,
   Outlet,
-  RouteIds,
+  type RouteIds,
   RouterProvider,
 } from '@colette/router'
 import { ConfigProvider, ThemeProvider } from '@colette/util'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-import React, { JSX } from 'react'
+import React, { type JSX } from 'react'
 import ReactDOM from 'react-dom/client'
 
 scan({

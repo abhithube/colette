@@ -1,5 +1,5 @@
-import { User } from '@colette/core/types'
-import { PropsWithChildren, createContext, useContext } from 'react'
+import type { User } from '@colette/core/types'
+import { type PropsWithChildren, createContext, useContext } from 'react'
 
 const UserContext = createContext<User | undefined>(undefined)
 

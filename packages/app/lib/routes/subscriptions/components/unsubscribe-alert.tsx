@@ -1,4 +1,4 @@
-import { Subscription } from '@colette/core/types'
+import type { Subscription } from '@colette/core/types'
 import { useDeleteSubscriptionMutation } from '@colette/query'
 import { getRouteApi, useParams } from '@colette/router'
 import { Button, Dialog } from '@colette/ui'

@@ -1,5 +1,5 @@
 import { cn } from './utils'
-import { Dialog, HTMLArkProps, Portal, ark } from '@ark-ui/react'
+import { Dialog, type HTMLArkProps, Portal, ark } from '@ark-ui/react'
 import { X } from 'lucide-react'
 
 export type RootProps = Dialog.RootProps

@@ -1,5 +1,5 @@
 import { TagsInput } from '../../../components/tags-input'
-import { SubscriptionDetails } from '@colette/core/types'
+import type { SubscriptionDetails } from '@colette/core/types'
 import {
   LINK_SUBSCRIPTION_TAGS_FORM,
   linkSubscriptionTagsFormOptions,

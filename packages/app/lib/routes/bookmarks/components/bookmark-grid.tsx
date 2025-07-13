@@ -1,5 +1,5 @@
 import { BookmarkCard } from './bookmark-card'
-import { Bookmark, BookmarkDetails } from '@colette/core/types'
+import type { Bookmark, BookmarkDetails } from '@colette/core/types'
 import { useIntersectionObserver } from '@colette/util'
 
 export const BookmarkGrid = (props: {

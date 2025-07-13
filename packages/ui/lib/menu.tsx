@@ -1,5 +1,5 @@
 import { cn } from './utils'
-import { ark, HTMLArkProps, Menu } from '@ark-ui/react'
+import { ark, type HTMLArkProps, Menu } from '@ark-ui/react'
 import { Check, Circle } from 'lucide-react'
 
 export type RootProps = Menu.RootProps

@@ -1,5 +1,5 @@
 import { cn } from './utils'
-import { ark, HTMLArkProps } from '@ark-ui/react'
+import { ark, type HTMLArkProps } from '@ark-ui/react'
 import { cva, type VariantProps } from 'class-variance-authority'
 
 export const alertVariants = cva(

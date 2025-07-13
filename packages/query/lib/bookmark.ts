@@ -6,7 +6,7 @@ import {
   scrapeBookmark,
   updateBookmark,
 } from '@colette/core/http'
-import {
+import type {
   BookmarkCreate,
   BookmarkScrape,
   BookmarkUpdate,

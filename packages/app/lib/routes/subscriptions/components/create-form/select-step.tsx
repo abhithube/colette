@@ -1,4 +1,4 @@
-import { Feed, FeedDetected } from '@colette/core/types'
+import type { Feed, FeedDetected } from '@colette/core/types'
 import { scrapeFeedFormOptions } from '@colette/form'
 import { useScrapeFeedMutation } from '@colette/query'
 import { Field, RadioGroup, Favicon } from '@colette/ui'

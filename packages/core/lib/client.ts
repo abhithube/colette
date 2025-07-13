@@ -1,5 +1,5 @@
 import { refreshToken } from './gen/http'
-import { ApiError } from './gen/types'
+import type { ApiError } from './gen/types'
 
 export type RequestConfig<TData = unknown> = {
   baseURL?: string

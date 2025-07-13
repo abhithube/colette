@@ -1,8 +1,4 @@
 {
-  "extends": "../../tsconfig.node.json",
-  "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "bundler"
-  },
-  "include": ["lib"]
+  "files": [],
+  "references": [{ "path": "./tsconfig.app.json" }]
 }

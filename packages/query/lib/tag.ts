@@ -5,7 +5,7 @@ import {
   updateTag,
   deleteTag,
 } from '@colette/core/http'
-import {
+import type {
   TagCreate,
   GetTagQueryParams,
   ListTagsQueryParams,

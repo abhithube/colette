@@ -1,4 +1,4 @@
-import { FormatDistanceToken, formatDistanceToNowStrict } from 'date-fns'
+import { type FormatDistanceToken, formatDistanceToNowStrict } from 'date-fns'
 import * as locale from 'date-fns/locale/en-US'
 
 const formatDistanceLocale: Record<FormatDistanceToken, string> = {

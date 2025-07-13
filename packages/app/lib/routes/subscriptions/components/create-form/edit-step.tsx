@@ -1,4 +1,4 @@
-import { Feed } from '@colette/core/types'
+import type { Feed } from '@colette/core/types'
 import { createSubscriptionFormOptions } from '@colette/form'
 import { useCreateSubscriptionMutation } from '@colette/query'
 import { Field } from '@colette/ui'

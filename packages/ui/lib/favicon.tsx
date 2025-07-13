@@ -1,4 +1,4 @@
-import { ark, HTMLArkProps } from '@ark-ui/react'
+import { ark, type HTMLArkProps } from '@ark-ui/react'
 
 export type FaviconProps = HTMLArkProps<'img'>
 

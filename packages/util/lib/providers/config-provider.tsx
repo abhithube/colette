@@ -1,5 +1,5 @@
-import { Config } from '@colette/core/types'
-import { PropsWithChildren, createContext, useContext } from 'react'
+import type { Config } from '@colette/core/types'
+import { type PropsWithChildren, createContext, useContext } from 'react'
 
 const ConfigContext = createContext<Config | undefined>(undefined)
 

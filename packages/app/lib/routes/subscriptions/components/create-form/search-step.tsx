@@ -1,4 +1,4 @@
-import { FeedDetected } from '@colette/core/types'
+import type { FeedDetected } from '@colette/core/types'
 import { detectFeedsFormOptions } from '@colette/form'
 import { useDetectFeedsMutation } from '@colette/query'
 import { Field } from '@colette/ui'

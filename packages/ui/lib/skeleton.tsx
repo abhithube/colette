@@ -1,5 +1,5 @@
 import { cn } from './utils'
-import { ark, HTMLArkProps } from '@ark-ui/react'
+import { ark, type HTMLArkProps } from '@ark-ui/react'
 
 export type SkeletonProps = HTMLArkProps<'div'>
 

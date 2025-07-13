@@ -1,5 +1,5 @@
 import { cn } from './utils'
-import { HTMLArkProps, ark } from '@ark-ui/react'
+import { type HTMLArkProps, ark } from '@ark-ui/react'
 
 export type SeparatorProps = HTMLArkProps<'div'> & {
   orientation?: 'vertical' | 'horizontal'

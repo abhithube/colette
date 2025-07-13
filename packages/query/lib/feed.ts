@@ -1,5 +1,5 @@
 import { detectFeeds, scrapeFeed } from '@colette/core/http'
-import { FeedDetect, FeedScrape } from '@colette/core/types'
+import type { FeedDetect, FeedScrape } from '@colette/core/types'
 import { useMutation } from '@tanstack/react-query'
 
 export const useDetectFeedsMutation = () => {

@@ -1,6 +1,6 @@
 import { EditStep } from './edit-step'
 import { SearchStep } from './search-step'
-import { BookmarkScraped } from '@colette/core/types'
+import type { BookmarkScraped } from '@colette/core/types'
 import { CREATE_BOOKMARK_FORM, SCRAPE_BOOKMARK_FORM } from '@colette/form'
 import { Button, Dialog, Steps } from '@colette/ui'
 import { useState } from 'react'

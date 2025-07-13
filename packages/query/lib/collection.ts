@@ -5,7 +5,7 @@ import {
   listCollections,
   updateCollection,
 } from '@colette/core/http'
-import { CollectionCreate, CollectionUpdate } from '@colette/core/types'
+import type { CollectionCreate, CollectionUpdate } from '@colette/core/types'
 import {
   queryOptions,
   useMutation,

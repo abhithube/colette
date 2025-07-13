@@ -10,7 +10,7 @@ import {
   markSubscriptionEntryAsUnread,
   updateSubscription,
 } from '@colette/core/http'
-import {
+import type {
   GetSubscriptionQueryParams,
   LinkSubscriptionTags,
   ListSubscriptionsQueryParams,

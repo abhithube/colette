@@ -1,5 +1,5 @@
 import { Thumbnail } from '../../../components/thumbnail'
-import { SubscriptionEntryDetails } from '@colette/core/types'
+import type { SubscriptionEntryDetails } from '@colette/core/types'
 import {
   useMarkSubscriptionEntryAsReadMutation,
   useMarkSubscriptionEntryAsUnreadMutation,

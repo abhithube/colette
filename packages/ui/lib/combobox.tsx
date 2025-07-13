@@ -1,5 +1,5 @@
 import { cn } from './utils'
-import { Combobox, HTMLArkProps, ark } from '@ark-ui/react'
+import { Combobox, type HTMLArkProps, ark } from '@ark-ui/react'
 import { Search } from 'lucide-react'
 
 export type RootProps<T extends Combobox.CollectionItem> = Combobox.RootProps<T>

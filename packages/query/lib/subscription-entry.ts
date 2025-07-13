@@ -1,5 +1,5 @@
 import { listSubscriptionEntries } from '@colette/core/http'
-import { ListSubscriptionEntriesQueryParams } from '@colette/core/types'
+import type { ListSubscriptionEntriesQueryParams } from '@colette/core/types'
 import { infiniteQueryOptions } from '@tanstack/react-query'
 
 export const SUBSCRIPTION_ENTRIES_PREFIX = 'subscriptionEntries'

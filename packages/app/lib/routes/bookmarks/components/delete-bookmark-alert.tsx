@@ -1,4 +1,4 @@
-import { Bookmark } from '@colette/core/types'
+import type { Bookmark } from '@colette/core/types'
 import { useDeleteBookmarkMutation } from '@colette/query'
 import { Button, Dialog } from '@colette/ui'
 

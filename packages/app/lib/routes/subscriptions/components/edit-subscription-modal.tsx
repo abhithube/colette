@@ -1,4 +1,4 @@
-import { Subscription } from '@colette/core/types'
+import type { Subscription } from '@colette/core/types'
 import {
   UPDATE_SUBSCRIPTION_FORM,
   updateSubscriptionFormOptions,

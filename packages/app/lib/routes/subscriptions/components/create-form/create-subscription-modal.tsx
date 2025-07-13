@@ -1,7 +1,7 @@
 import { EditStep } from './edit-step'
 import { SearchStep } from './search-step'
 import { SelectStep } from './select-step'
-import { Feed, FeedDetected } from '@colette/core/types'
+import type { Feed, FeedDetected } from '@colette/core/types'
 import {
   CREATE_SUBSCRIPTION_FORM,
   DETECT_FEEDS_FORM,

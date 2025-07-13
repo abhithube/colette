@@ -1,5 +1,5 @@
 import { TagsInput } from '../../../components/tags-input'
-import { BookmarkDetails } from '@colette/core/types'
+import type { BookmarkDetails } from '@colette/core/types'
 import {
   LINK_BOOKMARK_TAGS_FORM,
   linkBookmarkTagsFormOptions,
