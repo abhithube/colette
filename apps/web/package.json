@@ -15,7 +15,7 @@
     "@tanstack/react-router-devtools": "^1.117.1",
     "react": "*",
     "react-dom": "*",
-    "react-scan": "^0.3.4"
+    "react-scan": "^0.4.3"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.4",

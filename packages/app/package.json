@@ -14,7 +14,7 @@
     "@colette/util": "*",
     "@tanstack/react-form": "*",
     "@tanstack/react-query": "*",
-    "lucide-react": "^0.486.0",
+    "lucide-react": "^0.525.0",
     "react": "*",
     "react-dom": "*",
     "zod": "*"
