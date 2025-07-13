@@ -4,7 +4,7 @@ use chrono::Utc;
 use uuid::Uuid;
 
 use super::{Error, Tag, TagCursor, TagParams, TagRepository, TagType};
-use crate::common::{PAGINATION_LIMIT, Paginated, Paginator};
+use crate::pagination::{Paginated, paginate};
 
 pub struct TagService {
     repository: Arc<dyn TagRepository>,
@@ -19,27 +19,24 @@ impl TagService {
         &self,
         query: TagListQuery,
         user_id: Uuid,
-    ) -> Result<Paginated<Tag>, Error> {
-        let cursor = query
-            .cursor
-            .map(|e| Paginator::decode_cursor::<TagCursor>(&e))
-            .transpose()?;
-
+    ) -> Result<Paginated<Tag, TagCursor>, Error> {
         let tags = self
             .repository
             .query(TagParams {
                 tag_type: query.tag_type,
                 user_id: Some(user_id),
-                cursor: cursor.map(|e| e.title),
-                limit: Some(PAGINATION_LIMIT + 1),
+                cursor: query.cursor.map(|e| e.title),
+                limit: query.limit.map(|e| e + 1),
                 with_subscription_count: true,
                 ..Default::default()
             })
             .await?;
 
-        let data = Paginator::paginate(tags, PAGINATION_LIMIT)?;
-
-        Ok(data)
+        if let Some(limit) = query.limit {
+            Ok(paginate(tags, limit))
+        } else {
+            Ok(Paginated::default())
+        }
     }
 
     pub async fn get_tag(&self, query: TagGetQuery, user_id: Uuid) -> Result<Tag, Error> {
@@ -107,7 +104,8 @@ impl TagService {
 #[derive(Debug, Clone, Default)]
 pub struct TagListQuery {
     pub tag_type: Option<TagType>,
-    pub cursor: Option<String>,
+    pub cursor: Option<TagCursor>,
+    pub limit: Option<usize>,
     pub with_subscription_count: bool,
     pub with_bookmark_count: bool,
 }

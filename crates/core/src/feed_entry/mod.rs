@@ -4,10 +4,7 @@ pub use feed_entry_service::*;
 use url::Url;
 use uuid::Uuid;
 
-use crate::{
-    common::{Cursor, CursorError},
-    stream,
-};
+use crate::{pagination::Cursor, stream};
 
 mod feed_entry_repository;
 mod feed_entry_service;
@@ -52,9 +49,6 @@ pub enum Error {
 
     #[error(transparent)]
     Stream(#[from] stream::Error),
-
-    #[error(transparent)]
-    Cursor(#[from] CursorError),
 
     #[error(transparent)]
     PostgresPool(#[from] deadpool_postgres::PoolError),

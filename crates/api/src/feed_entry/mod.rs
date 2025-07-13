@@ -4,7 +4,7 @@ use url::Url;
 use utoipa::OpenApi;
 use uuid::Uuid;
 
-use super::{ApiState, common::Paginated};
+use crate::{ApiState, pagination::Paginated};
 
 mod get_feed_entry;
 mod list_feed_entries;

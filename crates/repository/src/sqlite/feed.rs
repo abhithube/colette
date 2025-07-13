@@ -37,8 +37,8 @@ impl FeedRepository for SqliteFeedRepository {
                         .source_urls
                         .as_ref()
                         .map(|e| e.iter().map(|e| e.as_str()).collect()),
-                    cursor: params.cursor.as_deref(),
-                    limit: params.limit,
+                    cursor: params.cursor.as_ref().map(|e| e.as_str()),
+                    limit: params.limit.map(|e| e as u64),
                 }
                 .into_select()
                 .build_rusqlite(SqliteQueryBuilder);

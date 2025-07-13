@@ -7,7 +7,7 @@ use super::{
     SubscriptionEntryParams, SubscriptionEntryRepository,
 };
 use crate::{
-    common::{PAGINATION_LIMIT, Paginated, Paginator},
+    pagination::{Paginated, paginate},
     stream::{StreamParams, StreamRepository},
 };
 
@@ -31,12 +31,7 @@ impl SubscriptionEntryService {
         &self,
         query: SubscriptionEntryListQuery,
         user_id: Uuid,
-    ) -> Result<Paginated<SubscriptionEntry>, Error> {
-        let cursor = query
-            .cursor
-            .map(|e| Paginator::decode_cursor::<SubscriptionEntryCursor>(&e))
-            .transpose()?;
-
+    ) -> Result<Paginated<SubscriptionEntry, SubscriptionEntryCursor>, Error> {
         let mut filter = Option::<SubscriptionEntryFilter>::None;
         if let Some(stream_id) = query.stream_id {
             let mut streams = self
@@ -65,16 +60,18 @@ impl SubscriptionEntryService {
                 has_read: query.has_read,
                 tags: query.tags,
                 user_id: Some(user_id),
-                cursor: cursor.map(|e| (e.published_at, e.id)),
-                limit: Some(PAGINATION_LIMIT + 1),
+                cursor: query.cursor.map(|e| (e.published_at, e.id)),
+                limit: query.limit.map(|e| e + 1),
                 with_read_entry: true,
                 ..Default::default()
             })
             .await?;
 
-        let data = Paginator::paginate(subscription_entries, PAGINATION_LIMIT)?;
-
-        Ok(data)
+        if let Some(limit) = query.limit {
+            Ok(paginate(subscription_entries, limit))
+        } else {
+            Ok(Paginated::default())
+        }
     }
 }
 
@@ -84,5 +81,6 @@ pub struct SubscriptionEntryListQuery {
     pub subscription_id: Option<Uuid>,
     pub has_read: Option<bool>,
     pub tags: Option<Vec<Uuid>>,
-    pub cursor: Option<String>,
+    pub cursor: Option<SubscriptionEntryCursor>,
+    pub limit: Option<usize>,
 }

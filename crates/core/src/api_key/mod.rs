@@ -3,7 +3,7 @@ pub use api_key_service::*;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::common::{Cursor, CursorError};
+use crate::pagination::Cursor;
 
 mod api_key_repository;
 mod api_key_service;
@@ -51,9 +51,6 @@ pub enum Error {
 
     #[error(transparent)]
     Crypto(#[from] colette_util::CryptoError),
-
-    #[error(transparent)]
-    Cursor(#[from] CursorError),
 
     #[error(transparent)]
     PostgresPool(#[from] deadpool_postgres::PoolError),

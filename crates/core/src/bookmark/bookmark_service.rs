@@ -19,8 +19,8 @@ use super::{
 use crate::{
     Tag,
     collection::{CollectionParams, CollectionRepository},
-    common::{PAGINATION_LIMIT, Paginated, Paginator},
     job::{Job, JobRepository},
+    pagination::{Paginated, paginate},
     tag::TagRepository,
 };
 
@@ -68,12 +68,7 @@ impl BookmarkService {
         &self,
         query: BookmarkListQuery,
         user_id: Uuid,
-    ) -> Result<Paginated<Bookmark>, Error> {
-        let cursor = query
-            .cursor
-            .map(|e| Paginator::decode_cursor::<BookmarkCursor>(&e))
-            .transpose()?;
-
+    ) -> Result<Paginated<Bookmark, BookmarkCursor>, Error> {
         let mut filter = Option::<BookmarkFilter>::None;
         if let Some(collection_id) = query.collection_id {
             let mut collections = self
@@ -85,10 +80,7 @@ impl BookmarkService {
                 })
                 .await?;
             if collections.is_empty() {
-                return Ok(Paginated {
-                    items: Default::default(),
-                    cursor: None,
-                });
+                return Ok(Paginated::default());
             }
 
             filter = Some(collections.swap_remove(0).filter);
@@ -100,16 +92,18 @@ impl BookmarkService {
                 filter,
                 tags: query.tags,
                 user_id: Some(user_id),
-                cursor: cursor.map(|e| e.created_at),
-                limit: Some(PAGINATION_LIMIT + 1),
+                cursor: query.cursor.map(|e| e.created_at),
+                limit: query.limit.map(|e| e + 1),
                 with_tags: query.with_tags,
                 ..Default::default()
             })
             .await?;
 
-        let data = Paginator::paginate(bookmarks, PAGINATION_LIMIT)?;
-
-        Ok(data)
+        if let Some(limit) = query.limit {
+            Ok(paginate(bookmarks, limit))
+        } else {
+            Ok(Paginated::default())
+        }
     }
 
     pub async fn get_bookmark(
@@ -508,7 +502,8 @@ impl BookmarkService {
 pub struct BookmarkListQuery {
     pub collection_id: Option<Uuid>,
     pub tags: Option<Vec<Uuid>>,
-    pub cursor: Option<String>,
+    pub cursor: Option<BookmarkCursor>,
+    pub limit: Option<usize>,
     pub with_tags: bool,
 }
 

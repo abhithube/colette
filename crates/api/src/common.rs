@@ -13,7 +13,7 @@ use axum_extra::{
 use chrono::{DateTime, Utc};
 use colette_core::{
     api_key::ApiKeyService, auth::AuthService, backup::BackupService, bookmark::BookmarkService,
-    collection::CollectionService, common, feed::FeedService, feed_entry::FeedEntryService, filter,
+    collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService, filter,
     job::JobService, stream::StreamService, subscription::SubscriptionService,
     subscription_entry::SubscriptionEntryService, tag::TagService,
 };
@@ -120,30 +120,6 @@ impl From<NonEmptyString> for String {
 pub(crate) enum ValidationError {
     #[error("cannot be empty")]
     Empty,
-}
-
-/// Paginated list of results
-#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct Paginated<T: utoipa::ToSchema> {
-    /// Current set of results
-    pub(crate) items: Vec<T>,
-    /// Pagination cursor, only present if more results are available
-    #[schema(nullable = false)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) cursor: Option<String>,
-}
-
-impl<T, U> From<common::Paginated<U>> for Paginated<T>
-where
-    T: From<U> + utoipa::ToSchema,
-{
-    fn from(value: common::Paginated<U>) -> Self {
-        Self {
-            items: value.items.into_iter().map(T::from).collect(),
-            cursor: value.cursor,
-        }
-    }
 }
 
 pub(crate) async fn verify_auth_extension(

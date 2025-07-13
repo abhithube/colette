@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use utoipa::OpenApi;
 use uuid::Uuid;
 
-use super::{ApiState, common::Paginated, feed::Feed, tag::Tag};
+use crate::{ApiState, feed::Feed, pagination::Paginated, tag::Tag};
 
 mod create_subscription;
 mod delete_subscription;

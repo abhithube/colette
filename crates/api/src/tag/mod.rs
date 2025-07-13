@@ -3,8 +3,7 @@ use chrono::{DateTime, Utc};
 use utoipa::OpenApi;
 use uuid::Uuid;
 
-use super::ApiState;
-use crate::common::Paginated;
+use crate::{ApiState, pagination::Paginated};
 
 mod create_tag;
 mod delete_tag;

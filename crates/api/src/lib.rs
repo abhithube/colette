@@ -41,6 +41,7 @@ mod common;
 pub mod config;
 mod feed;
 mod feed_entry;
+mod pagination;
 mod stream;
 mod subscription;
 mod subscription_entry;

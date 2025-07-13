@@ -18,7 +18,6 @@ colette-storage.workspace = true
 colette-util.workspace = true
 deadpool-postgres.workspace = true
 deadpool-sqlite.workspace = true
-futures.workspace = true
 http.workspace = true
 http-body-util.workspace = true
 image = { version = "0.25.5", default-features = false }

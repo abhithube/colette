@@ -4,13 +4,14 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::bookmark;
+use colette_core::bookmark::{self, BookmarkCursor};
 use uuid::Uuid;
 
 use super::{BOOKMARKS_TAG, BookmarkDetails};
 use crate::{
     ApiState,
-    common::{ApiError, Auth, Paginated, Query},
+    common::{ApiError, Auth, Query},
+    pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
 };
 
 #[utoipa::path(
@@ -30,10 +31,16 @@ pub(super) async fn handler(
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .bookmark_service
-        .list_bookmarks(query.into(), user_id)
+        .list_bookmarks(query.try_into()?, user_id)
         .await
     {
-        Ok(data) => Ok(OkResponse(data.into())),
+        Ok(bookmarks) => {
+            let data = bookmarks
+                .try_into()
+                .map_err(ErrResponse::InternalServerError)?;
+
+            Ok(OkResponse(data))
+        }
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
@@ -64,18 +71,27 @@ fn with_tags() -> bool {
     false
 }
 
-impl From<BookmarkListQuery> for bookmark::BookmarkListQuery {
-    fn from(value: BookmarkListQuery) -> Self {
-        Self {
+impl TryFrom<BookmarkListQuery> for bookmark::BookmarkListQuery {
+    type Error = ErrResponse;
+
+    fn try_from(value: BookmarkListQuery) -> Result<Self, Self::Error> {
+        let cursor = value
+            .cursor
+            .map(|e| decode_cursor::<BookmarkCursor>(&e))
+            .transpose()
+            .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
+
+        Ok(Self {
             collection_id: value.collection_id,
             tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
                 value.tags
             } else {
                 None
             },
-            cursor: value.cursor,
+            cursor,
+            limit: Some(PAGINATION_LIMIT),
             with_tags: value.with_tags,
-        }
+        })
     }
 }
 

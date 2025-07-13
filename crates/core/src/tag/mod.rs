@@ -3,7 +3,7 @@ pub use tag_repository::*;
 pub use tag_service::*;
 use uuid::Uuid;
 
-use crate::common::{Cursor, CursorError};
+use crate::pagination::Cursor;
 
 mod tag_repository;
 mod tag_service;
@@ -56,9 +56,6 @@ pub enum Error {
 
     #[error("tag already exists with title: {0}")]
     Conflict(String),
-
-    #[error(transparent)]
-    Cursor(#[from] CursorError),
 
     #[error(transparent)]
     PostgresPool(#[from] deadpool_postgres::PoolError),

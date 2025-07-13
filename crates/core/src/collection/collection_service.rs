@@ -6,7 +6,7 @@ use uuid::Uuid;
 use super::{Collection, CollectionCursor, CollectionParams, CollectionRepository, Error};
 use crate::{
     bookmark::BookmarkFilter,
-    common::{PAGINATION_LIMIT, Paginated, Paginator},
+    pagination::{Paginated, paginate},
 };
 
 pub struct CollectionService {
@@ -22,25 +22,22 @@ impl CollectionService {
         &self,
         query: CollectionListQuery,
         user_id: Uuid,
-    ) -> Result<Paginated<Collection>, Error> {
-        let cursor = query
-            .cursor
-            .map(|e| Paginator::decode_cursor::<CollectionCursor>(&e))
-            .transpose()?;
-
+    ) -> Result<Paginated<Collection, CollectionCursor>, Error> {
         let collections = self
             .repository
             .query(CollectionParams {
                 user_id: Some(user_id),
-                cursor: cursor.map(|e| e.title),
-                limit: Some(PAGINATION_LIMIT + 1),
+                cursor: query.cursor.map(|e| e.title),
+                limit: query.limit.map(|e| e + 1),
                 ..Default::default()
             })
             .await?;
 
-        let data = Paginator::paginate(collections, PAGINATION_LIMIT)?;
-
-        Ok(data)
+        if let Some(limit) = query.limit {
+            Ok(paginate(collections, limit))
+        } else {
+            Ok(Paginated::default())
+        }
     }
 
     pub async fn get_collection(&self, id: Uuid, user_id: Uuid) -> Result<Collection, Error> {
@@ -121,7 +118,8 @@ impl CollectionService {
 
 #[derive(Debug, Clone, Default)]
 pub struct CollectionListQuery {
-    pub cursor: Option<String>,
+    pub cursor: Option<CollectionCursor>,
+    pub limit: Option<usize>,
 }
 
 #[derive(Debug, Clone)]

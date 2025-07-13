@@ -7,8 +7,7 @@ use axum::{
 };
 use utoipa::OpenApi;
 
-use super::ApiState;
-use crate::ApiConfig;
+use crate::{ApiConfig, ApiState};
 
 const CONFIG_TAG: &str = "Config";
 

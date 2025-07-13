@@ -4,12 +4,13 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::tag;
+use colette_core::tag::{self, TagCursor};
 
 use super::{TAGS_TAG, TagDetails};
 use crate::{
     ApiState,
-    common::{ApiError, Auth, Paginated, Query},
+    common::{ApiError, Auth, Query},
+    pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
 };
 
 #[utoipa::path(
@@ -27,8 +28,16 @@ pub(super) async fn handler(
     Query(query): Query<TagListQuery>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.tag_service.list_tags(query.into(), user_id).await {
-        Ok(data) => Ok(OkResponse(data.into())),
+    match state
+        .tag_service
+        .list_tags(query.try_into()?, user_id)
+        .await
+    {
+        Ok(tags) => {
+            let data = tags.try_into().map_err(ErrResponse::InternalServerError)?;
+
+            Ok(OkResponse(data))
+        }
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
@@ -59,14 +68,23 @@ fn with_bookmark_count() -> bool {
     false
 }
 
-impl From<TagListQuery> for tag::TagListQuery {
-    fn from(value: TagListQuery) -> Self {
-        Self {
+impl TryFrom<TagListQuery> for tag::TagListQuery {
+    type Error = ErrResponse;
+
+    fn try_from(value: TagListQuery) -> Result<Self, Self::Error> {
+        let cursor = value
+            .cursor
+            .map(|e| decode_cursor::<TagCursor>(&e))
+            .transpose()
+            .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
+
+        Ok(Self {
             tag_type: value.tag_type.map(Into::into),
-            cursor: value.cursor,
+            cursor,
+            limit: Some(PAGINATION_LIMIT),
             with_subscription_count: value.with_subscription_count,
             with_bookmark_count: value.with_bookmark_count,
-        }
+        })
     }
 }
 

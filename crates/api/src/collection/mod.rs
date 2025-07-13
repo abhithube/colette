@@ -3,8 +3,7 @@ use chrono::{DateTime, Utc};
 use utoipa::OpenApi;
 use uuid::Uuid;
 
-use super::{ApiState, bookmark::BookmarkFilter};
-use crate::common::Paginated;
+use crate::{ApiState, bookmark::BookmarkFilter, pagination::Paginated};
 
 mod create_collection;
 mod delete_collection;

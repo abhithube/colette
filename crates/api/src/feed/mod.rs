@@ -4,7 +4,7 @@ use url::Url;
 use utoipa::OpenApi;
 use uuid::Uuid;
 
-use super::ApiState;
+use crate::ApiState;
 
 mod detect_feeds;
 mod scrape_feed;

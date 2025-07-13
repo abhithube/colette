@@ -3,11 +3,7 @@ pub use subscription_repository::*;
 pub use subscription_service::*;
 use uuid::Uuid;
 
-use crate::{
-    Feed, Tag,
-    common::{Cursor, CursorError},
-    job, subscription_entry, tag,
-};
+use crate::{Feed, Tag, job, pagination::Cursor, subscription_entry, tag};
 
 mod subscription_repository;
 mod subscription_service;
@@ -75,9 +71,6 @@ pub enum Error {
 
     #[error(transparent)]
     Opml(#[from] colette_opml::Error),
-
-    #[error(transparent)]
-    Cursor(#[from] CursorError),
 
     #[error(transparent)]
     Serde(#[from] serde_json::Error),

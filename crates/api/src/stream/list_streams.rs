@@ -4,12 +4,13 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::stream;
+use colette_core::stream::{self, StreamCursor};
 
 use super::{STREAMS_TAG, Stream};
 use crate::{
     ApiState,
-    common::{ApiError, Auth, Paginated, Query},
+    common::{ApiError, Auth, Query},
+    pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
 };
 
 #[utoipa::path(
@@ -29,10 +30,16 @@ pub(super) async fn handler(
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .stream_service
-        .list_streams(query.into(), user_id)
+        .list_streams(query.try_into()?, user_id)
         .await
     {
-        Ok(data) => Ok(OkResponse(data.into())),
+        Ok(streams) => {
+            let data = streams
+                .try_into()
+                .map_err(ErrResponse::InternalServerError)?;
+
+            Ok(OkResponse(data))
+        }
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
@@ -46,11 +53,20 @@ pub(super) struct StreamListQuery {
     cursor: Option<String>,
 }
 
-impl From<StreamListQuery> for stream::StreamListQuery {
-    fn from(value: StreamListQuery) -> Self {
-        Self {
-            cursor: value.cursor,
-        }
+impl TryFrom<StreamListQuery> for stream::StreamListQuery {
+    type Error = ErrResponse;
+
+    fn try_from(value: StreamListQuery) -> Result<Self, Self::Error> {
+        let cursor = value
+            .cursor
+            .map(|e| decode_cursor::<StreamCursor>(&e))
+            .transpose()
+            .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
+
+        Ok(Self {
+            cursor,
+            limit: Some(PAGINATION_LIMIT),
+        })
     }
 }
 

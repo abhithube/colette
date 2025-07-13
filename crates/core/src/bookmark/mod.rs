@@ -7,9 +7,10 @@ use uuid::Uuid;
 
 use crate::{
     Tag, collection,
-    common::{Cursor, CursorError},
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
-    job, tag,
+    job,
+    pagination::Cursor,
+    tag,
 };
 
 mod bookmark_repository;
@@ -137,9 +138,6 @@ pub enum Error {
 
     #[error(transparent)]
     Scraper(#[from] colette_scraper::bookmark::BookmarkError),
-
-    #[error(transparent)]
-    Cursor(#[from] CursorError),
 
     #[error(transparent)]
     Serde(#[from] serde_json::Error),

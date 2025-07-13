@@ -5,8 +5,8 @@ use uuid::Uuid;
 
 use crate::{
     FeedEntry,
-    common::{Cursor, CursorError},
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
+    pagination::Cursor,
     stream,
 };
 
@@ -105,9 +105,6 @@ pub enum Error {
 
     #[error(transparent)]
     Stream(#[from] stream::Error),
-
-    #[error(transparent)]
-    Cursor(#[from] CursorError),
 
     #[error(transparent)]
     PostgresPool(#[from] deadpool_postgres::PoolError),

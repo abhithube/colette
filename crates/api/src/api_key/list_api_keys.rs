@@ -4,12 +4,13 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::api_key;
+use colette_core::api_key::{self, ApiKeyCursor};
 
 use super::{API_KEYS_TAG, ApiKey};
 use crate::{
     ApiState,
-    common::{ApiError, Auth, Paginated, Query},
+    common::{ApiError, Auth, Query},
+    pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
 };
 
 #[utoipa::path(
@@ -29,10 +30,16 @@ pub(super) async fn handler(
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .api_key_service
-        .list_api_keys(query.into(), user_id)
+        .list_api_keys(query.try_into()?, user_id)
         .await
     {
-        Ok(data) => Ok(OkResponse(data.into())),
+        Ok(api_keys) => {
+            let data = api_keys
+                .try_into()
+                .map_err(ErrResponse::InternalServerError)?;
+
+            Ok(OkResponse(data))
+        }
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
@@ -46,11 +53,20 @@ pub(super) struct ApiKeyListQuery {
     cursor: Option<String>,
 }
 
-impl From<ApiKeyListQuery> for api_key::ApiKeyListQuery {
-    fn from(value: ApiKeyListQuery) -> Self {
-        Self {
-            cursor: value.cursor,
-        }
+impl TryFrom<ApiKeyListQuery> for api_key::ApiKeyListQuery {
+    type Error = ErrResponse;
+
+    fn try_from(value: ApiKeyListQuery) -> Result<Self, Self::Error> {
+        let cursor = value
+            .cursor
+            .map(|e| decode_cursor::<ApiKeyCursor>(&e))
+            .transpose()
+            .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
+
+        Ok(Self {
+            cursor,
+            limit: Some(PAGINATION_LIMIT),
+        })
     }
 }
 

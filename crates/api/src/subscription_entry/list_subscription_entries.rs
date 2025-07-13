@@ -4,13 +4,14 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::subscription_entry;
+use colette_core::subscription_entry::{self, SubscriptionEntryCursor};
 use uuid::Uuid;
 
 use super::{SUBSCRIPTION_ENTRIES_TAG, SubscriptionEntryDetails};
 use crate::{
     ApiState,
-    common::{ApiError, Auth, Paginated, Query},
+    common::{ApiError, Auth, Query},
+    pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
 };
 
 #[utoipa::path(
@@ -30,10 +31,16 @@ pub(super) async fn handler(
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .subscription_entry_service
-        .list_subscription_entries(query.into(), user_id)
+        .list_subscription_entries(query.try_into()?, user_id)
         .await
     {
-        Ok(data) => Ok(OkResponse(data.into())),
+        Ok(subscription_entries) => {
+            let data = subscription_entries
+                .try_into()
+                .map_err(ErrResponse::InternalServerError)?;
+
+            Ok(OkResponse(data))
+        }
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
@@ -60,15 +67,24 @@ pub(super) struct SubscriptionEntryListQuery {
     cursor: Option<String>,
 }
 
-impl From<SubscriptionEntryListQuery> for subscription_entry::SubscriptionEntryListQuery {
-    fn from(value: SubscriptionEntryListQuery) -> Self {
-        Self {
+impl TryFrom<SubscriptionEntryListQuery> for subscription_entry::SubscriptionEntryListQuery {
+    type Error = ErrResponse;
+
+    fn try_from(value: SubscriptionEntryListQuery) -> Result<Self, Self::Error> {
+        let cursor = value
+            .cursor
+            .map(|e| decode_cursor::<SubscriptionEntryCursor>(&e))
+            .transpose()
+            .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
+
+        Ok(Self {
             stream_id: value.stream_id,
             subscription_id: value.subscription_id,
             has_read: value.has_read,
             tags: value.tags,
-            cursor: value.cursor,
-        }
+            cursor,
+            limit: Some(PAGINATION_LIMIT),
+        })
     }
 }
 

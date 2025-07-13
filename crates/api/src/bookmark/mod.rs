@@ -5,12 +5,12 @@ use url::Url;
 use utoipa::OpenApi;
 use uuid::Uuid;
 
-use super::{
+use crate::{
     ApiState,
     common::{DateOp, TextOp},
+    pagination::Paginated,
     tag::Tag,
 };
-use crate::common::Paginated;
 
 mod create_bookmark;
 mod delete_bookmark;

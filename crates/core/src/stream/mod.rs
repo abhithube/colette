@@ -3,10 +3,7 @@ pub use stream_repository::*;
 pub use stream_service::*;
 use uuid::Uuid;
 
-use crate::{
-    common::{Cursor, CursorError},
-    subscription_entry::SubscriptionEntryFilter,
-};
+use crate::{pagination::Cursor, subscription_entry::SubscriptionEntryFilter};
 
 mod stream_repository;
 mod stream_service;
@@ -49,9 +46,6 @@ pub enum Error {
 
     #[error("stream already exists with title: {0}")]
     Conflict(String),
-
-    #[error(transparent)]
-    Cursor(#[from] CursorError),
 
     #[error(transparent)]
     PostgresPool(#[from] deadpool_postgres::PoolError),

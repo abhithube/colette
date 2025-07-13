@@ -4,10 +4,11 @@ use colette_core::subscription_entry;
 use utoipa::OpenApi;
 use uuid::Uuid;
 
-use super::{
+use crate::{
     ApiState,
-    common::{BooleanOp, DateOp, Paginated, TextOp},
+    common::{BooleanOp, DateOp, TextOp},
     feed_entry::FeedEntry,
+    pagination::Paginated,
 };
 
 mod list_subscription_entries;

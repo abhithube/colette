@@ -4,13 +4,14 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::subscription;
+use colette_core::subscription::{self, SubscriptionCursor};
 use uuid::Uuid;
 
 use super::{SUBSCRIPTIONS_TAG, SubscriptionDetails};
 use crate::{
     ApiState,
-    common::{ApiError, Auth, Paginated, Query},
+    common::{ApiError, Auth, Query},
+    pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
 };
 
 #[utoipa::path(
@@ -30,10 +31,16 @@ pub(super) async fn handler(
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .subscription_service
-        .list_subscriptions(query.into(), user_id)
+        .list_subscriptions(query.try_into()?, user_id)
         .await
     {
-        Ok(data) => Ok(OkResponse(data.into())),
+        Ok(subscriptions) => {
+            let data = subscriptions
+                .try_into()
+                .map_err(ErrResponse::InternalServerError)?;
+
+            Ok(OkResponse(data))
+        }
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
@@ -75,19 +82,28 @@ fn with_tags() -> bool {
     false
 }
 
-impl From<SubscriptionListQuery> for subscription::SubscriptionListQuery {
-    fn from(value: SubscriptionListQuery) -> Self {
-        Self {
+impl TryFrom<SubscriptionListQuery> for subscription::SubscriptionListQuery {
+    type Error = ErrResponse;
+
+    fn try_from(value: SubscriptionListQuery) -> Result<Self, Self::Error> {
+        let cursor = value
+            .cursor
+            .map(|e| decode_cursor::<SubscriptionCursor>(&e))
+            .transpose()
+            .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
+
+        Ok(Self {
             tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
                 value.tags
             } else {
                 None
             },
-            cursor: value.cursor,
+            cursor,
+            limit: Some(PAGINATION_LIMIT),
             with_feed: value.with_feed,
             with_unread_count: value.with_unread_count,
             with_tags: value.with_tags,
-        }
+        })
     }
 }
 

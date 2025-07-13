@@ -56,10 +56,11 @@ impl IntoSelect for FeedSelect<'_> {
             .apply_if(self.source_urls, |query, source_urls| {
                 query.and_where(Expr::col((Feed::Table, Feed::SourceUrl)).is_in(source_urls));
             })
-            .apply_if(self.cursor, |query, link| {
-                query.and_where(Expr::col((Feed::Table, Feed::Link)).gt(Expr::val(link)));
+            .apply_if(self.cursor, |query, source_url| {
+                query
+                    .and_where(Expr::col((Feed::Table, Feed::SourceUrl)).gt(Expr::val(source_url)));
             })
-            .order_by((Feed::Table, Feed::Link), Order::Asc)
+            .order_by((Feed::Table, Feed::SourceUrl), Order::Asc)
             .to_owned();
 
         if let Some(limit) = self.limit {

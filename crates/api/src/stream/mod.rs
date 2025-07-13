@@ -3,8 +3,7 @@ use chrono::{DateTime, Utc};
 use utoipa::OpenApi;
 use uuid::Uuid;
 
-use super::{ApiState, subscription_entry::SubscriptionEntryFilter};
-use crate::common::Paginated;
+use crate::{ApiState, pagination::Paginated, subscription_entry::SubscriptionEntryFilter};
 
 mod create_stream;
 mod delete_stream;

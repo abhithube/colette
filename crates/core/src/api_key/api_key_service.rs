@@ -7,7 +7,7 @@ use colette_util::{
 use uuid::Uuid;
 
 use super::{ApiKey, ApiKeyCursor, ApiKeyParams, ApiKeyRepository, Error};
-use crate::common::{PAGINATION_LIMIT, Paginated, Paginator};
+use crate::pagination::{Paginated, paginate};
 
 pub struct ApiKeyService {
     repository: Arc<dyn ApiKeyRepository>,
@@ -22,25 +22,22 @@ impl ApiKeyService {
         &self,
         query: ApiKeyListQuery,
         user_id: Uuid,
-    ) -> Result<Paginated<ApiKey>, Error> {
-        let cursor = query
-            .cursor
-            .map(|e| Paginator::decode_cursor::<ApiKeyCursor>(&e))
-            .transpose()?;
-
+    ) -> Result<Paginated<ApiKey, ApiKeyCursor>, Error> {
         let api_keys = self
             .repository
             .query(ApiKeyParams {
                 user_id: Some(user_id),
-                cursor: cursor.map(|e| e.created_at),
-                limit: Some(PAGINATION_LIMIT + 1),
+                cursor: query.cursor.map(|e| e.created_at),
+                limit: query.limit.map(|e| e + 1),
                 ..Default::default()
             })
             .await?;
 
-        let data = Paginator::paginate(api_keys, PAGINATION_LIMIT)?;
-
-        Ok(data)
+        if let Some(limit) = query.limit {
+            Ok(paginate(api_keys, limit))
+        } else {
+            Ok(Paginated::default())
+        }
     }
 
     pub async fn validate_api_key(&self, value: String) -> Result<ApiKey, Error> {
@@ -149,7 +146,8 @@ impl ApiKeyService {
 
 #[derive(Debug, Clone, Default)]
 pub struct ApiKeyListQuery {
-    pub cursor: Option<String>,
+    pub cursor: Option<ApiKeyCursor>,
+    pub limit: Option<usize>,
 }
 
 #[derive(Debug, Clone)]

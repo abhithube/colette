@@ -4,13 +4,14 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::feed_entry;
+use colette_core::feed_entry::{self, FeedEntryCursor};
 use uuid::Uuid;
 
 use super::{FEED_ENTRIES_TAG, FeedEntry};
 use crate::{
     ApiState,
-    common::{ApiError, Paginated, Query},
+    common::{ApiError, Query},
+    pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
 };
 
 #[utoipa::path(
@@ -29,10 +30,16 @@ pub(super) async fn handler(
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .feed_entry_service
-        .list_feed_entries(query.into())
+        .list_feed_entries(query.try_into()?)
         .await
     {
-        Ok(data) => Ok(OkResponse(data.into())),
+        Ok(feed_entries) => {
+            let data = feed_entries
+                .try_into()
+                .map_err(ErrResponse::InternalServerError)?;
+
+            Ok(OkResponse(data))
+        }
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
@@ -49,12 +56,21 @@ pub(super) struct FeedEntryListQuery {
     cursor: Option<String>,
 }
 
-impl From<FeedEntryListQuery> for feed_entry::FeedEntryListQuery {
-    fn from(value: FeedEntryListQuery) -> Self {
-        Self {
+impl TryFrom<FeedEntryListQuery> for feed_entry::FeedEntryListQuery {
+    type Error = ErrResponse;
+
+    fn try_from(value: FeedEntryListQuery) -> Result<Self, Self::Error> {
+        let cursor = value
+            .cursor
+            .map(|e| decode_cursor::<FeedEntryCursor>(&e))
+            .transpose()
+            .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
+
+        Ok(Self {
             feed_id: value.feed_id,
-            cursor: value.cursor,
-        }
+            cursor,
+            limit: Some(PAGINATION_LIMIT),
+        })
     }
 }
 
