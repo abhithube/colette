@@ -102,7 +102,10 @@ impl BookmarkService {
         if let Some(limit) = query.limit {
             Ok(paginate(bookmarks, limit))
         } else {
-            Ok(Paginated::default())
+            Ok(Paginated {
+                items: bookmarks,
+                ..Default::default()
+            })
         }
     }
 

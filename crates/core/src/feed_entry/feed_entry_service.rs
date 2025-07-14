@@ -31,7 +31,10 @@ impl FeedEntryService {
         if let Some(limit) = query.limit {
             Ok(paginate(feed_entries, limit))
         } else {
-            Ok(Paginated::default())
+            Ok(Paginated {
+                items: feed_entries,
+                ..Default::default()
+            })
         }
     }
 

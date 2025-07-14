@@ -36,7 +36,10 @@ impl CollectionService {
         if let Some(limit) = query.limit {
             Ok(paginate(collections, limit))
         } else {
-            Ok(Paginated::default())
+            Ok(Paginated {
+                items: collections,
+                ..Default::default()
+            })
         }
     }
 

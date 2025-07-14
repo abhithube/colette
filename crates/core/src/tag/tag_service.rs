@@ -35,7 +35,10 @@ impl TagService {
         if let Some(limit) = query.limit {
             Ok(paginate(tags, limit))
         } else {
-            Ok(Paginated::default())
+            Ok(Paginated {
+                items: tags,
+                ..Default::default()
+            })
         }
     }
 

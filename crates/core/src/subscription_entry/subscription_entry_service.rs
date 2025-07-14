@@ -70,7 +70,10 @@ impl SubscriptionEntryService {
         if let Some(limit) = query.limit {
             Ok(paginate(subscription_entries, limit))
         } else {
-            Ok(Paginated::default())
+            Ok(Paginated {
+                items: subscription_entries,
+                ..Default::default()
+            })
         }
     }
 }

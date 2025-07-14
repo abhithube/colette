@@ -36,7 +36,10 @@ impl ApiKeyService {
         if let Some(limit) = query.limit {
             Ok(paginate(api_keys, limit))
         } else {
-            Ok(Paginated::default())
+            Ok(Paginated {
+                items: api_keys,
+                ..Default::default()
+            })
         }
     }
 

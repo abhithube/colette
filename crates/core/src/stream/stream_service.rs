@@ -33,7 +33,10 @@ impl StreamService {
         if let Some(limit) = query.limit {
             Ok(paginate(streams, limit))
         } else {
-            Ok(Paginated::default())
+            Ok(Paginated {
+                items: streams,
+                ..Default::default()
+            })
         }
     }
 
