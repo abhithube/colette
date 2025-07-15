@@ -189,23 +189,22 @@ impl<'a, I: IntoIterator<Item = BookmarkBase<'a>>> IntoInsert for BookmarkInsert
                 Bookmark::CreatedAt,
                 Bookmark::UpdatedAt,
             ])
+            .returning_col(Bookmark::Id)
             .to_owned();
 
         if self.upsert {
-            query
-                .on_conflict(
-                    OnConflict::columns([Bookmark::UserId, Bookmark::Link])
-                        .update_columns([
-                            Bookmark::Title,
-                            Bookmark::ThumbnailUrl,
-                            Bookmark::PublishedAt,
-                            Bookmark::Author,
-                            Bookmark::ArchivedPath,
-                            Bookmark::UpdatedAt,
-                        ])
-                        .to_owned(),
-                )
-                .returning_col(Bookmark::Id);
+            query.on_conflict(
+                OnConflict::columns([Bookmark::UserId, Bookmark::Link])
+                    .update_columns([
+                        Bookmark::Title,
+                        Bookmark::ThumbnailUrl,
+                        Bookmark::PublishedAt,
+                        Bookmark::Author,
+                        Bookmark::ArchivedPath,
+                        Bookmark::UpdatedAt,
+                    ])
+                    .to_owned(),
+            );
         } else {
             query.on_conflict(
                 OnConflict::columns([Bookmark::Id])

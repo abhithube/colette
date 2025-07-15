@@ -243,14 +243,16 @@ impl BookmarkRepository for SqliteBookmarkRepository {
                         }
                     }
 
-                    let (sql, values) = TagInsert {
-                        tags,
-                        user_id: data.user_id,
-                        upsert: true,
+                    if !tags.is_empty() {
+                        let (sql, values) = TagInsert {
+                            tags,
+                            user_id: data.user_id,
+                            upsert: true,
+                        }
+                        .into_insert()
+                        .build_rusqlite(SqliteQueryBuilder);
+                        tx.execute_prepared(&sql, &values)?;
                     }
-                    .into_insert()
-                    .build_rusqlite(SqliteQueryBuilder);
-                    tx.execute_prepared(&sql, &values)?;
                 }
 
                 let mut bookmark_map = {
@@ -306,22 +308,26 @@ impl BookmarkRepository for SqliteBookmarkRepository {
                         }
                     }
 
-                    let (sql, values) = BookmarkInsert {
-                        bookmarks,
-                        user_id: data.user_id,
-                        upsert: true,
+                    if !bookmarks.is_empty() {
+                        let (sql, values) = BookmarkInsert {
+                            bookmarks,
+                            user_id: data.user_id,
+                            upsert: true,
+                        }
+                        .into_insert()
+                        .build_rusqlite(SqliteQueryBuilder);
+                        tx.execute_prepared(&sql, &values)?;
                     }
-                    .into_insert()
-                    .build_rusqlite(SqliteQueryBuilder);
-                    tx.execute_prepared(&sql, &values)?;
 
-                    let (sql, values) = BookmarkTagInsert {
-                        bookmark_tags,
-                        user_id: data.user_id,
+                    if !bookmark_tags.is_empty() {
+                        let (sql, values) = BookmarkTagInsert {
+                            bookmark_tags,
+                            user_id: data.user_id,
+                        }
+                        .into_insert()
+                        .build_rusqlite(SqliteQueryBuilder);
+                        tx.execute_prepared(&sql, &values)?;
                     }
-                    .into_insert()
-                    .build_rusqlite(SqliteQueryBuilder);
-                    tx.execute_prepared(&sql, &values)?;
                 };
 
                 tx.commit()?;

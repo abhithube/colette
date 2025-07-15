@@ -97,9 +97,9 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 let (sql, values) = SubscriptionTagInsert {
                     subscription_tags: [SubscriptionTagBase {
                         subscription_id: data.id,
-                        user_id: data.user_id,
                         tag_ids: tags.iter().map(|e| e.id),
                     }],
+                    user_id: data.user_id,
                 }
                 .into_insert()
                 .build_postgres(PostgresQueryBuilder);
@@ -147,14 +147,16 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 });
             }
 
-            let (sql, values) = TagInsert {
-                tags,
-                user_id: data.user_id,
-                upsert: true,
+            if !tags.is_empty() {
+                let (sql, values) = TagInsert {
+                    tags,
+                    user_id: data.user_id,
+                    upsert: true,
+                }
+                .into_insert()
+                .build_postgres(PostgresQueryBuilder);
+                tx.execute_prepared(&sql, &values).await?;
             }
-            .into_insert()
-            .build_postgres(PostgresQueryBuilder);
-            tx.execute_prepared(&sql, &values).await?;
 
             let (sql, values) = TagSelect {
                 titles: Some(titles),
@@ -190,13 +192,15 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 }
             }
 
-            let (sql, values) = FeedInsert {
-                feeds,
-                upsert: false,
+            if !feeds.is_empty() {
+                let (sql, values) = FeedInsert {
+                    feeds,
+                    upsert: false,
+                }
+                .into_insert()
+                .build_postgres(PostgresQueryBuilder);
+                tx.execute_prepared(&sql, &values).await?;
             }
-            .into_insert()
-            .build_postgres(PostgresQueryBuilder);
-            tx.execute_prepared(&sql, &values).await?;
 
             let (sql, values) = FeedSelect {
                 source_urls: Some(source_urls.iter().map(|e| e.as_str()).collect()),
@@ -265,25 +269,31 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
 
                     subscription_tags.push(SubscriptionTagBase {
                         subscription_id,
-                        user_id: data.user_id,
                         tag_ids,
                     });
                 }
             }
 
-            let (sql, values) = SubscriptionInsert {
-                subscriptions,
-                user_id: data.user_id,
-                upsert: false,
-            }
-            .into_insert()
-            .build_postgres(PostgresQueryBuilder);
-            tx.execute_prepared(&sql, &values).await?;
-
-            let (sql, values) = SubscriptionTagInsert { subscription_tags }
+            if !subscriptions.is_empty() {
+                let (sql, values) = SubscriptionInsert {
+                    subscriptions,
+                    user_id: data.user_id,
+                    upsert: false,
+                }
                 .into_insert()
                 .build_postgres(PostgresQueryBuilder);
-            tx.execute_prepared(&sql, &values).await?;
+                tx.execute_prepared(&sql, &values).await?;
+            }
+
+            if !subscription_tags.is_empty() {
+                let (sql, values) = SubscriptionTagInsert {
+                    subscription_tags,
+                    user_id: data.user_id,
+                }
+                .into_insert()
+                .build_postgres(PostgresQueryBuilder);
+                tx.execute_prepared(&sql, &values).await?;
+            }
         };
 
         tx.commit().await?;

@@ -30,11 +30,11 @@ impl Iden for SubscriptionTag {
 
 pub struct SubscriptionTagInsert<I> {
     pub subscription_tags: I,
+    pub user_id: Uuid,
 }
 
 pub struct SubscriptionTagBase<I> {
     pub subscription_id: Uuid,
-    pub user_id: Uuid,
     pub tag_ids: I,
 }
 
@@ -61,7 +61,7 @@ impl<I: IntoIterator<Item = Uuid>, J: IntoIterator<Item = SubscriptionTagBase<I>
                 query.values_panic([
                     subscription_tag.subscription_id.into(),
                     tag_id.into(),
-                    subscription_tag.user_id.into(),
+                    self.user_id.into(),
                 ]);
             }
         }

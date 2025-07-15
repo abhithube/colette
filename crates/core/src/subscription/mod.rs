@@ -15,7 +15,7 @@ pub struct Subscription {
     pub title: String,
     pub description: Option<String>,
     pub feed_id: Uuid,
-    #[serde(skip_serializing)]
+    #[serde(skip_serializing, default = "Uuid::new_v4")]
     pub user_id: Uuid,
     #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,

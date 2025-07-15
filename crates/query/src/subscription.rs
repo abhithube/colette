@@ -250,20 +250,19 @@ impl<'a, I: IntoIterator<Item = SubscriptionBase<'a>>> IntoInsert for Subscripti
                 Subscription::CreatedAt,
                 Subscription::UpdatedAt,
             ])
+            .returning_col(Subscription::Id)
             .to_owned();
 
         if self.upsert {
-            query
-                .on_conflict(
-                    OnConflict::columns([Subscription::UserId, Subscription::FeedId])
-                        .update_columns([
-                            Subscription::Title,
-                            Subscription::Description,
-                            Subscription::UpdatedAt,
-                        ])
-                        .to_owned(),
-                )
-                .returning_col(Subscription::Id);
+            query.on_conflict(
+                OnConflict::columns([Subscription::UserId, Subscription::FeedId])
+                    .update_columns([
+                        Subscription::Title,
+                        Subscription::Description,
+                        Subscription::UpdatedAt,
+                    ])
+                    .to_owned(),
+            );
         } else {
             query.on_conflict(
                 OnConflict::column(Subscription::Id)

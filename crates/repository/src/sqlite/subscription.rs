@@ -108,9 +108,9 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
                         let (sql, values) = SubscriptionTagInsert {
                             subscription_tags: [SubscriptionTagBase {
                                 subscription_id: data.id,
-                                user_id: data.user_id,
                                 tag_ids: tags.iter().map(|e| e.id),
                             }],
+                            user_id: data.user_id,
                         }
                         .into_insert()
                         .build_rusqlite(SqliteQueryBuilder);
@@ -289,7 +289,6 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
 
                             subscription_tags.push(SubscriptionTagBase {
                                 subscription_id,
-                                user_id: data.user_id,
                                 tag_ids,
                             });
                         }
@@ -304,9 +303,12 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
                     .build_rusqlite(SqliteQueryBuilder);
                     tx.execute_prepared(&sql, &values)?;
 
-                    let (sql, values) = SubscriptionTagInsert { subscription_tags }
-                        .into_insert()
-                        .build_rusqlite(SqliteQueryBuilder);
+                    let (sql, values) = SubscriptionTagInsert {
+                        subscription_tags,
+                        user_id: data.user_id,
+                    }
+                    .into_insert()
+                    .build_rusqlite(SqliteQueryBuilder);
                     tx.execute_prepared(&sql, &values)?;
                 };
 

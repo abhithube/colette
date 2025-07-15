@@ -158,16 +158,15 @@ impl<'a, I: IntoIterator<Item = TagBase<'a>>> IntoInsert for TagInsert<I> {
                 Tag::CreatedAt,
                 Tag::UpdatedAt,
             ])
+            .returning_col(Tag::Id)
             .to_owned();
 
         if self.upsert {
-            query
-                .on_conflict(
-                    OnConflict::columns([Tag::UserId, Tag::Title])
-                        .update_column(Tag::UpdatedAt)
-                        .to_owned(),
-                )
-                .returning_col(Tag::Id);
+            query.on_conflict(
+                OnConflict::columns([Tag::UserId, Tag::Title])
+                    .update_column(Tag::UpdatedAt)
+                    .to_owned(),
+            );
         } else {
             query.on_conflict(
                 OnConflict::column(Tag::Id)

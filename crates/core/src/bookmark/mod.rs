@@ -26,7 +26,7 @@ pub struct Bookmark {
     pub published_at: Option<DateTime<Utc>>,
     pub archived_path: Option<String>,
     pub author: Option<String>,
-    #[serde(skip_serializing)]
+    #[serde(skip_serializing, default = "Uuid::new_v4")]
     pub user_id: Uuid,
     #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,

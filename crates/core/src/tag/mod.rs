@@ -13,7 +13,7 @@ pub struct Tag {
     #[builder(default = Uuid::new_v4())]
     pub id: Uuid,
     pub title: String,
-    #[serde(skip_serializing)]
+    #[serde(skip_serializing, default = "Uuid::new_v4")]
     pub user_id: Uuid,
     #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,

@@ -21,6 +21,7 @@ use url::Url;
 use uuid::Uuid;
 
 use super::PreparedClient as _;
+use crate::postgres::IdRow;
 
 #[derive(Debug, Clone)]
 pub struct PostgresBackupRepository {
@@ -60,14 +61,16 @@ impl BackupRepository for PostgresBackupRepository {
                 })
                 .collect::<Vec<_>>();
 
-            let (sql, values) = TagInsert {
-                tags,
-                user_id: data.user_id,
-                upsert: false,
+            if !tags.is_empty() {
+                let (sql, values) = TagInsert {
+                    tags,
+                    user_id: data.user_id,
+                    upsert: false,
+                }
+                .into_insert()
+                .build_postgres(PostgresQueryBuilder);
+                tx.query_prepared::<IdRow>(&sql, &values).await?;
             }
-            .into_insert()
-            .build_postgres(PostgresQueryBuilder);
-            tx.execute_prepared(&sql, &values).await?;
 
             let (sql, values) = TagSelect {
                 user_id: Some(data.user_id),
@@ -111,13 +114,15 @@ impl BackupRepository for PostgresBackupRepository {
                     }
                 }
 
-                let (sql, values) = FeedInsert {
-                    feeds,
-                    upsert: false,
+                if !feeds.is_empty() {
+                    let (sql, values) = FeedInsert {
+                        feeds,
+                        upsert: false,
+                    }
+                    .into_insert()
+                    .build_postgres(PostgresQueryBuilder);
+                    tx.query_prepared::<IdRow>(&sql, &values).await?;
                 }
-                .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-                tx.execute_prepared(&sql, &values).await?;
 
                 let (sql, values) = FeedSelect {
                     source_urls: Some(source_urls.iter().map(|e| e.as_str()).collect()),
@@ -159,26 +164,32 @@ impl BackupRepository for PostgresBackupRepository {
 
                         subscription_tags.push(SubscriptionTagBase {
                             subscription_id: id,
-                            user_id: data.user_id,
                             tag_ids,
                         });
                     }
                 }
             }
 
-            let (sql, values) = SubscriptionInsert {
-                subscriptions,
-                user_id: data.user_id,
-                upsert: false,
-            }
-            .into_insert()
-            .build_postgres(PostgresQueryBuilder);
-            tx.execute_prepared(&sql, &values).await?;
-
-            let (sql, values) = SubscriptionTagInsert { subscription_tags }
+            if !subscriptions.is_empty() {
+                let (sql, values) = SubscriptionInsert {
+                    subscriptions,
+                    user_id: data.user_id,
+                    upsert: false,
+                }
                 .into_insert()
                 .build_postgres(PostgresQueryBuilder);
-            tx.execute_prepared(&sql, &values).await?;
+                tx.query_prepared::<IdRow>(&sql, &values).await?;
+            }
+
+            if !subscription_tags.is_empty() {
+                let (sql, values) = SubscriptionTagInsert {
+                    subscription_tags,
+                    user_id: data.user_id,
+                }
+                .into_insert()
+                .build_postgres(PostgresQueryBuilder);
+                tx.execute_prepared(&sql, &values).await?;
+            }
         }
 
         {
@@ -221,22 +232,26 @@ impl BackupRepository for PostgresBackupRepository {
                 }
             }
 
-            BookmarkInsert {
-                bookmarks,
-                user_id: data.user_id,
-                upsert: false,
+            if !bookmarks.is_empty() {
+                let (sql, values) = BookmarkInsert {
+                    bookmarks,
+                    user_id: data.user_id,
+                    upsert: false,
+                }
+                .into_insert()
+                .build_postgres(PostgresQueryBuilder);
+                tx.query_prepared::<IdRow>(&sql, &values).await?;
             }
-            .into_insert()
-            .build_postgres(PostgresQueryBuilder);
-            tx.execute_prepared(&sql, &values).await?;
 
-            BookmarkTagInsert {
-                bookmark_tags,
-                user_id: data.user_id,
+            if !bookmark_tags.is_empty() && bookmark_tags.iter().any(|e| !e.tag_ids.is_empty()) {
+                let (sql, values) = BookmarkTagInsert {
+                    bookmark_tags,
+                    user_id: data.user_id,
+                }
+                .into_insert()
+                .build_postgres(PostgresQueryBuilder);
+                tx.execute_prepared(&sql, &values).await?;
             }
-            .into_insert()
-            .build_postgres(PostgresQueryBuilder);
-            tx.execute_prepared(&sql, &values).await?;
         }
 
         tx.commit().await?;
