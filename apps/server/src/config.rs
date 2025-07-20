@@ -1,14 +1,13 @@
 use std::{path::PathBuf, sync::LazyLock};
 
 use config::{Config, Environment, FileFormat};
-use tokio::fs::{self, File};
+use tokio::fs;
 use url::Url;
 
 const APP_NAME: &str = "Colette";
 static DATA_DIR: LazyLock<PathBuf> =
     LazyLock::new(|| dirs::config_dir().unwrap().join(APP_NAME.to_lowercase()));
 
-const SQLITE_PATH: &str = "sqlite/db.sqlite";
 const FS_PATH: &str = "fs";
 
 const DEFAULT_CONFIG: &str = include_str!("../config/default.toml");
@@ -36,21 +35,8 @@ pub async fn from_env() -> Result<AppConfig, Box<dyn std::error::Error>> {
 
     let raw = builder.build()?.try_deserialize::<RawConfig>()?;
 
-    let database = match raw.database.map(|e| e.url) {
-        Some(url) => DatabaseConfig::Postgres(PostgresConfig { url }),
-        None => {
-            let path = raw.data_dir.join(SQLITE_PATH);
-
-            if !fs::try_exists(&path).await? {
-                if let Some(prefix) = path.parent() {
-                    fs::create_dir_all(prefix).await?;
-                }
-
-                File::create(&path).await?;
-            }
-
-            DatabaseConfig::Sqlite(SqliteConfig { path })
-        }
+    let database = DatabaseConfig {
+        url: raw.database.url,
     };
 
     let jwt = JwtConfig {
@@ -183,18 +169,7 @@ pub struct ClientConfig {
 }
 
 #[derive(Debug, Clone)]
-pub enum DatabaseConfig {
-    Sqlite(SqliteConfig),
-    Postgres(PostgresConfig),
-}
-
-#[derive(Debug, Clone)]
-pub struct SqliteConfig {
-    pub path: PathBuf,
-}
-
-#[derive(Debug, Clone)]
-pub struct PostgresConfig {
+pub struct DatabaseConfig {
     pub url: String,
 }
 
@@ -250,7 +225,7 @@ pub struct OidcConfig {
 struct RawConfig {
     data_dir: PathBuf,
     server: ServerConfig,
-    database: Option<RawDatabaseConfig>,
+    database: RawDatabaseConfig,
     client: Option<ClientConfig>,
     jwt: RawJwtConfig,
     cors: RawCorsConfig,

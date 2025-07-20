@@ -9,7 +9,7 @@ use sea_query::{
 use uuid::Uuid;
 
 use crate::{
-    Dialect, IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
+    IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
     bookmark_tag::BookmarkTag,
     filter::{ToColumn, ToSql},
     tag::Tag,
@@ -61,7 +61,6 @@ pub struct BookmarkSelect {
     pub cursor: Option<DateTime<Utc>>,
     pub limit: Option<u64>,
     pub with_tags: bool,
-    pub dialect: Dialect,
 }
 
 impl IntoSelect for BookmarkSelect {
@@ -81,7 +80,7 @@ impl IntoSelect for BookmarkSelect {
             .to_owned();
 
         if let Some(filter) = self.filter {
-            query.and_where((filter, self.dialect.clone()).to_sql());
+            query.and_where(filter.to_sql());
         } else {
             query
                 .apply_if(self.id, |query, id| {
@@ -109,14 +108,9 @@ impl IntoSelect for BookmarkSelect {
             let tags = Alias::new("tags");
             let t = Alias::new("t");
 
-            let agg_expr = match self.dialect {
-                Dialect::Postgres => Expr::cust(
-                    "jsonb_agg (jsonb_build_object ('id', t.id, 'title', t.title, 'user_id', t.user_id, 'created_at', t.created_at, 'updated_at', t.updated_at) ORDER BY t.title)",
-                ),
-                Dialect::Sqlite => Expr::cust(
-                    "json_group_array (json_object ('id', hex(t.id), 'title', t.title, 'user_id', hex(t.user_id), 'created_at', t.created_at, 'updated_at', t.updated_at) ORDER BY t.title)",
-                ),
-            };
+            let agg_expr = Expr::cust(
+                "jsonb_agg (jsonb_build_object ('id', t.id, 'title', t.title, 'user_id', t.user_id, 'created_at', t.created_at, 'updated_at', t.updated_at) ORDER BY t.title)",
+            );
 
             query
                 .expr_as(
@@ -298,9 +292,9 @@ impl ToColumn for BookmarkDateField {
     }
 }
 
-impl ToSql for (BookmarkFilter, Dialect) {
+impl ToSql for BookmarkFilter {
     fn to_sql(self) -> SimpleExpr {
-        match self.0 {
+        match self {
             BookmarkFilter::Text { field, op } => match field {
                 BookmarkTextField::Tag => Expr::exists(
                     Query::select()
@@ -320,12 +314,9 @@ impl ToSql for (BookmarkFilter, Dialect) {
                 ),
                 _ => (field.to_column(), op).to_sql(),
             },
-            BookmarkFilter::Date { field, op } => (field.to_column(), op, self.1).to_sql(),
+            BookmarkFilter::Date { field, op } => (field.to_column(), op).to_sql(),
             BookmarkFilter::And(filters) => {
-                let mut conditions = filters
-                    .into_iter()
-                    .map(|e| (e, self.1.clone()).to_sql())
-                    .collect::<Vec<_>>();
+                let mut conditions = filters.into_iter().map(|e| e.to_sql()).collect::<Vec<_>>();
                 let mut and = conditions.swap_remove(0);
 
                 for condition in conditions {
@@ -335,10 +326,7 @@ impl ToSql for (BookmarkFilter, Dialect) {
                 and
             }
             BookmarkFilter::Or(filters) => {
-                let mut conditions = filters
-                    .into_iter()
-                    .map(|e| (e, self.1.clone()).to_sql())
-                    .collect::<Vec<_>>();
+                let mut conditions = filters.into_iter().map(|e| e.to_sql()).collect::<Vec<_>>();
                 let mut or = conditions.swap_remove(0);
 
                 for condition in conditions {
@@ -347,7 +335,7 @@ impl ToSql for (BookmarkFilter, Dialect) {
 
                 or
             }
-            BookmarkFilter::Not(filter) => (*filter, self.1).to_sql().not(),
+            BookmarkFilter::Not(filter) => (*filter).to_sql().not(),
             _ => unreachable!(),
         }
     }

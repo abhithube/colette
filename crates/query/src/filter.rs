@@ -1,8 +1,6 @@
 use colette_core::filter::{BooleanOp, DateOp, NumberOp, TextOp};
 use sea_query::{Expr, ExprTrait, SimpleExpr};
 
-use crate::Dialect;
-
 pub(crate) trait ToColumn {
     fn to_column(self) -> Expr;
 }
@@ -47,22 +45,17 @@ impl ToSql for (Expr, BooleanOp) {
     }
 }
 
-impl ToSql for (Expr, DateOp, Dialect) {
+impl ToSql for (Expr, DateOp) {
     fn to_sql(self) -> SimpleExpr {
-        let (column, op, dialect) = self;
+        let (column, op) = self;
 
         match op {
             DateOp::Before(value) => column.lt(value),
             DateOp::After(value) => column.gt(value),
             DateOp::Between(value) => column.between(value.start, value.end),
-            DateOp::InLast(value) => {
-                let expr = match dialect {
-                    Dialect::Postgres => Expr::cust("extract(epoch from now())"),
-                    Dialect::Sqlite => Expr::cust(""),
-                };
-
-                expr.sub(column).lt(value)
-            }
+            DateOp::InLast(value) => Expr::cust("extract(epoch from now())")
+                .sub(column)
+                .lt(value),
         }
     }
 }

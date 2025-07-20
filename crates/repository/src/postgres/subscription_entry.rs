@@ -4,7 +4,7 @@ use colette_core::{
     subscription_entry::{Error, SubscriptionEntryParams, SubscriptionEntryRepository},
 };
 use colette_query::{
-    Dialect, IntoDelete, IntoInsert, IntoSelect,
+    IntoDelete, IntoInsert, IntoSelect,
     feed_entry::SubscriptionEntrySelect,
     read_entry::{ReadEntryDelete, ReadEntryInsert},
 };
@@ -43,7 +43,6 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
             cursor: params.cursor,
             limit: params.limit.map(|e| e as u64),
             with_read_entry: params.with_read_entry,
-            dialect: Dialect::Postgres,
         }
         .into_select()
         .build_postgres(PostgresQueryBuilder);

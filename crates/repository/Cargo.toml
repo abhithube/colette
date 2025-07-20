@@ -9,15 +9,8 @@ chrono.workspace = true
 colette-core.workspace = true
 colette-query.workspace = true
 deadpool-postgres.workspace = true
-deadpool-sqlite.workspace = true
-rusqlite.workspace = true
 sea-query.workspace = true
 sea-query-postgres = { version = "0.5.0", default-features = false, features = [
-  "with-chrono",
-  "with-json",
-  "with-uuid",
-] }
-sea-query-rusqlite = { version = "0.7.0", default-features = false, features = [
   "with-chrono",
   "with-json",
   "with-uuid",

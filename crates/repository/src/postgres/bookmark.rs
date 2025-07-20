@@ -6,7 +6,7 @@ use colette_core::{
     bookmark::{BookmarkParams, BookmarkRepository, Error, ImportBookmarksData},
 };
 use colette_query::{
-    Dialect, IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
+    IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
     bookmark::{BookmarkBase, BookmarkDelete, BookmarkInsert, BookmarkSelect, BookmarkUpdate},
     bookmark_tag::{BookmarkTagBase, BookmarkTagDelete, BookmarkTagInsert},
     tag::{TagBase, TagInsert, TagSelect},
@@ -43,7 +43,6 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             cursor: params.cursor,
             limit: params.limit.map(|e| e as u64),
             with_tags: params.with_tags,
-            dialect: Dialect::Postgres,
         }
         .into_select()
         .build_postgres(PostgresQueryBuilder);
@@ -215,7 +214,6 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         let mut bookmark_map = {
             let (sql, values) = BookmarkSelect {
                 user_id: Some(data.user_id),
-                dialect: Dialect::Postgres,
                 ..Default::default()
             }
             .into_select()

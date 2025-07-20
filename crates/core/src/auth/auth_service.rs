@@ -259,10 +259,7 @@ impl AuthService {
                     .maybe_user(insert.then_some(user.clone()))
                     .build();
 
-                self.account_repository
-                    .save(&account)
-                    .await
-                    .inspect_err(|e| println!("{e}"))?;
+                self.account_repository.save(&account).await?;
 
                 Ok(user)
             }

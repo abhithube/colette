@@ -12,7 +12,7 @@ use sea_query::{
 use uuid::Uuid;
 
 use crate::{
-    Dialect, IntoInsert, IntoSelect,
+    IntoInsert, IntoSelect,
     filter::{ToColumn, ToSql},
     read_entry::ReadEntry,
     subscription::Subscription,
@@ -163,7 +163,6 @@ pub struct SubscriptionEntrySelect {
     pub cursor: Option<(DateTime<Utc>, Uuid)>,
     pub limit: Option<u64>,
     pub with_read_entry: bool,
-    pub dialect: Dialect,
 }
 
 impl IntoSelect for SubscriptionEntrySelect {
@@ -201,7 +200,7 @@ impl IntoSelect for SubscriptionEntrySelect {
             .to_owned();
 
         if let Some(filter) = self.filter {
-            query.and_where((filter, self.dialect).to_sql());
+            query.and_where(filter.to_sql());
         } else {
             query
                 .apply_if(self.feed_entry_id, |query, feed_entry_id| {
@@ -309,9 +308,9 @@ impl ToColumn for SubscriptionEntryDateField {
     }
 }
 
-impl ToSql for (SubscriptionEntryFilter, Dialect) {
+impl ToSql for SubscriptionEntryFilter {
     fn to_sql(self) -> SimpleExpr {
-        match self.0 {
+        match self {
             SubscriptionEntryFilter::Text { field, op } => match field {
                 SubscriptionEntryTextField::Tag => Expr::exists(
                     Query::select()
@@ -332,12 +331,9 @@ impl ToSql for (SubscriptionEntryFilter, Dialect) {
                 _ => (field.to_column(), op).to_sql(),
             },
             SubscriptionEntryFilter::Boolean { field, op } => (field.to_column(), op).to_sql(),
-            SubscriptionEntryFilter::Date { field, op } => (field.to_column(), op, self.1).to_sql(),
+            SubscriptionEntryFilter::Date { field, op } => (field.to_column(), op).to_sql(),
             SubscriptionEntryFilter::And(filters) => {
-                let mut conditions = filters
-                    .into_iter()
-                    .map(|e| (e, self.1.clone()).to_sql())
-                    .collect::<Vec<_>>();
+                let mut conditions = filters.into_iter().map(|e| e.to_sql()).collect::<Vec<_>>();
                 let mut and = conditions.swap_remove(0);
 
                 for condition in conditions {
@@ -347,10 +343,7 @@ impl ToSql for (SubscriptionEntryFilter, Dialect) {
                 and
             }
             SubscriptionEntryFilter::Or(filters) => {
-                let mut conditions = filters
-                    .into_iter()
-                    .map(|e| (e, self.1.clone()).to_sql())
-                    .collect::<Vec<_>>();
+                let mut conditions = filters.into_iter().map(|e| e.to_sql()).collect::<Vec<_>>();
                 let mut or = conditions.swap_remove(0);
 
                 for condition in conditions {
@@ -359,7 +352,7 @@ impl ToSql for (SubscriptionEntryFilter, Dialect) {
 
                 or
             }
-            SubscriptionEntryFilter::Not(filter) => (*filter, self.1).to_sql().not(),
+            SubscriptionEntryFilter::Not(filter) => (*filter).to_sql().not(),
             _ => unreachable!(),
         }
     }

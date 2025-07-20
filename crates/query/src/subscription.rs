@@ -8,8 +8,8 @@ use sea_query::{
 use uuid::Uuid;
 
 use crate::{
-    Dialect, IntoDelete, IntoInsert, IntoSelect, feed::Feed, feed_entry::FeedEntry,
-    read_entry::ReadEntry, subscription_tag::SubscriptionTag, tag::Tag,
+    IntoDelete, IntoInsert, IntoSelect, feed::Feed, feed_entry::FeedEntry, read_entry::ReadEntry,
+    subscription_tag::SubscriptionTag, tag::Tag,
 };
 
 pub enum Subscription {
@@ -54,7 +54,6 @@ pub struct SubscriptionSelect<'a> {
     pub with_feed: bool,
     pub with_unread_count: bool,
     pub with_tags: bool,
-    pub dialect: Dialect,
 }
 
 impl IntoSelect for SubscriptionSelect<'_> {
@@ -176,14 +175,9 @@ impl IntoSelect for SubscriptionSelect<'_> {
             let tags = Alias::new("tags");
             let t = Alias::new("t");
 
-            let agg_expr = match self.dialect {
-                Dialect::Postgres => Expr::cust(
-                    "jsonb_agg (jsonb_build_object ('id', t.id, 'title', t.title, 'user_id', t.user_id, 'created_at', t.created_at, 'updated_at', t.updated_at) ORDER BY t.title)",
-                ),
-                Dialect::Sqlite => Expr::cust(
-                    "json_group_array (json_object ('id', hex(t.id), 'title', t.title, 'user_id', hex(t.user_id), 'created_at', t.created_at, 'updated_at', t.updated_at) ORDER BY t.title)",
-                ),
-            };
+            let agg_expr = Expr::cust(
+                "jsonb_agg (jsonb_build_object ('id', t.id, 'title', t.title, 'user_id', t.user_id, 'created_at', t.created_at, 'updated_at', t.updated_at) ORDER BY t.title)",
+            );
 
             query
                 .expr_as(

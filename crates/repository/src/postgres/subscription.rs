@@ -5,7 +5,7 @@ use colette_core::{
     subscription::{Error, ImportSubscriptionsData, SubscriptionParams, SubscriptionRepository},
 };
 use colette_query::{
-    Dialect, IntoDelete, IntoInsert, IntoSelect,
+    IntoDelete, IntoInsert, IntoSelect,
     feed::{FeedBase, FeedInsert, FeedSelect},
     subscription::{SubscriptionBase, SubscriptionDelete, SubscriptionInsert, SubscriptionSelect},
     subscription_tag::{SubscriptionTagBase, SubscriptionTagDelete, SubscriptionTagInsert},
@@ -45,7 +45,6 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             with_feed: params.with_feed,
             with_unread_count: params.with_unread_count,
             with_tags: params.with_tags,
-            dialect: Dialect::Postgres,
             ..Default::default()
         }
         .into_select()
@@ -222,7 +221,6 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             let (sql, values) = SubscriptionSelect {
                 user_id: Some(data.user_id),
                 feeds: Some(feed_map.values().copied().collect()),
-                dialect: Dialect::Postgres,
                 ..Default::default()
             }
             .into_select()

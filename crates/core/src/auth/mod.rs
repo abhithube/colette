@@ -38,12 +38,6 @@ pub enum Error {
 
     #[error(transparent)]
     PostgresClient(#[from] tokio_postgres::Error),
-
-    #[error(transparent)]
-    SqlitePool(#[from] deadpool_sqlite::PoolError),
-
-    #[error(transparent)]
-    SqliteClient(#[from] rusqlite::Error),
 }
 
 impl From<user::Error> for Error {
