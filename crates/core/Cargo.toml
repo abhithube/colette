@@ -16,16 +16,15 @@ colette-queue.workspace = true
 colette-scraper.workspace = true
 colette-storage.workspace = true
 colette-util.workspace = true
-deadpool-postgres.workspace = true
 http.workspace = true
 http-body-util.workspace = true
 image = { version = "0.25.5", default-features = false }
 jsonwebtoken.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+sqlx.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
-tokio-postgres.workspace = true
 url.workspace = true
 urlencoding = { version = "2.1.3", default-features = false }
 uuid.workspace = true

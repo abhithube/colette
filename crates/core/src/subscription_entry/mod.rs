@@ -107,8 +107,5 @@ pub enum Error {
     Stream(#[from] stream::Error),
 
     #[error(transparent)]
-    PostgresPool(#[from] deadpool_postgres::PoolError),
-
-    #[error(transparent)]
-    PostgresClient(#[from] tokio_postgres::Error),
+    Sqlx(#[from] sqlx::Error),
 }

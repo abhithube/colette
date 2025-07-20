@@ -5,7 +5,6 @@ edition = "2024"
 
 [dependencies]
 async-trait.workspace = true
-deadpool-postgres.workspace = true
 refinery-core = { version = "0.8.16", default-features = false }
+sqlx.workspace = true
 time.workspace = true
-tokio-postgres.workspace = true

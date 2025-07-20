@@ -13,11 +13,11 @@ use crate::{
     pagination::{Paginated, paginate},
 };
 
-const DEFAULT_INTERVAL: u64 = 60;
-const MIN_INTERVAL: u64 = 5;
-const MAX_INTERVAL: u64 = DEFAULT_INTERVAL * 24;
+const DEFAULT_INTERVAL: u32 = 60;
+const MIN_INTERVAL: u32 = 5;
+const MAX_INTERVAL: u32 = DEFAULT_INTERVAL * 24;
 const SAMPLE_SIZE: usize = 20;
-const BACKOFF_MULTIPLIER: f64 = 1.15;
+const BACKOFF_MULTIPLIER: f32 = 1.15;
 
 pub struct FeedService {
     feed_repository: Arc<dyn FeedRepository>,
@@ -146,7 +146,7 @@ impl FeedService {
             if dates.len() >= 2 {
                 let mut deltas = dates
                     .windows(2)
-                    .map(|e| (e[0] - e[1]).num_minutes() as u64)
+                    .map(|e| (e[0] - e[1]).num_minutes() as u32)
                     .collect::<Vec<_>>();
 
                 deltas.sort_unstable();
@@ -163,7 +163,7 @@ impl FeedService {
             }
         } else if let Some(f) = self.feed_repository.find_by_source_url(data.url).await? {
             feed.refresh_interval_min = cmp::min(
-                (f.refresh_interval_min as f64 * BACKOFF_MULTIPLIER) as u64,
+                (f.refresh_interval_min as f32 * BACKOFF_MULTIPLIER) as u32,
                 MAX_INTERVAL,
             );
         }

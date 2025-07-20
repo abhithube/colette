@@ -21,8 +21,5 @@ pub struct User {
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
-    PostgresPool(#[from] deadpool_postgres::PoolError),
-
-    #[error(transparent)]
-    PostgresClient(#[from] tokio_postgres::Error),
+    Sqlx(#[from] sqlx::Error),
 }

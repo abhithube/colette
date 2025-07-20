@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
     ApiKey,
     api_key::{ApiKeyParams, ApiKeyRepository, Error},
@@ -6,20 +7,18 @@ use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
     api_key::{ApiKeyDelete, ApiKeyInsert, ApiKeySelect},
 };
-use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder as _;
+use sea_query_binder::SqlxBinder as _;
+use sqlx::PgPool;
 use uuid::Uuid;
-
-use super::{PgRow, PreparedClient as _};
 
 #[derive(Debug, Clone)]
 pub struct PostgresApiKeyRepository {
-    pool: Pool,
+    pool: PgPool,
 }
 
 impl PostgresApiKeyRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -27,8 +26,6 @@ impl PostgresApiKeyRepository {
 #[async_trait::async_trait]
 impl ApiKeyRepository for PostgresApiKeyRepository {
     async fn query(&self, params: ApiKeyParams) -> Result<Vec<ApiKey>, Error> {
-        let client = self.pool.get().await?;
-
         let (sql, values) = ApiKeySelect {
             id: params.id,
             lookup_hash: params.lookup_hash.as_deref(),
@@ -37,15 +34,15 @@ impl ApiKeyRepository for PostgresApiKeyRepository {
             limit: params.limit.map(|e| e as u64),
         }
         .into_select()
-        .build_postgres(PostgresQueryBuilder);
-        let api_keys = client.query_prepared::<ApiKey>(&sql, &values).await?;
+        .build_sqlx(PostgresQueryBuilder);
+        let rows = sqlx::query_as_with::<_, ApiKeyRow, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await?;
 
-        Ok(api_keys)
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn save(&self, data: &ApiKey) -> Result<(), Error> {
-        let client = self.pool.get().await?;
-
         let (sql, values) = ApiKeyInsert {
             id: data.id,
             lookup_hash: &data.lookup_hash,
@@ -57,37 +54,45 @@ impl ApiKeyRepository for PostgresApiKeyRepository {
             updated_at: data.updated_at,
         }
         .into_insert()
-        .build_postgres(PostgresQueryBuilder);
-
-        client.execute_prepared(&sql, &values).await?;
+        .build_sqlx(PostgresQueryBuilder);
+        sqlx::query_with(&sql, values).execute(&self.pool).await?;
 
         Ok(())
     }
 
     async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
-        let client = self.pool.get().await?;
-
         let (sql, values) = ApiKeyDelete { id }
             .into_delete()
-            .build_postgres(PostgresQueryBuilder);
-
-        client.execute_prepared(&sql, &values).await?;
+            .build_sqlx(PostgresQueryBuilder);
+        sqlx::query_with(&sql, values).execute(&self.pool).await?;
 
         Ok(())
     }
 }
 
-impl From<PgRow<'_>> for ApiKey {
-    fn from(PgRow(value): PgRow<'_>) -> Self {
+#[derive(Debug, sqlx::FromRow)]
+struct ApiKeyRow {
+    id: Uuid,
+    lookup_hash: String,
+    verification_hash: String,
+    title: String,
+    preview: String,
+    user_id: Uuid,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl From<ApiKeyRow> for ApiKey {
+    fn from(value: ApiKeyRow) -> Self {
         Self {
-            id: value.get("id"),
-            lookup_hash: value.get("lookup_hash"),
-            verification_hash: value.get("verification_hash"),
-            title: value.get("title"),
-            preview: value.get("preview"),
-            user_id: value.get("user_id"),
-            created_at: value.get("created_at"),
-            updated_at: value.get("updated_at"),
+            id: value.id,
+            lookup_hash: value.lookup_hash,
+            verification_hash: value.verification_hash,
+            title: value.title,
+            preview: value.preview,
+            user_id: value.user_id,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
         }
     }
 }

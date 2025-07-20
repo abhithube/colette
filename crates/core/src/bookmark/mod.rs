@@ -143,8 +143,5 @@ pub enum Error {
     Serde(#[from] serde_json::Error),
 
     #[error(transparent)]
-    PostgresPool(#[from] deadpool_postgres::PoolError),
-
-    #[error(transparent)]
-    PostgresClient(#[from] tokio_postgres::Error),
+    Sqlx(#[from] sqlx::Error),
 }

@@ -1,22 +1,22 @@
+use chrono::{DateTime, Utc};
 use colette_core::job::{Error, Job, JobParams, JobRepository};
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
     job::{JobDelete, JobInsert, JobSelect},
 };
-use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder as _;
+use sea_query_binder::SqlxBinder as _;
+use serde_json::Value;
+use sqlx::PgPool;
 use uuid::Uuid;
-
-use super::{PgRow, PreparedClient as _};
 
 #[derive(Debug, Clone)]
 pub struct PostgresJobRepository {
-    pool: Pool,
+    pool: PgPool,
 }
 
 impl PostgresJobRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -24,22 +24,20 @@ impl PostgresJobRepository {
 #[async_trait::async_trait]
 impl JobRepository for PostgresJobRepository {
     async fn query(&self, params: JobParams) -> Result<Vec<Job>, Error> {
-        let client = self.pool.get().await?;
-
         let (sql, values) = JobSelect {
             id: params.id,
             group_identifier: params.group_identifier.as_deref(),
         }
         .into_select()
-        .build_postgres(PostgresQueryBuilder);
-        let jobs = client.query_prepared::<Job>(&sql, &values).await?;
+        .build_sqlx(PostgresQueryBuilder);
+        let rows = sqlx::query_as_with::<_, JobRow, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await?;
 
-        Ok(jobs)
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn save(&self, data: &Job) -> Result<(), Error> {
-        let client = self.pool.get().await?;
-
         let (sql, values) = JobInsert {
             id: data.id,
             job_type: &data.job_type,
@@ -51,37 +49,45 @@ impl JobRepository for PostgresJobRepository {
             completed_at: data.completed_at,
         }
         .into_insert()
-        .build_postgres(PostgresQueryBuilder);
-
-        client.execute_prepared(&sql, &values).await?;
+        .build_sqlx(PostgresQueryBuilder);
+        sqlx::query_with(&sql, values).execute(&self.pool).await?;
 
         Ok(())
     }
 
     async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
-        let client = self.pool.get().await?;
-
         let (sql, values) = JobDelete { id }
             .into_delete()
-            .build_postgres(PostgresQueryBuilder);
-
-        client.execute_prepared(&sql, &values).await?;
+            .build_sqlx(PostgresQueryBuilder);
+        sqlx::query_with(&sql, values).execute(&self.pool).await?;
 
         Ok(())
     }
 }
 
-impl From<PgRow<'_>> for Job {
-    fn from(PgRow(value): PgRow<'_>) -> Self {
+#[derive(Debug, sqlx::FromRow)]
+pub struct JobRow {
+    pub id: Uuid,
+    pub job_type: String,
+    pub data_json: Value,
+    pub status: String,
+    pub group_identifier: Option<String>,
+    pub message: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub completed_at: Option<DateTime<Utc>>,
+}
+
+impl From<JobRow> for Job {
+    fn from(value: JobRow) -> Self {
         Self {
-            id: value.get("id"),
-            job_type: value.get("job_type"),
-            data: serde_json::from_value(value.get("data_json")).unwrap(),
-            status: value.get::<_, String>("status").parse().unwrap(),
-            group_identifier: value.get("group_identifier"),
-            message: value.get("message"),
-            created_at: value.get("created_at"),
-            completed_at: value.get("completed_at"),
+            id: value.id,
+            job_type: value.job_type,
+            data: value.data_json,
+            status: value.status.parse().unwrap(),
+            group_identifier: value.group_identifier,
+            message: value.message,
+            created_at: value.created_at,
+            completed_at: value.completed_at,
         }
     }
 }

@@ -50,9 +50,6 @@ colette-repository.path = "crates/repository"
 colette-scraper.path = "crates/scraper"
 colette-storage.path = "crates/storage"
 colette-util.path = "crates/util"
-deadpool-postgres = { version = "0.14.1", default-features = false, features = [
-  "serde",
-] }
 futures = { version = "0.3.31", default-features = false }
 html5gum = { version = "0.7.0", default-features = false }
 http = { version = "1.2.0", default-features = false }
@@ -76,14 +73,16 @@ serde = { version = "1.0.217", default-features = false }
 serde_json = { version = "1.0.135", default-features = false, features = [
   "std",
 ] }
+sqlx = { version = "0.8.6", default-features = false, features = [
+  "chrono",
+  "json",
+  "macros",
+  "postgres",
+  "uuid",
+] }
 thiserror = { version = "2.0.11", default-features = false }
 time = { version = "0.3.39", default-features = false, features = ["serde"] }
 tokio = { version = "1.43.0", default-features = false, features = ["macros"] }
-tokio-postgres = { version = "0.7.13", default-features = false, features = [
-  "with-chrono-0_4",
-  "with-serde_json-1",
-  "with-uuid-1",
-] }
 tower = { version = "0.5.2", default-features = false }
 tower-http = { version = "0.6.2", default-features = false, features = [
   "cors",

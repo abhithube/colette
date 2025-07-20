@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::{DateTime, Utc};
 use colette_core::{
     Feed, Subscription, Tag,
     subscription::{Error, ImportSubscriptionsData, SubscriptionParams, SubscriptionRepository},
@@ -11,22 +12,21 @@ use colette_query::{
     subscription_tag::{SubscriptionTagBase, SubscriptionTagDelete, SubscriptionTagInsert},
     tag::{TagBase, TagInsert, TagSelect},
 };
-use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder as _;
-use tokio_postgres::{error::SqlState, types::Json};
+use sea_query_binder::SqlxBinder as _;
+use sqlx::{PgPool, types::Json};
 use url::Url;
 use uuid::Uuid;
 
-use super::{PgRow, PreparedClient as _};
+use crate::postgres::{DbUrl, feed::FeedRow, tag::TagRow};
 
 #[derive(Debug, Clone)]
 pub struct PostgresSubscriptionRepository {
-    pool: Pool,
+    pool: PgPool,
 }
 
 impl PostgresSubscriptionRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -34,8 +34,6 @@ impl PostgresSubscriptionRepository {
 #[async_trait::async_trait]
 impl SubscriptionRepository for PostgresSubscriptionRepository {
     async fn query(&self, params: SubscriptionParams) -> Result<Vec<Subscription>, Error> {
-        let client = self.pool.get().await?;
-
         let (sql, values) = SubscriptionSelect {
             id: params.id,
             tags: params.tags,
@@ -48,15 +46,18 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             ..Default::default()
         }
         .into_select()
-        .build_postgres(PostgresQueryBuilder);
-        let subscriptions = client.query_prepared::<Subscription>(&sql, &values).await?;
+        .build_sqlx(PostgresQueryBuilder);
+        println!("{sql}");
+        let rows = sqlx::query_as_with::<_, SubscriptionRow, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await
+            .inspect_err(|e| println!("{e}"))?;
 
-        Ok(subscriptions)
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn save(&self, data: &Subscription) -> Result<(), Error> {
-        let mut client = self.pool.get().await?;
-        let tx = client.transaction().await?;
+        let mut tx = self.pool.begin().await?;
 
         {
             let (sql, values) = SubscriptionInsert {
@@ -72,13 +73,16 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 upsert: false,
             }
             .into_insert()
-            .build_postgres(PostgresQueryBuilder);
+            .build_sqlx(PostgresQueryBuilder);
 
-            tx.execute_prepared(&sql, &values)
+            sqlx::query_with(&sql, values)
+                .execute(&mut *tx)
                 .await
-                .map_err(|e| match e.code() {
-                    Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.feed_id),
-                    _ => Error::PostgresClient(e),
+                .map_err(|e| match e {
+                    sqlx::Error::Database(e) if e.is_unique_violation() => {
+                        Error::Conflict(data.feed_id)
+                    }
+                    _ => Error::Sqlx(e),
                 })?;
         }
 
@@ -88,9 +92,8 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 tag_ids: tags.iter().map(|e| e.id),
             }
             .into_delete()
-            .build_postgres(PostgresQueryBuilder);
-
-            tx.execute_prepared(&sql, &values).await?;
+            .build_sqlx(PostgresQueryBuilder);
+            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
 
             if !tags.is_empty() {
                 let (sql, values) = SubscriptionTagInsert {
@@ -101,9 +104,8 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                     user_id: data.user_id,
                 }
                 .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-
-                tx.execute_prepared(&sql, &values).await?;
+                .build_sqlx(PostgresQueryBuilder);
+                sqlx::query_with(&sql, values).execute(&mut *tx).await?;
             }
         }
 
@@ -113,23 +115,19 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
     }
 
     async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
-        let client = self.pool.get().await?;
-
         let (sql, values) = SubscriptionDelete {
             id: Some(id),
             ..Default::default()
         }
         .into_delete()
-        .build_postgres(PostgresQueryBuilder);
-
-        client.execute_prepared(&sql, &values).await?;
+        .build_sqlx(PostgresQueryBuilder);
+        sqlx::query_with(&sql, values).execute(&self.pool).await?;
 
         Ok(())
     }
 
     async fn import(&self, data: ImportSubscriptionsData) -> Result<(), Error> {
-        let mut client = self.pool.get().await?;
-        let tx = client.transaction().await?;
+        let mut tx = self.pool.begin().await?;
 
         let tag_map = {
             let mut titles = Vec::<&str>::new();
@@ -153,8 +151,8 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                     upsert: true,
                 }
                 .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-                tx.execute_prepared(&sql, &values).await?;
+                .build_sqlx(PostgresQueryBuilder);
+                sqlx::query_with(&sql, values).execute(&mut *tx).await?;
             }
 
             let (sql, values) = TagSelect {
@@ -163,10 +161,12 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 ..Default::default()
             }
             .into_select()
-            .build_postgres(PostgresQueryBuilder);
-            let tags = tx.query_prepared::<Tag>(&sql, &values).await?;
+            .build_sqlx(PostgresQueryBuilder);
+            let rows = sqlx::query_as_with::<_, TagRow, _>(&sql, values)
+                .fetch_all(&mut *tx)
+                .await?;
 
-            tags.into_iter()
+            rows.into_iter()
                 .map(|e| (e.title, e.id))
                 .collect::<HashMap<_, _>>()
         };
@@ -199,8 +199,8 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                     upsert: false,
                 }
                 .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-                tx.execute_prepared(&sql, &values).await?;
+                .build_sqlx(PostgresQueryBuilder);
+                sqlx::query_with(&sql, values).execute(&mut *tx).await?;
             }
 
             let (sql, values) = FeedSelect {
@@ -208,12 +208,13 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 ..Default::default()
             }
             .into_select()
-            .build_postgres(PostgresQueryBuilder);
-            let feeds = tx.query_prepared::<Feed>(&sql, &values).await?;
+            .build_sqlx(PostgresQueryBuilder);
+            let rows = sqlx::query_as_with::<_, FeedRow, _>(&sql, values)
+                .fetch_all(&mut *tx)
+                .await?;
 
-            feeds
-                .into_iter()
-                .map(|e| (e.source_url.clone(), e.id))
+            rows.into_iter()
+                .map(|e| (e.source_url.0, e.id))
                 .collect::<HashMap<_, _>>()
         };
 
@@ -224,12 +225,13 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 ..Default::default()
             }
             .into_select()
-            .build_postgres(PostgresQueryBuilder);
-            let subscriptions = tx.query_prepared::<Subscription>(&sql, &values).await?;
+            .build_sqlx(PostgresQueryBuilder);
+            let rows = sqlx::query_as_with::<_, SubscriptionRow, _>(&sql, values)
+                .fetch_all(&mut *tx)
+                .await?;
 
-            subscriptions
-                .into_iter()
-                .flat_map(|s| s.feed.map(|f| (f.source_url, s.id)))
+            rows.into_iter()
+                .flat_map(|s| s.source_url.map(|u| (u.0, s.id)))
                 .collect::<HashMap<_, _>>()
         };
 
@@ -281,8 +283,8 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                     upsert: false,
                 }
                 .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-                tx.execute_prepared(&sql, &values).await?;
+                .build_sqlx(PostgresQueryBuilder);
+                sqlx::query_with(&sql, values).execute(&mut *tx).await?;
             }
 
             if !subscription_tags.is_empty() {
@@ -291,8 +293,8 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                     user_id: data.user_id,
                 }
                 .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-                tx.execute_prepared(&sql, &values).await?;
+                .build_sqlx(PostgresQueryBuilder);
+                sqlx::query_with(&sql, values).execute(&mut *tx).await?;
             }
         };
 
@@ -302,30 +304,72 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
     }
 }
 
-impl From<PgRow<'_>> for Subscription {
-    fn from(PgRow(value): PgRow<'_>) -> Self {
+#[derive(Debug, sqlx::FromRow)]
+struct SubscriptionRow {
+    id: Uuid,
+    title: String,
+    description: Option<String>,
+    feed_id: Uuid,
+    user_id: Uuid,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    #[sqlx(default)]
+    tags: Option<Json<Vec<Tag>>>,
+    #[sqlx(default)]
+    unread_count: Option<i64>,
+
+    #[sqlx(default)]
+    source_url: Option<DbUrl>,
+    #[sqlx(default)]
+    link: Option<DbUrl>,
+    #[sqlx(default)]
+    feed_title: Option<String>,
+    #[sqlx(default)]
+    feed_description: Option<String>,
+    #[sqlx(default)]
+    refresh_interval_min: Option<i32>,
+    #[sqlx(default)]
+    is_refreshing: Option<bool>,
+    #[sqlx(default)]
+    refreshed_at: Option<DateTime<Utc>>,
+    #[sqlx(default)]
+    is_custom: Option<bool>,
+}
+
+impl From<SubscriptionRow> for Subscription {
+    fn from(value: SubscriptionRow) -> Self {
         Self {
-            id: value.get("id"),
-            title: value.get("title"),
-            description: value.get("description"),
-            feed_id: value.get("feed_id"),
-            user_id: value.get("user_id"),
-            created_at: value.get("created_at"),
-            updated_at: value.get("updated_at"),
-            feed: value.try_get::<_, String>("link").ok().map(|link| Feed {
-                id: value.get("feed_id"),
-                source_url: value.get::<_, String>("source_url").parse().unwrap(),
-                link: link.parse().unwrap(),
-                title: value.get("feed_title"),
-                description: value.get("description"),
-                refresh_interval_min: value.get::<_, i32>("refresh_interval_min") as u64,
-                is_refreshing: value.get("is_refreshing"),
-                refreshed_at: value.get("refreshed_at"),
-                is_custom: value.get("is_custom"),
-                entries: None,
-            }),
-            tags: value.try_get::<_, Json<Vec<Tag>>>("tags").map(|e| e.0).ok(),
-            unread_count: value.try_get("unread_count").ok(),
+            id: value.id,
+            title: value.title,
+            description: value.description,
+            feed_id: value.feed_id,
+            user_id: value.user_id,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+            feed: if let Some(source_url) = value.source_url.map(|e| e.0)
+                && let Some(link) = value.link.map(|e| e.0)
+                && let Some(title) = value.feed_title
+                && let Some(refresh_interval_min) = value.refresh_interval_min.map(|e| e as u32)
+                && let Some(is_refreshing) = value.is_refreshing
+                && let Some(is_custom) = value.is_custom
+            {
+                Some(Feed {
+                    id: value.feed_id,
+                    source_url,
+                    link,
+                    title,
+                    description: value.feed_description,
+                    refresh_interval_min,
+                    is_refreshing,
+                    refreshed_at: value.refreshed_at,
+                    is_custom,
+                    entries: None,
+                })
+            } else {
+                None
+            },
+            tags: value.tags.map(|e| e.0),
+            unread_count: value.unread_count,
         }
     }
 }

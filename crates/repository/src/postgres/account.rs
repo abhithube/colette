@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
     Account,
     account::{AccountParams, AccountRepository, Error},
@@ -7,19 +8,18 @@ use colette_query::{
     account::{AccountInsert, AccountSelect},
     user::UserInsert,
 };
-use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder as _;
-
-use super::{PgRow, PreparedClient as _};
+use sea_query_binder::SqlxBinder as _;
+use sqlx::PgPool;
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct PostgresAccountRepository {
-    pool: Pool,
+    pool: PgPool,
 }
 
 impl PostgresAccountRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -27,23 +27,22 @@ impl PostgresAccountRepository {
 #[async_trait::async_trait]
 impl AccountRepository for PostgresAccountRepository {
     async fn query(&self, params: AccountParams) -> Result<Vec<Account>, Error> {
-        let client = self.pool.get().await?;
-
         let (sql, values) = AccountSelect {
             id: params.id,
             sub: params.sub.as_deref(),
             provider: params.provider.as_deref(),
         }
         .into_select()
-        .build_postgres(PostgresQueryBuilder);
-        let accounts = client.query_prepared::<Account>(&sql, &values).await?;
+        .build_sqlx(PostgresQueryBuilder);
+        let rows = sqlx::query_as_with::<_, AccountRow, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await?;
 
-        Ok(accounts)
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn save(&self, data: &Account) -> Result<(), Error> {
-        let mut client = self.pool.get().await?;
-        let tx = client.transaction().await?;
+        let mut tx = self.pool.begin().await?;
 
         if let Some(ref user) = data.user {
             let (sql, values) = UserInsert {
@@ -55,9 +54,9 @@ impl AccountRepository for PostgresAccountRepository {
                 updated_at: user.updated_at,
             }
             .into_insert()
-            .build_postgres(PostgresQueryBuilder);
+            .build_sqlx(PostgresQueryBuilder);
 
-            tx.execute_prepared(&sql, &values).await?;
+            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
         }
 
         let (sql, values) = AccountInsert {
@@ -70,9 +69,8 @@ impl AccountRepository for PostgresAccountRepository {
             updated_at: data.updated_at,
         }
         .into_insert()
-        .build_postgres(PostgresQueryBuilder);
-
-        tx.execute_prepared(&sql, &values).await?;
+        .build_sqlx(PostgresQueryBuilder);
+        sqlx::query_with(&sql, values).execute(&mut *tx).await?;
 
         tx.commit().await?;
 
@@ -80,16 +78,27 @@ impl AccountRepository for PostgresAccountRepository {
     }
 }
 
-impl From<PgRow<'_>> for Account {
-    fn from(PgRow(value): PgRow<'_>) -> Self {
+#[derive(Debug, sqlx::FromRow)]
+struct AccountRow {
+    id: Uuid,
+    sub: String,
+    provider: String,
+    password_hash: Option<String>,
+    user_id: Uuid,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl From<AccountRow> for Account {
+    fn from(value: AccountRow) -> Self {
         Self {
-            id: value.get("id"),
-            sub: value.get("sub"),
-            provider: value.get("provider"),
-            password_hash: value.get("password_hash"),
-            user_id: value.get("user_id"),
-            created_at: value.get("created_at"),
-            updated_at: value.get("updated_at"),
+            id: value.id,
+            sub: value.sub,
+            provider: value.provider,
+            password_hash: value.password_hash,
+            user_id: value.user_id,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
             user: None,
         }
     }

@@ -3,16 +3,20 @@ pub use api_key::PostgresApiKeyRepository;
 pub use backup::PostgresBackupRepository;
 pub use bookmark::PostgresBookmarkRepository;
 pub use collection::PostgresCollectionRepository;
-use deadpool_postgres::{Object, Transaction};
 pub use feed::PostgresFeedRepository;
 pub use feed_entry::PostgresFeedEntryRepository;
 pub use job::PostgresJobRepository;
-use sea_query_postgres::PostgresValues;
+use sqlx::{
+    Decode, Encode, Postgres, Type,
+    encode::IsNull,
+    error::BoxDynError,
+    postgres::{PgArgumentBuffer, PgTypeInfo, PgValueFormat, PgValueRef},
+};
 pub use stream::PostgresStreamRepository;
 pub use subscription::PostgresSubscriptionRepository;
 pub use subscription_entry::PostgresSubscriptionEntryRepository;
 pub use tag::PostgresTagRepository;
-use tokio_postgres::Row;
+use url::Url;
 pub use user::PostgresUserRepository;
 use uuid::Uuid;
 
@@ -30,105 +34,35 @@ mod subscription_entry;
 mod tag;
 mod user;
 
-struct PgRow<'a>(&'a Row);
+#[derive(Debug)]
+pub(crate) struct DbUrl(Url);
 
+impl Type<Postgres> for DbUrl {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("text")
+    }
+}
+
+impl Encode<'_, Postgres> for DbUrl {
+    fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> Result<IsNull, BoxDynError> {
+        buf.extend_from_slice(self.0.as_str().as_bytes());
+
+        Ok(IsNull::No)
+    }
+}
+
+impl Decode<'_, Postgres> for DbUrl {
+    fn decode(value: PgValueRef<'_>) -> Result<Self, BoxDynError> {
+        match value.format() {
+            PgValueFormat::Binary => Url::parse(str::from_utf8(value.as_bytes()?)?),
+            PgValueFormat::Text => Url::parse(value.as_str()?),
+        }
+        .map(DbUrl)
+        .map_err(Into::into)
+    }
+}
+
+#[derive(Debug, sqlx::FromRow)]
 struct IdRow {
     id: Uuid,
-}
-
-impl From<PgRow<'_>> for IdRow {
-    fn from(PgRow(value): PgRow<'_>) -> Self {
-        Self {
-            id: value.get("id"),
-        }
-    }
-}
-
-#[async_trait::async_trait]
-trait PreparedClient {
-    async fn query_prepared<T: for<'a> From<PgRow<'a>>>(
-        &self,
-        sql: &str,
-        values: &PostgresValues,
-    ) -> Result<Vec<T>, tokio_postgres::Error>;
-
-    async fn query_one_prepared<T: for<'a> From<PgRow<'a>>>(
-        &self,
-        sql: &str,
-        values: &PostgresValues,
-    ) -> Result<T, tokio_postgres::Error>;
-
-    async fn execute_prepared(
-        &self,
-        sql: &str,
-        values: &PostgresValues,
-    ) -> Result<u64, tokio_postgres::Error>;
-}
-
-#[async_trait::async_trait]
-impl PreparedClient for Object {
-    async fn query_prepared<T: for<'a> From<PgRow<'a>>>(
-        &self,
-        sql: &str,
-        values: &PostgresValues,
-    ) -> Result<Vec<T>, tokio_postgres::Error> {
-        let stmt = self.prepare_cached(sql).await?;
-        let rows = self.query(&stmt, &values.as_params()).await?;
-
-        Ok(rows.into_iter().map(|e| PgRow(&e).into()).collect())
-    }
-
-    async fn query_one_prepared<T: for<'a> From<PgRow<'a>>>(
-        &self,
-        sql: &str,
-        values: &PostgresValues,
-    ) -> Result<T, tokio_postgres::Error> {
-        let stmt = self.prepare_cached(sql).await?;
-        let row = self.query_one(&stmt, &values.as_params()).await?;
-
-        Ok(PgRow(&row).into())
-    }
-
-    async fn execute_prepared(
-        &self,
-        sql: &str,
-        values: &PostgresValues,
-    ) -> Result<u64, tokio_postgres::Error> {
-        let stmt = self.prepare_cached(sql).await?;
-        self.execute(&stmt, &values.as_params()).await
-    }
-}
-
-#[async_trait::async_trait]
-impl PreparedClient for Transaction<'_> {
-    async fn query_prepared<T: for<'a> From<PgRow<'a>>>(
-        &self,
-        sql: &str,
-        values: &PostgresValues,
-    ) -> Result<Vec<T>, tokio_postgres::Error> {
-        let stmt = self.prepare_cached(sql).await?;
-        let rows = self.query(&stmt, &values.as_params()).await?;
-
-        Ok(rows.into_iter().map(|e| PgRow(&e).into()).collect())
-    }
-
-    async fn query_one_prepared<T: for<'a> From<PgRow<'a>>>(
-        &self,
-        sql: &str,
-        values: &PostgresValues,
-    ) -> Result<T, tokio_postgres::Error> {
-        let stmt = self.prepare_cached(sql).await?;
-        let row = self.query_one(&stmt, &values.as_params()).await?;
-
-        Ok(PgRow(&row).into())
-    }
-
-    async fn execute_prepared(
-        &self,
-        sql: &str,
-        values: &PostgresValues,
-    ) -> Result<u64, tokio_postgres::Error> {
-        let stmt = self.prepare_cached(sql).await?;
-        self.execute(&stmt, &values.as_params()).await
-    }
 }

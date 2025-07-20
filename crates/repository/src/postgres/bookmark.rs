@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use colette_core::{
     Bookmark, Tag,
     bookmark::{BookmarkParams, BookmarkRepository, Error, ImportBookmarksData},
@@ -11,21 +11,20 @@ use colette_query::{
     bookmark_tag::{BookmarkTagBase, BookmarkTagDelete, BookmarkTagInsert},
     tag::{TagBase, TagInsert, TagSelect},
 };
-use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder as _;
-use tokio_postgres::{error::SqlState, types::Json};
+use sea_query_binder::SqlxBinder as _;
+use sqlx::{PgPool, types::Json};
 use uuid::Uuid;
 
-use super::{PgRow, PreparedClient as _};
+use crate::postgres::{DbUrl, tag::TagRow};
 
 #[derive(Debug, Clone)]
 pub struct PostgresBookmarkRepository {
-    pool: Pool,
+    pool: PgPool,
 }
 
 impl PostgresBookmarkRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -33,8 +32,6 @@ impl PostgresBookmarkRepository {
 #[async_trait::async_trait]
 impl BookmarkRepository for PostgresBookmarkRepository {
     async fn query(&self, params: BookmarkParams) -> Result<Vec<Bookmark>, Error> {
-        let client = self.pool.get().await?;
-
         let (sql, values) = BookmarkSelect {
             id: params.id,
             filter: params.filter,
@@ -45,15 +42,17 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             with_tags: params.with_tags,
         }
         .into_select()
-        .build_postgres(PostgresQueryBuilder);
-        let bookmarks = client.query_prepared::<Bookmark>(&sql, &values).await?;
+        .build_sqlx(PostgresQueryBuilder);
+        let rows = sqlx::query_as_with::<_, BookmarkRow, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await
+            .inspect_err(|e| println!("{e}"))?;
 
-        Ok(bookmarks)
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn save(&self, data: &Bookmark) -> Result<(), Error> {
-        let mut client = self.pool.get().await?;
-        let tx = client.transaction().await?;
+        let mut tx = self.pool.begin().await?;
 
         {
             let (sql, values) = BookmarkInsert {
@@ -72,12 +71,15 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                 upsert: false,
             }
             .into_insert()
-            .build_postgres(PostgresQueryBuilder);
-            tx.execute_prepared(&sql, &values)
+            .build_sqlx(PostgresQueryBuilder);
+            sqlx::query_with(&sql, values)
+                .execute(&mut *tx)
                 .await
-                .map_err(|e| match e.code() {
-                    Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.link.clone()),
-                    _ => Error::PostgresClient(e),
+                .map_err(|e| match e {
+                    sqlx::Error::Database(e) if e.is_unique_violation() => {
+                        Error::Conflict(data.link.clone())
+                    }
+                    _ => Error::Sqlx(e),
                 })?;
         }
 
@@ -87,8 +89,8 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                 tag_ids: tags.iter().map(|e| e.id),
             }
             .into_delete()
-            .build_postgres(PostgresQueryBuilder);
-            tx.execute_prepared(&sql, &values).await?;
+            .build_sqlx(PostgresQueryBuilder);
+            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
 
             if !tags.is_empty() {
                 let (sql, values) = BookmarkTagInsert {
@@ -99,8 +101,8 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                     user_id: data.user_id,
                 }
                 .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-                tx.execute_prepared(&sql, &values).await?;
+                .build_sqlx(PostgresQueryBuilder);
+                sqlx::query_with(&sql, values).execute(&mut *tx).await?;
             }
         }
 
@@ -110,8 +112,6 @@ impl BookmarkRepository for PostgresBookmarkRepository {
     }
 
     async fn upsert(&self, data: &Bookmark) -> Result<(), Error> {
-        let client = self.pool.get().await?;
-
         let (sql, values) = BookmarkInsert {
             bookmarks: [BookmarkBase {
                 id: data.id,
@@ -128,8 +128,8 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             upsert: true,
         }
         .into_insert()
-        .build_postgres(PostgresQueryBuilder);
-        client.execute_prepared(&sql, &values).await?;
+        .build_sqlx(PostgresQueryBuilder);
+        sqlx::query_with(&sql, values).execute(&self.pool).await?;
 
         Ok(())
     }
@@ -139,37 +139,32 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         bookmark_id: Uuid,
         archived_path: Option<String>,
     ) -> Result<(), Error> {
-        let client = self.pool.get().await?;
-
         let (sql, values) = BookmarkUpdate {
             id: bookmark_id,
             archived_path: Some(archived_path.as_deref()),
             updated_at: Utc::now(),
         }
         .into_update()
-        .build_postgres(PostgresQueryBuilder);
-        client.execute_prepared(&sql, &values).await?;
+        .build_sqlx(PostgresQueryBuilder);
+        sqlx::query_with(&sql, values).execute(&self.pool).await?;
 
         Ok(())
     }
 
     async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
-        let client = self.pool.get().await?;
-
         let (sql, values) = BookmarkDelete {
             id: Some(id),
             ..Default::default()
         }
         .into_delete()
-        .build_postgres(PostgresQueryBuilder);
-        client.execute_prepared(&sql, &values).await?;
+        .build_sqlx(PostgresQueryBuilder);
+        sqlx::query_with(&sql, values).execute(&self.pool).await?;
 
         Ok(())
     }
 
     async fn import(&self, data: ImportBookmarksData) -> Result<(), Error> {
-        let mut client = self.pool.get().await?;
-        let tx = client.transaction().await?;
+        let mut tx = self.pool.begin().await?;
 
         let tag_map = {
             let mut titles = Vec::<&str>::new();
@@ -193,8 +188,8 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                     upsert: true,
                 }
                 .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-                tx.execute_prepared(&sql, &values).await?;
+                .build_sqlx(PostgresQueryBuilder);
+                sqlx::query_with(&sql, values).execute(&mut *tx).await?;
             }
 
             let (sql, values) = TagSelect {
@@ -203,10 +198,12 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                 ..Default::default()
             }
             .into_select()
-            .build_postgres(PostgresQueryBuilder);
-            let tags = tx.query_prepared::<Tag>(&sql, &values).await?;
+            .build_sqlx(PostgresQueryBuilder);
+            let rows = sqlx::query_as_with::<_, TagRow, _>(&sql, values)
+                .fetch_all(&mut *tx)
+                .await?;
 
-            tags.into_iter()
+            rows.into_iter()
                 .map(|e| (e.title, e.id))
                 .collect::<HashMap<_, _>>()
         };
@@ -217,12 +214,13 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                 ..Default::default()
             }
             .into_select()
-            .build_postgres(PostgresQueryBuilder);
-            let bookmarks = tx.query_prepared::<Bookmark>(&sql, &values).await?;
+            .build_sqlx(PostgresQueryBuilder);
+            let rows = sqlx::query_as_with::<_, BookmarkRow, _>(&sql, values)
+                .fetch_all(&mut *tx)
+                .await?;
 
-            bookmarks
-                .into_iter()
-                .map(|e| (e.link, e.id))
+            rows.into_iter()
+                .map(|e| (e.link.0, e.id))
                 .collect::<HashMap<_, _>>()
         };
 
@@ -271,8 +269,8 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                     upsert: true,
                 }
                 .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-                tx.execute_prepared(&sql, &values).await?;
+                .build_sqlx(PostgresQueryBuilder);
+                sqlx::query_with(&sql, values).execute(&mut *tx).await?;
             }
 
             if !bookmark_tags.is_empty() {
@@ -281,8 +279,8 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                     user_id: data.user_id,
                 }
                 .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-                tx.execute_prepared(&sql, &values).await?;
+                .build_sqlx(PostgresQueryBuilder);
+                sqlx::query_with(&sql, values).execute(&mut *tx).await?;
             }
         };
 
@@ -292,22 +290,36 @@ impl BookmarkRepository for PostgresBookmarkRepository {
     }
 }
 
-impl From<PgRow<'_>> for Bookmark {
-    fn from(PgRow(value): PgRow<'_>) -> Self {
+#[derive(Debug, sqlx::FromRow)]
+struct BookmarkRow {
+    id: Uuid,
+    link: DbUrl,
+    title: String,
+    thumbnail_url: Option<DbUrl>,
+    published_at: Option<DateTime<Utc>>,
+    archived_path: Option<String>,
+    author: Option<String>,
+    user_id: Uuid,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    #[sqlx(default)]
+    tags: Option<Json<Vec<Tag>>>,
+}
+
+impl From<BookmarkRow> for Bookmark {
+    fn from(value: BookmarkRow) -> Self {
         Self {
-            id: value.get("id"),
-            link: value.get::<_, String>("link").parse().unwrap(),
-            title: value.get("title"),
-            thumbnail_url: value
-                .get::<_, Option<String>>("thumbnail_url")
-                .and_then(|e| e.parse().ok()),
-            published_at: value.get("published_at"),
-            archived_path: value.get("archived_path"),
-            author: value.get("author"),
-            user_id: value.get("user_id"),
-            created_at: value.get("created_at"),
-            updated_at: value.get("updated_at"),
-            tags: value.try_get::<_, Json<Vec<Tag>>>("tags").map(|e| e.0).ok(),
+            id: value.id,
+            link: value.link.0,
+            title: value.title,
+            thumbnail_url: value.thumbnail_url.map(|e| e.0),
+            published_at: value.published_at,
+            archived_path: value.archived_path,
+            author: value.author,
+            user_id: value.user_id,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+            tags: value.tags.map(|e| e.0),
         }
     }
 }

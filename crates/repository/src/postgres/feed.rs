@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
     Feed,
     feed::{Error, FeedParams, FeedRepository},
@@ -7,19 +8,20 @@ use colette_query::{
     feed::{FeedBase, FeedInsert, FeedSelect},
     feed_entry::{FeedEntryInsert, FeedEntryInsertBatch},
 };
-use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder as _;
+use sea_query_binder::SqlxBinder as _;
+use sqlx::PgPool;
+use uuid::Uuid;
 
-use super::{IdRow, PgRow, PreparedClient as _};
+use crate::postgres::{DbUrl, IdRow};
 
 #[derive(Debug, Clone)]
 pub struct PostgresFeedRepository {
-    pool: Pool,
+    pool: PgPool,
 }
 
 impl PostgresFeedRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -27,8 +29,6 @@ impl PostgresFeedRepository {
 #[async_trait::async_trait]
 impl FeedRepository for PostgresFeedRepository {
     async fn query(&self, params: FeedParams) -> Result<Vec<Feed>, Error> {
-        let client = self.pool.get().await?;
-
         let (sql, values) = FeedSelect {
             id: params.id,
             source_urls: params
@@ -40,15 +40,16 @@ impl FeedRepository for PostgresFeedRepository {
             limit: params.limit.map(|e| e as u64),
         }
         .into_select()
-        .build_postgres(PostgresQueryBuilder);
-        let feeds = client.query_prepared::<Feed>(&sql, &values).await?;
+        .build_sqlx(PostgresQueryBuilder);
+        let rows = sqlx::query_as_with::<_, FeedRow, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await?;
 
-        Ok(feeds)
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn save(&self, data: &mut Feed) -> Result<(), Error> {
-        let mut client = self.pool.get().await?;
-        let tx = client.transaction().await?;
+        let mut tx = self.pool.begin().await?;
 
         data.id = {
             let feed = FeedInsert {
@@ -66,8 +67,10 @@ impl FeedRepository for PostgresFeedRepository {
                 upsert: true,
             };
 
-            let (sql, values) = feed.into_insert().build_postgres(PostgresQueryBuilder);
-            let row = tx.query_one_prepared::<IdRow>(&sql, &values).await?;
+            let (sql, values) = feed.into_insert().build_sqlx(PostgresQueryBuilder);
+            let row = sqlx::query_as_with::<_, IdRow, _>(&sql, values)
+                .fetch_one(&mut *tx)
+                .await?;
 
             row.id
         };
@@ -86,9 +89,8 @@ impl FeedRepository for PostgresFeedRepository {
 
             let (sql, values) = FeedEntryInsertBatch(entries)
                 .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-
-            tx.execute_prepared(&sql, &values).await?;
+                .build_sqlx(PostgresQueryBuilder);
+            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
         }
 
         tx.commit().await?;
@@ -97,18 +99,31 @@ impl FeedRepository for PostgresFeedRepository {
     }
 }
 
-impl From<PgRow<'_>> for Feed {
-    fn from(PgRow(value): PgRow<'_>) -> Self {
+#[derive(Debug, sqlx::Type, sqlx::FromRow)]
+pub(crate) struct FeedRow {
+    pub(crate) id: Uuid,
+    pub(crate) source_url: DbUrl,
+    link: DbUrl,
+    title: String,
+    description: Option<String>,
+    refresh_interval_min: i32,
+    is_refreshing: bool,
+    refreshed_at: Option<DateTime<Utc>>,
+    is_custom: bool,
+}
+
+impl From<FeedRow> for Feed {
+    fn from(value: FeedRow) -> Self {
         Self {
-            id: value.get("id"),
-            source_url: value.get::<_, String>("source_url").parse().unwrap(),
-            link: value.get::<_, String>("link").parse().unwrap(),
-            title: value.get("title"),
-            description: value.get("description"),
-            refreshed_at: value.get("refreshed_at"),
-            refresh_interval_min: value.get::<_, i32>("refresh_interval_min") as u64,
-            is_refreshing: value.get("is_refreshing"),
-            is_custom: value.get("is_custom"),
+            id: value.id,
+            source_url: value.source_url.0,
+            link: value.link.0,
+            title: value.title,
+            description: value.description,
+            refreshed_at: value.refreshed_at,
+            refresh_interval_min: value.refresh_interval_min as u32,
+            is_refreshing: value.is_refreshing,
+            is_custom: value.is_custom,
             entries: None,
         }
     }

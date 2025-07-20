@@ -22,7 +22,7 @@ pub struct Feed {
     pub description: Option<String>,
     #[serde(skip_serializing, default = "default_refresh_interval_min")]
     #[builder(default = 60)]
-    pub refresh_interval_min: u64,
+    pub refresh_interval_min: u32,
     #[serde(skip_serializing, default = "default_is_refreshing")]
     #[builder(default = false)]
     pub is_refreshing: bool,
@@ -34,7 +34,7 @@ pub struct Feed {
     pub entries: Option<Vec<FeedEntry>>,
 }
 
-fn default_refresh_interval_min() -> u64 {
+fn default_refresh_interval_min() -> u32 {
     60
 }
 fn default_is_refreshing() -> bool {
@@ -108,8 +108,5 @@ pub enum Error {
     Scraper(#[from] colette_scraper::feed::FeedError),
 
     #[error(transparent)]
-    PostgresPool(#[from] deadpool_postgres::PoolError),
-
-    #[error(transparent)]
-    PostgresClient(#[from] tokio_postgres::Error),
+    Sqlx(#[from] sqlx::Error),
 }

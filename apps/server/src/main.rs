@@ -35,11 +35,10 @@ use colette_repository::postgres::{
 };
 use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
 use colette_storage::{FsStorageClient, S3StorageClient, StorageAdapter};
-use deadpool_postgres::{Manager, ManagerConfig, Pool};
 use jsonwebtoken::{DecodingKey, EncodingKey, jwk::JwkSet};
 use s3::{Bucket, Region, creds::Credentials};
+use sqlx::PgPool;
 use tokio::{net::TcpListener, sync::Mutex};
-use tokio_postgres::NoTls;
 use tower::{ServiceBuilder, ServiceExt};
 use tower_http::services::ServeDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -86,19 +85,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app_config = config::from_env().await?;
 
     let pool = {
-        let manager = Manager::from_config(
-            app_config.database.url.parse()?,
-            NoTls,
-            ManagerConfig::default(),
-        );
-
-        let pool = Pool::builder(manager).build()?;
+        let pool = PgPool::connect_lazy(&app_config.database.url)?;
 
         {
-            let mut migrator = PostgresMigrator::new(&pool);
+            let mut migrator = PostgresMigrator::new(pool.clone());
             let mut runner = postgres_migrations::migrations::runner();
 
-            if !migrator.is_fresh(&pool).await?
+            if !migrator.is_fresh().await?
                 && runner
                     .get_last_applied_migration_async(&mut migrator)
                     .await?

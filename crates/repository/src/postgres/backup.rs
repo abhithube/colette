@@ -1,10 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
-use colette_core::{
-    Feed, Tag,
-    backup::{BackupRepository, Error, ImportBackupData},
-};
+use colette_core::backup::{BackupRepository, Error, ImportBackupData};
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
     bookmark::{BookmarkBase, BookmarkDelete, BookmarkInsert},
@@ -14,22 +11,21 @@ use colette_query::{
     subscription_tag::{SubscriptionTagBase, SubscriptionTagInsert},
     tag::{TagBase, TagDelete, TagInsert, TagSelect},
 };
-use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder as _;
+use sea_query_binder::SqlxBinder as _;
+use sqlx::PgPool;
 use url::Url;
 use uuid::Uuid;
 
-use super::PreparedClient as _;
-use crate::postgres::IdRow;
+use crate::postgres::{feed::FeedRow, tag::TagRow};
 
 #[derive(Debug, Clone)]
 pub struct PostgresBackupRepository {
-    pool: Pool,
+    pool: PgPool,
 }
 
 impl PostgresBackupRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -37,8 +33,7 @@ impl PostgresBackupRepository {
 #[async_trait::async_trait]
 impl BackupRepository for PostgresBackupRepository {
     async fn import(&self, data: ImportBackupData) -> Result<(), Error> {
-        let mut client = self.pool.get().await?;
-        let tx = client.transaction().await?;
+        let mut tx = self.pool.begin().await?;
 
         let tag_map = {
             let (sql, values) = TagDelete {
@@ -46,8 +41,8 @@ impl BackupRepository for PostgresBackupRepository {
                 ..Default::default()
             }
             .into_delete()
-            .build_postgres(PostgresQueryBuilder);
-            tx.execute_prepared(&sql, &values).await?;
+            .build_sqlx(PostgresQueryBuilder);
+            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
 
             let tags = data
                 .backup
@@ -68,8 +63,8 @@ impl BackupRepository for PostgresBackupRepository {
                     upsert: false,
                 }
                 .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-                tx.query_prepared::<IdRow>(&sql, &values).await?;
+                .build_sqlx(PostgresQueryBuilder);
+                sqlx::query_with(&sql, values).execute(&mut *tx).await?;
             }
 
             let (sql, values) = TagSelect {
@@ -77,10 +72,12 @@ impl BackupRepository for PostgresBackupRepository {
                 ..Default::default()
             }
             .into_select()
-            .build_postgres(PostgresQueryBuilder);
-            let tags = tx.query_prepared::<Tag>(&sql, &values).await?;
+            .build_sqlx(PostgresQueryBuilder);
+            let rows = sqlx::query_as_with::<_, TagRow, _>(&sql, values)
+                .fetch_all(&mut *tx)
+                .await?;
 
-            tags.into_iter()
+            rows.into_iter()
                 .map(|e| (e.title, e.id))
                 .collect::<HashMap<_, _>>()
         };
@@ -91,8 +88,8 @@ impl BackupRepository for PostgresBackupRepository {
                 ..Default::default()
             }
             .into_delete()
-            .build_postgres(PostgresQueryBuilder);
-            tx.execute_prepared(&sql, &values).await?;
+            .build_sqlx(PostgresQueryBuilder);
+            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
 
             let feed_map = {
                 let mut source_urls = Vec::<Url>::new();
@@ -122,8 +119,8 @@ impl BackupRepository for PostgresBackupRepository {
                         upsert: false,
                     }
                     .into_insert()
-                    .build_postgres(PostgresQueryBuilder);
-                    tx.query_prepared::<IdRow>(&sql, &values).await?;
+                    .build_sqlx(PostgresQueryBuilder);
+                    sqlx::query_with(&sql, values).execute(&mut *tx).await?;
                 }
 
                 let (sql, values) = FeedSelect {
@@ -131,12 +128,13 @@ impl BackupRepository for PostgresBackupRepository {
                     ..Default::default()
                 }
                 .into_select()
-                .build_postgres(PostgresQueryBuilder);
-                let feeds = tx.query_prepared::<Feed>(&sql, &values).await?;
+                .build_sqlx(PostgresQueryBuilder);
+                let rows = sqlx::query_as_with::<_, FeedRow, _>(&sql, values)
+                    .fetch_all(&mut *tx)
+                    .await?;
 
-                feeds
-                    .into_iter()
-                    .map(|e| (e.source_url.clone(), e))
+                rows.into_iter()
+                    .map(|e| (e.source_url.0, e.id))
                     .collect::<HashMap<_, _>>()
             };
 
@@ -145,7 +143,7 @@ impl BackupRepository for PostgresBackupRepository {
 
             for subscription in data.backup.subscriptions.iter() {
                 if let Some(ref f) = subscription.feed
-                    && let Some(feed) = feed_map.get(&f.source_url)
+                    && let Some(feed_id) = feed_map.get(&f.source_url).cloned()
                 {
                     let id = Uuid::new_v4();
 
@@ -153,7 +151,7 @@ impl BackupRepository for PostgresBackupRepository {
                         id,
                         title: &subscription.title,
                         description: subscription.description.as_deref(),
-                        feed_id: feed.id,
+                        feed_id,
                         created_at: subscription.created_at,
                         updated_at: subscription.updated_at,
                     });
@@ -179,8 +177,8 @@ impl BackupRepository for PostgresBackupRepository {
                     upsert: false,
                 }
                 .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-                tx.query_prepared::<IdRow>(&sql, &values).await?;
+                .build_sqlx(PostgresQueryBuilder);
+                sqlx::query_with(&sql, values).execute(&mut *tx).await?;
             }
 
             if !subscription_tags.is_empty() {
@@ -189,8 +187,8 @@ impl BackupRepository for PostgresBackupRepository {
                     user_id: data.user_id,
                 }
                 .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-                tx.execute_prepared(&sql, &values).await?;
+                .build_sqlx(PostgresQueryBuilder);
+                sqlx::query_with(&sql, values).execute(&mut *tx).await?;
             }
         }
 
@@ -200,8 +198,8 @@ impl BackupRepository for PostgresBackupRepository {
                 ..Default::default()
             }
             .into_delete()
-            .build_postgres(PostgresQueryBuilder);
-            tx.execute_prepared(&sql, &values).await?;
+            .build_sqlx(PostgresQueryBuilder);
+            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
 
             let mut bookmarks = Vec::<BookmarkBase>::new();
             let mut bookmark_tags = Vec::<BookmarkTagBase<Vec<Uuid>>>::new();
@@ -241,8 +239,8 @@ impl BackupRepository for PostgresBackupRepository {
                     upsert: false,
                 }
                 .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-                tx.query_prepared::<IdRow>(&sql, &values).await?;
+                .build_sqlx(PostgresQueryBuilder);
+                sqlx::query_with(&sql, values).execute(&mut *tx).await?;
             }
 
             if !bookmark_tags.is_empty() && bookmark_tags.iter().any(|e| !e.tag_ids.is_empty()) {
@@ -251,8 +249,8 @@ impl BackupRepository for PostgresBackupRepository {
                     user_id: data.user_id,
                 }
                 .into_insert()
-                .build_postgres(PostgresQueryBuilder);
-                tx.execute_prepared(&sql, &values).await?;
+                .build_sqlx(PostgresQueryBuilder);
+                sqlx::query_with(&sql, values).execute(&mut *tx).await?;
             }
         }
 

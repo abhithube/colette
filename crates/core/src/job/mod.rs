@@ -72,8 +72,5 @@ pub enum Error {
     AlreadyCompleted(Uuid),
 
     #[error(transparent)]
-    PostgresPool(#[from] deadpool_postgres::PoolError),
-
-    #[error(transparent)]
-    PostgresClient(#[from] tokio_postgres::Error),
+    Sqlx(#[from] sqlx::Error),
 }

@@ -53,8 +53,5 @@ pub enum Error {
     Crypto(#[from] colette_util::CryptoError),
 
     #[error(transparent)]
-    PostgresPool(#[from] deadpool_postgres::PoolError),
-
-    #[error(transparent)]
-    PostgresClient(#[from] tokio_postgres::Error),
+    Sqlx(#[from] sqlx::Error),
 }

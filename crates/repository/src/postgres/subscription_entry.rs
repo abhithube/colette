@@ -1,6 +1,6 @@
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use colette_core::{
-    SubscriptionEntry,
+    FeedEntry, SubscriptionEntry,
     subscription_entry::{Error, SubscriptionEntryParams, SubscriptionEntryRepository},
 };
 use colette_query::{
@@ -8,19 +8,20 @@ use colette_query::{
     feed_entry::SubscriptionEntrySelect,
     read_entry::{ReadEntryDelete, ReadEntryInsert},
 };
-use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder as _;
+use sea_query_binder::SqlxBinder as _;
+use sqlx::PgPool;
+use uuid::Uuid;
 
-use super::{PgRow, PreparedClient as _};
+use crate::postgres::DbUrl;
 
 #[derive(Debug, Clone)]
 pub struct PostgresSubscriptionEntryRepository {
-    pool: Pool,
+    pool: PgPool,
 }
 
 impl PostgresSubscriptionEntryRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -31,8 +32,6 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
         &self,
         params: SubscriptionEntryParams,
     ) -> Result<Vec<SubscriptionEntry>, Error> {
-        let client = self.pool.get().await?;
-
         let (sql, values) = SubscriptionEntrySelect {
             filter: params.filter,
             subscription_id: params.subscription_id,
@@ -45,17 +44,15 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
             with_read_entry: params.with_read_entry,
         }
         .into_select()
-        .build_postgres(PostgresQueryBuilder);
-        let subscription_entries = client
-            .query_prepared::<SubscriptionEntry>(&sql, &values)
+        .build_sqlx(PostgresQueryBuilder);
+        let rows = sqlx::query_as_with::<_, SubscriptionEntryRow, _>(&sql, values)
+            .fetch_all(&self.pool)
             .await?;
 
-        Ok(subscription_entries)
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn save(&self, data: &SubscriptionEntry) -> Result<(), Error> {
-        let client = self.pool.get().await?;
-
         let Some(has_read) = data.has_read else {
             return Ok(());
         };
@@ -68,33 +65,72 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
                 created_at: data.read_at.unwrap_or_else(Utc::now),
             }
             .into_insert()
-            .build_postgres(PostgresQueryBuilder);
-
-            client.execute_prepared(&sql, &values).await?;
+            .build_sqlx(PostgresQueryBuilder);
+            sqlx::query_with(&sql, values).execute(&self.pool).await?;
         } else {
             let (sql, values) = ReadEntryDelete {
                 subscription_id: data.subscription_id,
                 feed_entry_id: data.feed_entry_id,
             }
             .into_delete()
-            .build_postgres(PostgresQueryBuilder);
-
-            client.execute_prepared(&sql, &values).await?;
+            .build_sqlx(PostgresQueryBuilder);
+            sqlx::query_with(&sql, values).execute(&self.pool).await?;
         }
 
         Ok(())
     }
 }
 
-impl From<PgRow<'_>> for SubscriptionEntry {
-    fn from(PgRow(value): PgRow<'_>) -> Self {
+#[derive(Debug, sqlx::FromRow)]
+struct SubscriptionEntryRow {
+    id: Uuid,
+    subscription_id: Uuid,
+    user_id: Uuid,
+    has_read: Option<bool>,
+    created_at: Option<DateTime<Utc>>,
+
+    #[sqlx(default)]
+    link: Option<DbUrl>,
+    #[sqlx(default)]
+    title: Option<String>,
+    #[sqlx(default)]
+    published_at: Option<DateTime<Utc>>,
+    #[sqlx(default)]
+    description: Option<String>,
+    #[sqlx(default)]
+    author: Option<String>,
+    #[sqlx(default)]
+    thumbnail_url: Option<DbUrl>,
+    #[sqlx(default)]
+    feed_id: Option<Uuid>,
+}
+
+impl From<SubscriptionEntryRow> for SubscriptionEntry {
+    fn from(value: SubscriptionEntryRow) -> Self {
         Self {
-            subscription_id: value.get("subscription_id"),
-            feed_entry_id: value.get("id"),
-            user_id: value.get("user_id"),
-            feed_entry: Some(PgRow(value).into()),
-            has_read: value.try_get("has_read").ok(),
-            read_at: value.try_get("created_at").ok(),
+            subscription_id: value.subscription_id,
+            feed_entry_id: value.id,
+            user_id: value.user_id,
+            feed_entry: if let Some(feed_id) = value.feed_id
+                && let Some(link) = value.link.map(|e| e.0)
+                && let Some(title) = value.title
+                && let Some(published_at) = value.published_at
+            {
+                Some(FeedEntry {
+                    id: value.id,
+                    link,
+                    title,
+                    published_at,
+                    description: value.description,
+                    thumbnail_url: value.thumbnail_url.map(|e| e.0),
+                    author: value.author,
+                    feed_id,
+                })
+            } else {
+                None
+            },
+            has_read: value.has_read,
+            read_at: value.created_at,
         }
     }
 }

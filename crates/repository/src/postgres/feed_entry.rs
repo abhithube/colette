@@ -1,21 +1,23 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
     FeedEntry,
     feed_entry::{Error, FeedEntryParams, FeedEntryRepository},
 };
 use colette_query::{IntoSelect, feed_entry::FeedEntrySelect};
-use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder as _;
+use sea_query_binder::SqlxBinder as _;
+use sqlx::PgPool;
+use uuid::Uuid;
 
-use super::{PgRow, PreparedClient as _};
+use crate::postgres::DbUrl;
 
 #[derive(Debug, Clone)]
 pub struct PostgresFeedEntryRepository {
-    pool: Pool,
+    pool: PgPool,
 }
 
 impl PostgresFeedEntryRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -23,8 +25,6 @@ impl PostgresFeedEntryRepository {
 #[async_trait::async_trait]
 impl FeedEntryRepository for PostgresFeedEntryRepository {
     async fn query(&self, params: FeedEntryParams) -> Result<Vec<FeedEntry>, Error> {
-        let client = self.pool.get().await?;
-
         let (sql, values) = FeedEntrySelect {
             id: params.id,
             feed_id: params.feed_id,
@@ -32,26 +32,38 @@ impl FeedEntryRepository for PostgresFeedEntryRepository {
             limit: params.limit.map(|e| e as u64),
         }
         .into_select()
-        .build_postgres(PostgresQueryBuilder);
-        let feed_entries = client.query_prepared::<FeedEntry>(&sql, &values).await?;
+        .build_sqlx(PostgresQueryBuilder);
+        let rows = sqlx::query_as_with::<_, FeedEntryRow, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await?;
 
-        Ok(feed_entries)
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 }
 
-impl From<PgRow<'_>> for FeedEntry {
-    fn from(PgRow(value): PgRow<'_>) -> Self {
+#[derive(Debug, sqlx::Type, sqlx::FromRow)]
+struct FeedEntryRow {
+    id: Uuid,
+    link: DbUrl,
+    title: String,
+    published_at: DateTime<Utc>,
+    description: Option<String>,
+    author: Option<String>,
+    thumbnail_url: Option<DbUrl>,
+    feed_id: Uuid,
+}
+
+impl From<FeedEntryRow> for FeedEntry {
+    fn from(value: FeedEntryRow) -> Self {
         Self {
-            id: value.get("id"),
-            link: value.get::<_, String>("link").parse().unwrap(),
-            title: value.get("title"),
-            published_at: value.get("published_at"),
-            description: value.get("description"),
-            author: value.get("author"),
-            thumbnail_url: value
-                .get::<_, Option<String>>("thumbnail_url")
-                .and_then(|e| e.parse().ok()),
-            feed_id: value.get("feed_id"),
+            id: value.id,
+            link: value.link.0,
+            title: value.title,
+            published_at: value.published_at,
+            description: value.description,
+            author: value.author,
+            thumbnail_url: value.thumbnail_url.map(|e| e.0),
+            feed_id: value.feed_id,
         }
     }
 }

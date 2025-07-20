@@ -104,13 +104,18 @@ impl IntoSelect for SubscriptionSelect<'_> {
                 .columns([
                     (Feed::Table, Feed::SourceUrl),
                     (Feed::Table, Feed::Link),
-                    (Feed::Table, Feed::Description),
+                    (Feed::Table, Feed::RefreshIntervalMin),
+                    (Feed::Table, Feed::IsRefreshing),
                     (Feed::Table, Feed::RefreshedAt),
                     (Feed::Table, Feed::IsCustom),
                 ])
                 .expr_as(
                     Expr::col((Feed::Table, Feed::Title)),
                     Alias::new("feed_title"),
+                )
+                .expr_as(
+                    Expr::col((Feed::Table, Feed::Description)),
+                    Alias::new("feed_description"),
                 )
                 .inner_join(
                     Feed::Table,
