@@ -25,6 +25,7 @@ pub trait FeedRepository: Send + Sync + 'static {
 pub struct FeedParams {
     pub id: Option<Uuid>,
     pub source_urls: Option<Vec<Url>>,
-    pub cursor: Option<String>,
-    pub limit: Option<u64>,
+    pub ready_to_refresh: bool,
+    pub cursor: Option<Url>,
+    pub limit: Option<usize>,
 }

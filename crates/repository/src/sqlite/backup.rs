@@ -109,6 +109,8 @@ impl BackupRepository for SqliteBackupRepository {
                                     link: feed.link.as_str(),
                                     title: &feed.title,
                                     description: feed.description.as_deref(),
+                                    refresh_interval_min: 60,
+                                    is_refreshing: false,
                                     refreshed_at: feed.refreshed_at,
                                     is_custom: feed.is_custom,
                                 });

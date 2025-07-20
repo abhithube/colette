@@ -46,6 +46,8 @@ CREATE TABLE feeds (
   link TEXT NOT NULL,
   title TEXT NOT NULL,
   description TEXT,
+  refresh_interval_min INTEGER NOT NULL DEFAULT 60,
+  is_refreshing INTEGER NOT NULL DEFAULT 0,
   refreshed_at TEXT,
   is_custom INTEGER NOT NULL DEFAULT 0
 );

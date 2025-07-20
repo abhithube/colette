@@ -80,18 +80,21 @@ impl JobWorker {
 }
 
 pub struct CronWorker {
+    name: String,
     schedule: Schedule,
     service: Arc<JobService>,
     handler: BoxService<Job, (), Error>,
 }
 
 impl CronWorker {
-    pub fn new(
+    pub fn new<S: Into<String>>(
+        name: S,
         schedule: Schedule,
         service: Arc<JobService>,
         handler: BoxService<Job, (), Error>,
     ) -> Self {
         Self {
+            name: name.into(),
             schedule,
             service,
             handler,
@@ -109,7 +112,7 @@ impl CronWorker {
             let job = match self
                 .service
                 .create_job(JobCreate {
-                    job_type: "refresh_feeds".into(),
+                    job_type: self.name.clone(),
                     data: Value::Null,
                     group_identifier: None,
                 })

@@ -7,7 +7,7 @@ pub use feed_service::*;
 use url::Url;
 use uuid::Uuid;
 
-use crate::FeedEntry;
+use crate::{FeedEntry, feed_entry, pagination::Cursor};
 
 mod feed_repository;
 mod feed_service;
@@ -20,11 +20,25 @@ pub struct Feed {
     pub link: Url,
     pub title: String,
     pub description: Option<String>,
+    #[serde(skip_serializing, default = "default_refresh_interval_min")]
+    #[builder(default = 60)]
+    pub refresh_interval_min: u64,
+    #[serde(skip_serializing, default = "default_is_refreshing")]
+    #[builder(default = false)]
+    pub is_refreshing: bool,
+    #[serde(skip_serializing)]
     pub refreshed_at: Option<DateTime<Utc>>,
     #[builder(default = false)]
     pub is_custom: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub entries: Option<Vec<FeedEntry>>,
+}
+
+fn default_refresh_interval_min() -> u64 {
+    60
+}
+fn default_is_refreshing() -> bool {
+    false
 }
 
 impl From<(Url, ProcessedFeed)> for Feed {
@@ -53,9 +67,23 @@ impl From<(Url, ProcessedFeed)> for Feed {
             .link(value.link)
             .title(value.title)
             .maybe_description(value.description)
-            .maybe_refreshed_at(value.refreshed)
             .entries(entries)
             .build()
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct FeedCursor {
+    pub source_url: Url,
+}
+
+impl Cursor for Feed {
+    type Data = FeedCursor;
+
+    fn to_cursor(&self) -> Self::Data {
+        Self::Data {
+            source_url: self.source_url.clone(),
+        }
     }
 }
 
@@ -63,6 +91,9 @@ impl From<(Url, ProcessedFeed)> for Feed {
 pub enum Error {
     #[error("feed not found with ID: {0}")]
     NotFound(Uuid),
+
+    #[error(transparent)]
+    FeedEntry(#[from] feed_entry::Error),
 
     #[error(transparent)]
     Http(#[from] colette_http::Error),

@@ -184,6 +184,8 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                         link: feed.link.as_str(),
                         title: &feed.title,
                         description: feed.description.as_deref(),
+                        refresh_interval_min: feed.refresh_interval_min as i32,
+                        is_refreshing: feed.is_refreshing,
                         refreshed_at: feed.refreshed_at,
                         is_custom: feed.is_custom,
                     });
@@ -318,6 +320,8 @@ impl From<PgRow<'_>> for Subscription {
                 link: link.parse().unwrap(),
                 title: value.get("feed_title"),
                 description: value.get("description"),
+                refresh_interval_min: value.get::<_, i32>("refresh_interval_min") as u64,
+                is_refreshing: value.get("is_refreshing"),
                 refreshed_at: value.get("refreshed_at"),
                 is_custom: value.get("is_custom"),
                 entries: None,

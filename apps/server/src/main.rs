@@ -268,6 +268,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
     let feed_service = Arc::new(FeedService::new(
         repositories.feed,
+        repositories.feed_entry.clone(),
         http_client.clone(),
         FeedScraper::new(
             http_client.clone(),
@@ -418,24 +419,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
 
     let start_refresh_feeds_worker = async {
-        if let Some(config) = app_config.cron {
-            let schedule = config.schedule.parse().unwrap();
+        let mut worker = CronWorker::new(
+            "refresh_feeds",
+            "0 * * * * *".parse().unwrap(),
+            job_service.clone(),
+            ServiceBuilder::new()
+                .service(RefreshFeedsHandler::new(
+                    feed_service,
+                    job_service,
+                    Arc::new(Mutex::new(scrape_feed_producer)),
+                ))
+                .boxed(),
+        );
 
-            let mut worker = CronWorker::new(
-                schedule,
-                job_service.clone(),
-                ServiceBuilder::new()
-                    .concurrency_limit(5)
-                    .service(RefreshFeedsHandler::new(
-                        feed_service,
-                        job_service,
-                        Arc::new(Mutex::new(scrape_feed_producer)),
-                    ))
-                    .boxed(),
-            );
-
-            worker.start().await;
-        }
+        worker.start().await;
     };
 
     let _ = tokio::join!(

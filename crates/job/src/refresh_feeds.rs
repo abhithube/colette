@@ -5,11 +5,11 @@ use std::{
 };
 
 use colette_core::{
-    feed::{FeedService, ScrapeFeedJobData},
+    feed::{FeedListQuery, FeedService, ScrapeFeedJobData},
     job::{Job, JobCreate, JobService},
 };
 use colette_queue::JobProducer;
-use futures::{FutureExt, StreamExt};
+use futures::FutureExt;
 use tokio::sync::Mutex;
 use tower::Service;
 
@@ -52,13 +52,19 @@ impl Service<Job> for RefreshFeedsHandler {
         async move {
             tracing::debug!("Refreshing feeds");
 
-            let mut stream = feed_service
-                .stream()
+            let feeds = feed_service
+                .list_feeds(FeedListQuery {
+                    limit: Some(100),
+                    ready_to_refresh: true,
+                    ..Default::default()
+                })
                 .await
                 .map_err(|e| Error::Service(e.to_string()))?;
 
-            while let Some(url) = stream.next().await {
-                let data = serde_json::to_value(ScrapeFeedJobData { url })?;
+            for feed in feeds.items {
+                let data = serde_json::to_value(ScrapeFeedJobData {
+                    url: feed.source_url,
+                })?;
 
                 let job = job_service
                     .create_job(JobCreate {

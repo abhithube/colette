@@ -1,7 +1,9 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use sea_query::{Asterisk, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement};
+use sea_query::{
+    Asterisk, Expr, ExprTrait, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
+};
 use uuid::Uuid;
 
 use crate::{IntoInsert, IntoSelect};
@@ -13,6 +15,8 @@ pub enum Feed {
     Link,
     Title,
     Description,
+    RefreshIntervalMin,
+    IsRefreshing,
     RefreshedAt,
     IsCustom,
 }
@@ -29,6 +33,8 @@ impl Iden for Feed {
                 Self::Link => "link",
                 Self::Title => "title",
                 Self::Description => "description",
+                Self::RefreshIntervalMin => "refresh_interval_min",
+                Self::IsRefreshing => "is_refreshing",
                 Self::RefreshedAt => "refreshed_at",
                 Self::IsCustom => "is_custom",
             }
@@ -41,6 +47,7 @@ impl Iden for Feed {
 pub struct FeedSelect<'a> {
     pub id: Option<Uuid>,
     pub source_urls: Option<Vec<&'a str>>,
+    pub ready_to_refresh: bool,
     pub cursor: Option<&'a str>,
     pub limit: Option<u64>,
 }
@@ -56,6 +63,17 @@ impl IntoSelect for FeedSelect<'_> {
             .apply_if(self.source_urls, |query, source_urls| {
                 query.and_where(Expr::col((Feed::Table, Feed::SourceUrl)).is_in(source_urls));
             })
+            .and_where(
+                Expr::val(self.ready_to_refresh)
+                    .not()
+                    .or(Expr::col((Feed::Table, Feed::RefreshedAt)).is_null())
+                    .or(Expr::col((Feed::Table, Feed::RefreshedAt))
+                        .add(
+                            Expr::cust(r#"interval '1 minute'"#)
+                                .mul(Expr::col((Feed::Table, Feed::RefreshIntervalMin))),
+                        )
+                        .lte(Expr::current_timestamp())),
+            )
             .apply_if(self.cursor, |query, source_url| {
                 query
                     .and_where(Expr::col((Feed::Table, Feed::SourceUrl)).gt(Expr::val(source_url)));
@@ -82,6 +100,8 @@ pub struct FeedBase<'a> {
     pub link: &'a str,
     pub title: &'a str,
     pub description: Option<&'a str>,
+    pub refresh_interval_min: i32,
+    pub is_refreshing: bool,
     pub refreshed_at: Option<DateTime<Utc>>,
     pub is_custom: bool,
 }
@@ -96,6 +116,8 @@ impl<'a, I: IntoIterator<Item = FeedBase<'a>>> IntoInsert for FeedInsert<I> {
                 Feed::Link,
                 Feed::Title,
                 Feed::Description,
+                Feed::RefreshIntervalMin,
+                Feed::IsRefreshing,
                 Feed::RefreshedAt,
                 Feed::IsCustom,
             ])
@@ -110,6 +132,8 @@ impl<'a, I: IntoIterator<Item = FeedBase<'a>>> IntoInsert for FeedInsert<I> {
                         Feed::Title,
                         Feed::Description,
                         Feed::RefreshedAt,
+                        Feed::RefreshIntervalMin,
+                        Feed::IsRefreshing,
                         Feed::IsCustom,
                     ])
                     .to_owned(),
@@ -125,6 +149,8 @@ impl<'a, I: IntoIterator<Item = FeedBase<'a>>> IntoInsert for FeedInsert<I> {
                 feed.link.into(),
                 feed.title.into(),
                 feed.description.into(),
+                feed.refresh_interval_min.into(),
+                feed.is_refreshing.into(),
                 feed.refreshed_at.into(),
                 feed.is_custom.into(),
             ]);

@@ -70,10 +70,6 @@ pub async fn from_env() -> Result<AppConfig, Box<dyn std::error::Error>> {
         CorsConfig { origin_urls }
     });
 
-    let cron = raw.cron.enabled.then_some(CronConfig {
-        schedule: raw.cron.schedule,
-    });
-
     let storage = match raw.storage.backend {
         RawStorageBackend::Fs => {
             let path = raw.data_dir.join(FS_PATH);
@@ -160,7 +156,6 @@ pub async fn from_env() -> Result<AppConfig, Box<dyn std::error::Error>> {
         database,
         jwt,
         cors,
-        cron,
         storage,
         oidc,
     })
@@ -172,7 +167,6 @@ pub struct AppConfig {
     pub database: DatabaseConfig,
     pub jwt: JwtConfig,
     pub cors: Option<CorsConfig>,
-    pub cron: Option<CronConfig>,
     pub storage: StorageConfig,
     pub oidc: Option<OidcConfig>,
 }
@@ -214,11 +208,6 @@ pub struct JwtConfig {
 #[derive(Debug, Clone)]
 pub struct CorsConfig {
     pub origin_urls: Vec<Url>,
-}
-
-#[derive(Debug, Clone)]
-pub struct CronConfig {
-    pub schedule: String,
 }
 
 #[derive(Debug, Clone)]
@@ -265,7 +254,6 @@ struct RawConfig {
     client: Option<ClientConfig>,
     jwt: RawJwtConfig,
     cors: RawCorsConfig,
-    cron: RawCronConfig,
     storage: RawStorageConfig,
     s3: RawS3Config,
     oidc: Option<RawOidcConfig>,
@@ -285,12 +273,6 @@ struct RawJwtConfig {
 struct RawCorsConfig {
     enabled: bool,
     origin_urls: Vec<Url>,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct RawCronConfig {
-    enabled: bool,
-    schedule: String,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]

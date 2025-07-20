@@ -1,33 +1,67 @@
 use core::str;
-use std::sync::Arc;
+use std::{cmp, sync::Arc};
 
 use bytes::Buf;
+use chrono::{DateTime, Utc};
 use colette_http::HttpClient;
 use colette_scraper::feed::FeedScraper;
-use futures::{
-    StreamExt, TryFutureExt,
-    stream::{self, BoxStream},
-};
 use url::Url;
 
-use super::{Error, Feed, FeedParams, FeedRepository};
+use super::{Error, Feed, FeedCursor, FeedParams, FeedRepository};
+use crate::{
+    feed_entry::{FeedEntryParams, FeedEntryRepository},
+    pagination::{Paginated, paginate},
+};
+
+const DEFAULT_INTERVAL: u64 = 60;
+const MIN_INTERVAL: u64 = 5;
+const MAX_INTERVAL: u64 = DEFAULT_INTERVAL * 24;
+const SAMPLE_SIZE: usize = 20;
+const BACKOFF_MULTIPLIER: f64 = 1.15;
 
 pub struct FeedService {
-    repository: Arc<dyn FeedRepository>,
+    feed_repository: Arc<dyn FeedRepository>,
+    feed_entry_repository: Arc<dyn FeedEntryRepository>,
     client: Box<dyn HttpClient>,
     scraper: FeedScraper,
 }
 
 impl FeedService {
     pub fn new(
-        repository: Arc<dyn FeedRepository>,
+        feed_repository: Arc<dyn FeedRepository>,
+        feed_entry_repository: Arc<dyn FeedEntryRepository>,
         client: impl HttpClient,
         scraper: FeedScraper,
     ) -> Self {
         Self {
-            repository,
+            feed_repository,
+            feed_entry_repository,
             client: Box::new(client),
             scraper,
+        }
+    }
+
+    pub async fn list_feeds(
+        &self,
+        query: FeedListQuery,
+    ) -> Result<Paginated<Feed, FeedCursor>, Error> {
+        let feeds = self
+            .feed_repository
+            .query(FeedParams {
+                ready_to_refresh: query.ready_to_refresh,
+                cursor: query.cursor.map(|e| e.source_url),
+                limit: query.limit.map(|e| e + 1),
+                ..Default::default()
+            })
+            .await?;
+
+        if let Some(limit) = query.limit {
+            Ok(paginate(feeds, limit))
+        } else {
+            Ok(Paginated {
+                items: feeds,
+                ..Default::default()
+            })
         }
     }
 
@@ -60,27 +94,91 @@ impl FeedService {
     }
 
     pub async fn refresh_feed(&self, mut data: FeedRefresh) -> Result<Feed, Error> {
-        let processed = self.scraper.scrape(&mut data.url).await?;
+        let latest_entries = self
+            .feed_entry_repository
+            .query(FeedEntryParams {
+                limit: Some(1),
+                ..Default::default()
+            })
+            .await?;
+
+        let mut processed = self.scraper.scrape(&mut data.url).await?;
+        processed
+            .entries
+            .sort_by(|a, b| a.published.cmp(&b.published));
+
+        let has_new = processed.entries.first().is_some_and(|a| {
+            latest_entries
+                .first()
+                .is_some_and(|b| a.published.gt(&b.published_at))
+        });
 
         let is_custom = processed.link == data.url;
 
-        let mut feed: Feed = (data.url, processed).into();
+        let mut feed: Feed = (data.url.clone(), processed).into();
+        feed.refreshed_at = Some(Utc::now());
         feed.is_custom = is_custom;
 
-        self.repository.save(&mut feed).await?;
+        if has_new {
+            let mut dates = Vec::<DateTime<Utc>>::new();
+
+            if let Some(entries) = feed.entries.as_ref() {
+                for entry in entries.iter().take(SAMPLE_SIZE) {
+                    dates.push(entry.published_at);
+                }
+            }
+
+            if dates.len() < SAMPLE_SIZE {
+                let entries = self
+                    .feed_entry_repository
+                    .query(FeedEntryParams {
+                        feed_id: Some(feed.id),
+                        limit: Some(SAMPLE_SIZE - dates.len()),
+                        ..Default::default()
+                    })
+                    .await?;
+
+                for entry in entries {
+                    dates.push(entry.published_at);
+                }
+            }
+
+            if dates.len() >= 2 {
+                let mut deltas = dates
+                    .windows(2)
+                    .map(|e| (e[0] - e[1]).num_minutes() as u64)
+                    .collect::<Vec<_>>();
+
+                deltas.sort_unstable();
+
+                let median = if deltas.len() % 2 == 0 {
+                    let right = deltas.len() / 2;
+                    let left = right - 1;
+                    (deltas[left] + deltas[right]) / 2
+                } else {
+                    deltas[deltas.len() / 2]
+                };
+
+                feed.refresh_interval_min = median.clamp(MIN_INTERVAL, MAX_INTERVAL);
+            }
+        } else if let Some(f) = self.feed_repository.find_by_source_url(data.url).await? {
+            feed.refresh_interval_min = cmp::min(
+                (f.refresh_interval_min as f64 * BACKOFF_MULTIPLIER) as u64,
+                MAX_INTERVAL,
+            );
+        }
+
+        self.feed_repository.save(&mut feed).await?;
 
         Ok(feed)
     }
+}
 
-    pub async fn stream(&'_ self) -> Result<BoxStream<'_, Url>, Error> {
-        let x = self
-            .repository
-            .query(FeedParams::default())
-            .map_ok(|e| e.into_iter().map(|e| e.source_url).collect::<Vec<_>>())
-            .await?;
-
-        Ok(stream::iter(x).boxed())
-    }
+#[derive(Debug, Clone, Default)]
+pub struct FeedListQuery {
+    pub ready_to_refresh: bool,
+    pub cursor: Option<FeedCursor>,
+    pub limit: Option<usize>,
 }
 
 #[derive(Debug, Clone)]

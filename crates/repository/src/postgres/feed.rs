@@ -35,6 +35,7 @@ impl FeedRepository for PostgresFeedRepository {
                 .source_urls
                 .as_ref()
                 .map(|e| e.iter().map(|e| e.as_str()).collect()),
+            ready_to_refresh: params.ready_to_refresh,
             cursor: params.cursor.as_ref().map(|e| e.as_str()),
             limit: params.limit.map(|e| e as u64),
         }
@@ -57,6 +58,8 @@ impl FeedRepository for PostgresFeedRepository {
                     link: data.link.as_str(),
                     title: &data.title,
                     description: data.description.as_deref(),
+                    refresh_interval_min: data.refresh_interval_min as i32,
+                    is_refreshing: data.is_refreshing,
                     refreshed_at: data.refreshed_at,
                     is_custom: data.is_custom,
                 }],
@@ -103,6 +106,8 @@ impl From<PgRow<'_>> for Feed {
             title: value.get("title"),
             description: value.get("description"),
             refreshed_at: value.get("refreshed_at"),
+            refresh_interval_min: value.get::<_, i32>("refresh_interval_min") as u64,
+            is_refreshing: value.get("is_refreshing"),
             is_custom: value.get("is_custom"),
             entries: None,
         }

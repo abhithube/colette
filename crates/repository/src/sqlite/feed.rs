@@ -38,6 +38,7 @@ impl FeedRepository for SqliteFeedRepository {
                         .as_ref()
                         .map(|e| e.iter().map(|e| e.as_str()).collect()),
                     cursor: params.cursor.as_ref().map(|e| e.as_str()),
+                    ready_to_refresh: params.ready_to_refresh,
                     limit: params.limit.map(|e| e as u64),
                 }
                 .into_select()
@@ -67,6 +68,8 @@ impl FeedRepository for SqliteFeedRepository {
                             link: feed.link.as_str(),
                             title: &feed.title,
                             description: feed.description.as_deref(),
+                            refresh_interval_min: feed.refresh_interval_min as i32,
+                            is_refreshing: feed.is_refreshing,
                             refreshed_at: feed.refreshed_at,
                             is_custom: feed.is_custom,
                         }],
@@ -117,6 +120,8 @@ impl From<SqliteRow<'_>> for Feed {
             link: value.get_unwrap::<_, String>("link").parse().unwrap(),
             title: value.get_unwrap("title"),
             description: value.get_unwrap("description"),
+            refresh_interval_min: value.get("refresh_interval_min").unwrap_or(60),
+            is_refreshing: value.get("is_refreshing").unwrap_or_default(),
             refreshed_at: value.get_unwrap("refreshed_at"),
             is_custom: value.get_unwrap("is_custom"),
             entries: None,

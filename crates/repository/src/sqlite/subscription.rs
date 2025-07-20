@@ -205,6 +205,8 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
                                 link: feed.link.as_str(),
                                 title: &feed.title,
                                 description: feed.description.as_deref(),
+                                refresh_interval_min: feed.refresh_interval_min as i32,
+                                is_refreshing: feed.is_refreshing,
                                 refreshed_at: feed.refreshed_at,
                                 is_custom: feed.is_custom,
                             });
@@ -339,6 +341,8 @@ impl From<SqliteRow<'_>> for Subscription {
                 link: link.parse().unwrap(),
                 title: value.get_unwrap("feed_title"),
                 description: value.get_unwrap("description"),
+                refresh_interval_min: value.get("refresh_interval_min").unwrap_or(60),
+                is_refreshing: value.get("is_refreshing").unwrap_or_default(),
                 refreshed_at: value.get_unwrap("refreshed_at"),
                 is_custom: value.get_unwrap("is_custom"),
                 entries: None,
