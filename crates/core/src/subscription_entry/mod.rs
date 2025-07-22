@@ -4,10 +4,9 @@ pub use subscription_entry_service::*;
 use uuid::Uuid;
 
 use crate::{
-    FeedEntry,
+    FeedEntry, collection,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
     pagination::Cursor,
-    stream,
 };
 
 mod subscription_entry_repository;
@@ -104,7 +103,7 @@ pub enum Error {
     Forbidden(Uuid),
 
     #[error(transparent)]
-    Stream(#[from] stream::Error),
+    Collection(#[from] collection::Error),
 
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),

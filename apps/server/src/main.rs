@@ -12,7 +12,6 @@ use colette_core::{
     feed::FeedService,
     feed_entry::FeedEntryService,
     job::JobService,
-    stream::StreamService,
     subscription::SubscriptionService,
     subscription_entry::SubscriptionEntryService,
     tag::TagService,
@@ -29,9 +28,8 @@ use colette_queue::{JobConsumerAdapter, JobProducerAdapter, LocalQueue};
 use colette_repository::postgres::{
     PostgresAccountRepository, PostgresApiKeyRepository, PostgresBackupRepository,
     PostgresBookmarkRepository, PostgresCollectionRepository, PostgresFeedEntryRepository,
-    PostgresFeedRepository, PostgresJobRepository, PostgresStreamRepository,
-    PostgresSubscriptionEntryRepository, PostgresSubscriptionRepository, PostgresTagRepository,
-    PostgresUserRepository,
+    PostgresFeedRepository, PostgresJobRepository, PostgresSubscriptionEntryRepository,
+    PostgresSubscriptionRepository, PostgresTagRepository, PostgresUserRepository,
 };
 use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
 use colette_storage::{FsStorageClient, S3StorageClient, StorageAdapter};
@@ -186,7 +184,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let collection_repository = Arc::new(PostgresCollectionRepository::new(pool.clone()));
     let feed_entry_repository = Arc::new(PostgresFeedEntryRepository::new(pool.clone()));
     let job_repository = Arc::new(PostgresJobRepository::new(pool.clone()));
-    let stream_repository = Arc::new(PostgresStreamRepository::new(pool.clone()));
     let subscription_repository = Arc::new(PostgresSubscriptionRepository::new(pool.clone()));
     let subscription_entry_repository =
         Arc::new(PostgresSubscriptionEntryRepository::new(pool.clone()));
@@ -271,15 +268,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
             tag_repository.clone(),
         )),
         bookmark_service: bookmark_service.clone(),
-        collection_service: Arc::new(CollectionService::new(collection_repository)),
+        collection_service: Arc::new(CollectionService::new(collection_repository.clone())),
         feed_service: feed_service.clone(),
         feed_entry_service: Arc::new(FeedEntryService::new(feed_entry_repository)),
         job_service: job_service.clone(),
-        stream_service: Arc::new(StreamService::new(stream_repository.clone())),
         subscription_service: subscription_service.clone(),
         subscription_entry_service: Arc::new(SubscriptionEntryService::new(
             subscription_entry_repository,
-            stream_repository,
+            collection_repository,
         )),
         tag_service: Arc::new(TagService::new(tag_repository)),
         config: ApiConfig {

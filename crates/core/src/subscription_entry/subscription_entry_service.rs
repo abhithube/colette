@@ -7,23 +7,23 @@ use super::{
     SubscriptionEntryParams, SubscriptionEntryRepository,
 };
 use crate::{
+    collection::{CollectionParams, CollectionRepository},
     pagination::{Paginated, paginate},
-    stream::{StreamParams, StreamRepository},
 };
 
 pub struct SubscriptionEntryService {
     subscription_entry_repository: Arc<dyn SubscriptionEntryRepository>,
-    stream_repository: Arc<dyn StreamRepository>,
+    collection_repository: Arc<dyn CollectionRepository>,
 }
 
 impl SubscriptionEntryService {
     pub fn new(
         subscription_entry_repository: Arc<dyn SubscriptionEntryRepository>,
-        stream_repository: Arc<dyn StreamRepository>,
+        collection_repository: Arc<dyn CollectionRepository>,
     ) -> Self {
         Self {
             subscription_entry_repository,
-            stream_repository,
+            collection_repository,
         }
     }
 
@@ -32,24 +32,24 @@ impl SubscriptionEntryService {
         query: SubscriptionEntryListQuery,
         user_id: Uuid,
     ) -> Result<Paginated<SubscriptionEntry, SubscriptionEntryCursor>, Error> {
-        let mut filter = Option::<SubscriptionEntryFilter>::None;
-        if let Some(stream_id) = query.stream_id {
-            let mut streams = self
-                .stream_repository
-                .query(StreamParams {
-                    id: Some(stream_id),
+        let filter = Option::<SubscriptionEntryFilter>::None;
+        if let Some(collection_id) = query.collection_id {
+            let collections = self
+                .collection_repository
+                .query(CollectionParams {
+                    id: Some(collection_id),
                     user_id: Some(user_id),
                     ..Default::default()
                 })
                 .await?;
-            if streams.is_empty() {
+            if collections.is_empty() {
                 return Ok(Paginated {
                     items: Default::default(),
                     cursor: None,
                 });
             }
 
-            filter = Some(streams.swap_remove(0).filter);
+            // filter = Some(collections.swap_remove(0).filter);
         }
 
         let subscription_entries = self
@@ -80,7 +80,7 @@ impl SubscriptionEntryService {
 
 #[derive(Debug, Clone, Default)]
 pub struct SubscriptionEntryListQuery {
-    pub stream_id: Option<Uuid>,
+    pub collection_id: Option<Uuid>,
     pub subscription_id: Option<Uuid>,
     pub has_read: Option<bool>,
     pub tags: Option<Vec<Uuid>>,

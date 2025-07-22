@@ -4,7 +4,7 @@ pub use feed_entry_service::*;
 use url::Url;
 use uuid::Uuid;
 
-use crate::{pagination::Cursor, stream};
+use crate::pagination::Cursor;
 
 mod feed_entry_repository;
 mod feed_entry_service;
@@ -46,9 +46,6 @@ pub enum Error {
 
     #[error("not authorized to access feed entry with ID: {0}")]
     Forbidden(Uuid),
-
-    #[error(transparent)]
-    Stream(#[from] stream::Error),
 
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),

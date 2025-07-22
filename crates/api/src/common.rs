@@ -14,7 +14,7 @@ use chrono::{DateTime, Utc};
 use colette_core::{
     api_key::ApiKeyService, auth::AuthService, backup::BackupService, bookmark::BookmarkService,
     collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService, filter,
-    job::JobService, stream::StreamService, subscription::SubscriptionService,
+    job::JobService, subscription::SubscriptionService,
     subscription_entry::SubscriptionEntryService, tag::TagService,
 };
 use url::Url;
@@ -68,7 +68,6 @@ pub struct ApiState {
     pub feed_service: Arc<FeedService>,
     pub feed_entry_service: Arc<FeedEntryService>,
     pub job_service: Arc<JobService>,
-    pub stream_service: Arc<StreamService>,
     pub subscription_service: Arc<SubscriptionService>,
     pub subscription_entry_service: Arc<SubscriptionEntryService>,
     pub tag_service: Arc<TagService>,

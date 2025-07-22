@@ -49,9 +49,9 @@ pub(super) async fn handler(
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub(super) struct SubscriptionEntryListQuery {
-    /// Filter by the ID of a stream whose filters may apply to the subscription entry
+    /// Filter by the ID of a collection whose filters may apply to the subscription entry
     #[param(nullable = false)]
-    stream_id: Option<Uuid>,
+    collection_id: Option<Uuid>,
     /// Filter by the ID of the associated subscription
     #[param(nullable = false)]
     subscription_id: Option<Uuid>,
@@ -78,7 +78,7 @@ impl TryFrom<SubscriptionEntryListQuery> for subscription_entry::SubscriptionEnt
             .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
 
         Ok(Self {
-            stream_id: value.stream_id,
+            collection_id: value.collection_id,
             subscription_id: value.subscription_id,
             has_read: value.has_read,
             tags: value.tags,

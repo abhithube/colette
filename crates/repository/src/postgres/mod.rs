@@ -12,7 +12,6 @@ use sqlx::{
     error::BoxDynError,
     postgres::{PgArgumentBuffer, PgTypeInfo, PgValueFormat, PgValueRef},
 };
-pub use stream::PostgresStreamRepository;
 pub use subscription::PostgresSubscriptionRepository;
 pub use subscription_entry::PostgresSubscriptionEntryRepository;
 pub use tag::PostgresTagRepository;
@@ -28,7 +27,6 @@ mod collection;
 mod feed;
 mod feed_entry;
 mod job;
-mod stream;
 mod subscription;
 mod subscription_entry;
 mod tag;

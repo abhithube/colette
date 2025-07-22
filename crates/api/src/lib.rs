@@ -15,7 +15,6 @@ pub use common::{
 use config::ConfigApi;
 use feed::FeedApi;
 use feed_entry::FeedEntryApi;
-use stream::StreamApi;
 use subscription::SubscriptionApi;
 use subscription_entry::SubscriptionEntryApi;
 use tag::TagApi;
@@ -42,7 +41,6 @@ pub mod config;
 mod feed;
 mod feed_entry;
 mod pagination;
-mod stream;
 mod subscription;
 mod subscription_entry;
 mod tag;
@@ -65,7 +63,6 @@ const API_PREFIX: &str = "/api";
         (path = "/config", api = ConfigApi),
         (path = "/feedEntries", api = FeedEntryApi),
         (path = "/feeds", api = FeedApi),
-        (path = "/streams", api = StreamApi),
         (path = "/subscriptions", api = SubscriptionApi),
         (path = "/subscriptionEntries", api = SubscriptionEntryApi),
         (path = "/tags", api = TagApi),
@@ -121,7 +118,6 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<Url>>) -> Rout
         .nest("/collections", CollectionApi::router())
         .nest("/feedEntries", FeedEntryApi::router())
         .nest("/feeds", FeedApi::router())
-        .nest("/streams", StreamApi::router())
         .nest("/subscriptionEntries", SubscriptionEntryApi::router())
         .nest("/subscriptions", SubscriptionApi::router())
         .nest("/tags", TagApi::router())
