@@ -5,10 +5,10 @@ use uuid::Uuid;
 
 use super::{Backup, BackupRepository, Error};
 use crate::{
-    backup::ImportBackupData,
-    bookmark::{BookmarkParams, BookmarkRepository},
-    subscription::{SubscriptionParams, SubscriptionRepository},
-    tag::{TagParams, TagRepository},
+    backup::ImportBackupParams,
+    bookmark::{BookmarkFindParams, BookmarkRepository},
+    subscription::{SubscriptionFindParams, SubscriptionRepository},
+    tag::{TagFindParams, TagRepository},
 };
 
 pub struct BackupService {
@@ -37,7 +37,7 @@ impl BackupService {
         let backup = serde_json::from_slice::<Backup>(&raw)?;
 
         self.backup_repository
-            .import(ImportBackupData { backup, user_id })
+            .import(ImportBackupParams { backup, user_id })
             .await?;
 
         Ok(())
@@ -46,8 +46,7 @@ impl BackupService {
     pub async fn export_backup(&self, user_id: Uuid) -> Result<Bytes, Error> {
         let subscriptions = self
             .subscription_repository
-            .query(SubscriptionParams {
-                with_feed: true,
+            .find(SubscriptionFindParams {
                 with_tags: true,
                 user_id: Some(user_id),
                 ..Default::default()
@@ -56,7 +55,7 @@ impl BackupService {
 
         let bookmarks = self
             .bookmark_repository
-            .query(BookmarkParams {
+            .find(BookmarkFindParams {
                 with_tags: true,
                 user_id: Some(user_id),
                 ..Default::default()
@@ -65,16 +64,16 @@ impl BackupService {
 
         let tags = self
             .tag_repository
-            .query(TagParams {
+            .find(TagFindParams {
                 user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;
 
         let backup = Backup {
-            subscriptions,
-            bookmarks,
-            tags,
+            subscriptions: subscriptions.into_iter().map(Into::into).collect(),
+            bookmarks: bookmarks.into_iter().map(Into::into).collect(),
+            tags: tags.into_iter().map(Into::into).collect(),
         };
 
         let raw = serde_json::to_vec_pretty(&backup)?;

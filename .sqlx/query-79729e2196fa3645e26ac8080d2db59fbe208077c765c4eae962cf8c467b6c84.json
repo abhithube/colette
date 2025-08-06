@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE subscription_entries\nSET\n  has_read = TRUE,\n  read_at = now()\nWHERE\n  id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "79729e2196fa3645e26ac8080d2db59fbe208077c765c4eae962cf8c467b6c84"
+}

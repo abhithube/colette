@@ -12,19 +12,30 @@ use crate::{
 };
 
 mod list_subscription_entries;
+mod mark_subscription_entry_as_read;
+mod mark_subscription_entry_as_unread;
 
 const SUBSCRIPTION_ENTRIES_TAG: &str = "Subscription Entries";
 
 #[derive(OpenApi)]
 #[openapi(
     components(schemas(SubscriptionEntry, SubscriptionEntryDetails, Paginated<SubscriptionEntryDetails>, SubscriptionEntryFilter, SubscriptionEntryTextField, SubscriptionEntryBooleanField, SubscriptionEntryDateField)),
-    paths(list_subscription_entries::handler)
+    paths(list_subscription_entries::handler, mark_subscription_entry_as_read::handler, mark_subscription_entry_as_unread::handler)
 )]
 pub(crate) struct SubscriptionEntryApi;
 
 impl SubscriptionEntryApi {
     pub(crate) fn router() -> Router<ApiState> {
-        Router::new().route("/", routing::get(list_subscription_entries::handler))
+        Router::new()
+            .route("/", routing::get(list_subscription_entries::handler))
+            .route(
+                "/{id}/markAsRead",
+                routing::post(mark_subscription_entry_as_read::handler),
+            )
+            .route(
+                "/{id}/markAsUnread",
+                routing::post(mark_subscription_entry_as_unread::handler),
+            )
     }
 }
 
@@ -32,14 +43,16 @@ impl SubscriptionEntryApi {
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SubscriptionEntry {
-    /// Unique identifier of the associated subscription
-    subscription_id: Uuid,
-    /// Unique identifier of the associated feed entry
-    feed_entry_id: Uuid,
+    /// Unique identifier of the subscription entry
+    id: Uuid,
     /// Whether the subscription entry has been marked as read
     has_read: bool,
     /// Timestamp at which the subscription entry has been marked as read
     read_at: Option<DateTime<Utc>>,
+    /// Unique identifier of the associated subscription
+    subscription_id: Uuid,
+    /// Unique identifier of the associated feed entry
+    feed_entry_id: Uuid,
 }
 
 /// Extended details of a subscription entry
@@ -48,26 +61,25 @@ pub(crate) struct SubscriptionEntry {
 struct SubscriptionEntryDetails {
     /// Subscription entry itself, always present
     subscription_entry: SubscriptionEntry,
-    #[schema(nullable = false)]
-    /// Associated feed entry, present if requested
-    #[serde(skip_serializing_if = "Option::is_none")]
-    feed_entry: Option<FeedEntry>,
+    /// Associated feed entry, always present
+    feed_entry: FeedEntry,
 }
 
 impl From<colette_core::SubscriptionEntry> for SubscriptionEntry {
     fn from(value: colette_core::SubscriptionEntry) -> Self {
         Self {
+            id: value.id,
+            has_read: value.has_read,
+            read_at: value.read_at,
             subscription_id: value.subscription_id,
             feed_entry_id: value.feed_entry_id,
-            has_read: value.has_read.unwrap_or_default(),
-            read_at: value.read_at,
         }
     }
 }
 
 impl From<colette_core::SubscriptionEntry> for SubscriptionEntryDetails {
     fn from(value: colette_core::SubscriptionEntry) -> Self {
-        let feed_entry = value.feed_entry.clone().map(Into::into);
+        let feed_entry = value.feed_entry.clone().into();
 
         Self {
             subscription_entry: value.into(),

@@ -51,7 +51,7 @@ pub(super) struct LinkBookmarkTags {
     tag_ids: Vec<Uuid>,
 }
 
-impl From<LinkBookmarkTags> for bookmark::LinkSubscriptionTags {
+impl From<LinkBookmarkTags> for bookmark::LinkBookmarkTags {
     fn from(value: LinkBookmarkTags) -> Self {
         Self {
             tag_ids: value.tag_ids,

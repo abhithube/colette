@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE feeds\nSET\n  status = 'failed',\n  refreshed_at = now()\nWHERE\n  source_url = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1ca631808981afb26904367076d1b7fc0cbde8b2315fc178ae679a9810f0a297"
+}

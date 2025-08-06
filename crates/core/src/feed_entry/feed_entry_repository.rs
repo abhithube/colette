@@ -5,11 +5,11 @@ use super::{Error, FeedEntry};
 
 #[async_trait::async_trait]
 pub trait FeedEntryRepository: Send + Sync + 'static {
-    async fn query(&self, params: FeedEntryParams) -> Result<Vec<FeedEntry>, Error>;
+    async fn find(&self, params: FeedEntryFindParams) -> Result<Vec<FeedEntry>, Error>;
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct FeedEntryParams {
+pub struct FeedEntryFindParams {
     pub id: Option<Uuid>,
     pub feed_id: Option<Uuid>,
     pub cursor: Option<(DateTime<Utc>, Uuid)>,

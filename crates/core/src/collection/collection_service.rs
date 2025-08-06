@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use chrono::Utc;
 use uuid::Uuid;
 
-use super::{Collection, CollectionCursor, CollectionParams, CollectionRepository, Error};
+use super::{Collection, CollectionCursor, CollectionFindParams, CollectionRepository, Error};
 use crate::{
     bookmark::BookmarkFilter,
+    collection::{CollectionInsertParams, CollectionUpdateParams},
     pagination::{Paginated, paginate},
 };
 
@@ -25,7 +25,7 @@ impl CollectionService {
     ) -> Result<Paginated<Collection, CollectionCursor>, Error> {
         let collections = self
             .repository
-            .query(CollectionParams {
+            .find(CollectionFindParams {
                 user_id: Some(user_id),
                 cursor: query.cursor.map(|e| e.title),
                 limit: query.limit.map(|e| e + 1),
@@ -46,7 +46,7 @@ impl CollectionService {
     pub async fn get_collection(&self, id: Uuid, user_id: Uuid) -> Result<Collection, Error> {
         let mut collections = self
             .repository
-            .query(CollectionParams {
+            .find(CollectionFindParams {
                 id: Some(id),
                 ..Default::default()
             })
@@ -68,15 +68,16 @@ impl CollectionService {
         data: CollectionCreate,
         user_id: Uuid,
     ) -> Result<Collection, Error> {
-        let collection = Collection::builder()
-            .title(data.title)
-            .filter(data.filter)
-            .user_id(user_id)
-            .build();
+        let id = self
+            .repository
+            .insert(CollectionInsertParams {
+                title: data.title,
+                filter: data.filter,
+                user_id,
+            })
+            .await?;
 
-        self.repository.save(&collection).await?;
-
-        Ok(collection)
+        self.get_collection(id, user_id).await
     }
 
     pub async fn update_collection(
@@ -85,24 +86,22 @@ impl CollectionService {
         data: CollectionUpdate,
         user_id: Uuid,
     ) -> Result<Collection, Error> {
-        let Some(mut collection) = self.repository.find_by_id(id).await? else {
+        let Some(collection) = self.repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };
         if collection.user_id != user_id {
             return Err(Error::Forbidden(id));
         }
 
-        if let Some(title) = data.title {
-            collection.title = title;
-        }
-        if let Some(filter) = data.filter {
-            collection.filter = filter;
-        }
+        self.repository
+            .update(CollectionUpdateParams {
+                id,
+                title: data.title,
+                filter: data.filter,
+            })
+            .await?;
 
-        collection.updated_at = Utc::now();
-        self.repository.save(&collection).await?;
-
-        Ok(collection)
+        self.get_collection(id, user_id).await
     }
 
     pub async fn delete_collection(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {

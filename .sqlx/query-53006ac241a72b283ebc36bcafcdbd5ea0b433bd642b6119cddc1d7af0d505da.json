@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE tags\nSET\n  title = CASE\n    WHEN $2::TEXT IS NOT NULL THEN $2\n    ELSE tags.title\n  END\nWHERE\n  id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "53006ac241a72b283ebc36bcafcdbd5ea0b433bd642b6119cddc1d7af0d505da"
+}

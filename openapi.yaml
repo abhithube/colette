@@ -1315,12 +1315,6 @@ paths:
         required: false
         schema:
           type: string
-      - name: withFeed
-        in: query
-        description: Whether to include the feed associated with the subscription
-        required: false
-        schema:
-          type: boolean
       - name: withUnreadCount
         in: query
         description: Whether to include the count of the unread subscription entries associated with the subscription
@@ -1408,12 +1402,6 @@ paths:
         schema:
           type: string
           format: uuid
-      - name: withFeed
-        in: query
-        description: Whether to include the feed associated with the subscription
-        required: false
-        schema:
-          type: boolean
       - name: withUnreadCount
         in: query
         description: Whether to include the count of the unread subscription entries associated with the subscription
@@ -1606,122 +1594,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
-  /subscriptions/{sid}/entries/{eid}/markAsRead:
-    post:
-      tags:
-      - Subscriptions
-      description: Mark a subscription entry as read
-      operationId: markSubscriptionEntryAsRead
-      parameters:
-      - name: sid
-        in: path
-        description: Unique identifier of the associated subscription
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - name: eid
-        in: path
-        description: Unique identifier of the associated feed entry
-        required: true
-        schema:
-          type: string
-          format: uuid
-      responses:
-        '200':
-          description: Updated subscription entry
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SubscriptionEntry'
-        '401':
-          description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '404':
-          description: Subscription entry not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '422':
-          description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        default:
-          description: Unknown error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-  /subscriptions/{sid}/entries/{eid}/markAsUnread:
-    post:
-      tags:
-      - Subscriptions
-      description: Mark a subscription entry as unread
-      operationId: markSubscriptionEntryAsUnread
-      parameters:
-      - name: sid
-        in: path
-        description: Unique identifier of the associated subscription
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - name: eid
-        in: path
-        description: Unique identifier of the associated feed entry
-        required: true
-        schema:
-          type: string
-          format: uuid
-      responses:
-        '200':
-          description: Updated subscription entry
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SubscriptionEntry'
-        '401':
-          description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '404':
-          description: Subscription entry not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '422':
-          description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        default:
-          description: Unknown error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
   /subscriptions/import:
     post:
       tags:
@@ -1843,6 +1715,100 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
+  /subscriptionEntries/{id}/markAsRead:
+    post:
+      tags:
+      - Subscription Entries
+      description: Mark a subscription entry as read
+      operationId: markSubscriptionEntryAsRead
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier of the resource
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Successfully marked subscription entry as read
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Subscription entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /subscriptionEntries/{id}/markAsUnread:
+    post:
+      tags:
+      - Subscription Entries
+      description: Mark a subscription entry as unread
+      operationId: markSubscriptionEntryAsUnread
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier of the resource
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Successfully marked subscription entry as unread
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '403':
+          description: User not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: Subscription entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
   /tags:
     get:
       tags:
@@ -1850,33 +1816,12 @@ paths:
       description: List user tags
       operationId: listTags
       parameters:
-      - name: tagType
-        in: query
-        description: Filter by the type of tag
-        required: false
-        schema:
-          type: string
-          enum:
-          - bookmarks
-          - feeds
       - name: cursor
         in: query
         description: Pagination cursor
         required: false
         schema:
           type: string
-      - name: withSubscriptionCount
-        in: query
-        description: Whether to include the count of subscriptions the tag is linked to
-        required: false
-        schema:
-          type: boolean
-      - name: withBookmarkCount
-        in: query
-        description: Whether to include the count of bookmarks the tag is linked to
-        required: false
-        schema:
-          type: boolean
       responses:
         '200':
           description: Paginated list of tags
@@ -1952,18 +1897,6 @@ paths:
         schema:
           type: string
           format: uuid
-      - name: withSubscriptionCount
-        in: query
-        description: Whether to include the count of subscriptions the tag is linked to
-        required: false
-        schema:
-          type: boolean
-      - name: withBookmarkCount
-        in: query
-        description: Whether to include the count of bookmarks the tag is linked to
-        required: false
-        schema:
-          type: boolean
       responses:
         '200':
           description: Tag by ID
@@ -2876,13 +2809,14 @@ components:
             description: Extended details of a user subscription
             required:
             - subscription
+            - feed
             properties:
               subscription:
                 $ref: '#/components/schemas/Subscription'
                 description: Subscription itself, always present
               feed:
                 $ref: '#/components/schemas/Feed'
-                description: Associated RSS feed, present if requested
+                description: Associated RSS feed, always present
               tags:
                 type: array
                 items:
@@ -2909,13 +2843,14 @@ components:
             description: Extended details of a subscription entry
             required:
             - subscriptionEntry
+            - feedEntry
             properties:
               subscriptionEntry:
                 $ref: '#/components/schemas/SubscriptionEntry'
                 description: Subscription entry itself, always present
               feedEntry:
                 $ref: '#/components/schemas/FeedEntry'
-                description: Associated feed entry, present if requested
+                description: Associated feed entry, always present
           description: Current set of results
         cursor:
           type: string
@@ -3052,13 +2987,14 @@ components:
       description: Extended details of a user subscription
       required:
       - subscription
+      - feed
       properties:
         subscription:
           $ref: '#/components/schemas/Subscription'
           description: Subscription itself, always present
         feed:
           $ref: '#/components/schemas/Feed'
-          description: Associated RSS feed, present if requested
+          description: Associated RSS feed, always present
         tags:
           type: array
           items:
@@ -3072,18 +3008,15 @@ components:
       type: object
       description: Association of a RSS feed entry to a user subscription. The pairing of subscription ID and feed entry ID is unique.
       required:
+      - id
+      - hasRead
       - subscriptionId
       - feedEntryId
-      - hasRead
       properties:
-        subscriptionId:
+        id:
           type: string
           format: uuid
-          description: Unique identifier of the associated subscription
-        feedEntryId:
-          type: string
-          format: uuid
-          description: Unique identifier of the associated feed entry
+          description: Unique identifier of the subscription entry
         hasRead:
           type: boolean
           description: Whether the subscription entry has been marked as read
@@ -3093,6 +3026,14 @@ components:
           - 'null'
           format: date-time
           description: Timestamp at which the subscription entry has been marked as read
+        subscriptionId:
+          type: string
+          format: uuid
+          description: Unique identifier of the associated subscription
+        feedEntryId:
+          type: string
+          format: uuid
+          description: Unique identifier of the associated feed entry
     SubscriptionEntryBooleanField:
       type: string
       enum:
@@ -3106,13 +3047,14 @@ components:
       description: Extended details of a subscription entry
       required:
       - subscriptionEntry
+      - feedEntry
       properties:
         subscriptionEntry:
           $ref: '#/components/schemas/SubscriptionEntry'
           description: Subscription entry itself, always present
         feedEntry:
           $ref: '#/components/schemas/FeedEntry'
-          description: Associated feed entry, present if requested
+          description: Associated feed entry, always present
     SubscriptionEntryFilter:
       oneOf:
       - type: object

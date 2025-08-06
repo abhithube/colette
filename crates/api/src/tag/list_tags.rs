@@ -46,26 +46,9 @@ pub(super) async fn handler(
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub(super) struct TagListQuery {
-    /// Filter by the type of tag
-    #[param(inline)]
-    tag_type: Option<TagType>,
     /// Pagination cursor
     #[param(nullable = false)]
     cursor: Option<String>,
-    /// Whether to include the count of subscriptions the tag is linked to
-    #[serde(default = "with_subscription_count")]
-    with_subscription_count: bool,
-    /// Whether to include the count of bookmarks the tag is linked to
-    #[serde(default = "with_bookmark_count")]
-    with_bookmark_count: bool,
-}
-
-fn with_subscription_count() -> bool {
-    false
-}
-
-fn with_bookmark_count() -> bool {
-    false
 }
 
 impl TryFrom<TagListQuery> for tag::TagListQuery {
@@ -79,28 +62,9 @@ impl TryFrom<TagListQuery> for tag::TagListQuery {
             .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
 
         Ok(Self {
-            tag_type: value.tag_type.map(Into::into),
             cursor,
             limit: Some(PAGINATION_LIMIT),
-            with_subscription_count: value.with_subscription_count,
-            with_bookmark_count: value.with_bookmark_count,
         })
-    }
-}
-
-#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub(super) enum TagType {
-    Bookmarks,
-    Feeds,
-}
-
-impl From<TagType> for tag::TagType {
-    fn from(value: TagType) -> Self {
-        match value {
-            TagType::Bookmarks => Self::Bookmarks,
-            TagType::Feeds => Self::Feeds,
-        }
     }
 }
 

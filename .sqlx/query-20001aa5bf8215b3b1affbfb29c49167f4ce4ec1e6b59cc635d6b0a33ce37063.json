@@ -1,0 +1,49 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  id,\n  title,\n  user_id,\n  created_at,\n  updated_at\nFROM\n  tags\nWHERE\n  (\n    $1::UUID IS NULL\n    OR id = $1\n  )\n  AND (\n    $2::UUID IS NULL\n    OR user_id = $2\n  )\n  AND (\n    $3::TEXT IS NULL\n    OR title > $3\n  )\nORDER BY\n  title ASC\nLIMIT\n  $4\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "20001aa5bf8215b3b1affbfb29c49167f4ce4ec1e6b59cc635d6b0a33ce37063"
+}

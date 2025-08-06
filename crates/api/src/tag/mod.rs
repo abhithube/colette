@@ -74,13 +74,10 @@ impl From<colette_core::Tag> for Tag {
 
 impl From<colette_core::Tag> for TagDetails {
     fn from(value: colette_core::Tag) -> Self {
-        let subscription_count = value.subscription_count;
-        let bookmark_count = value.bookmark_count;
-
         Self {
             tag: value.into(),
-            subscription_count,
-            bookmark_count,
+            subscription_count: None,
+            bookmark_count: None,
         }
     }
 }

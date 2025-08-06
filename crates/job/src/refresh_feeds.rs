@@ -66,7 +66,7 @@ impl Service<Job> for RefreshFeedsHandler {
                     url: feed.source_url,
                 })?;
 
-                let job = job_service
+                let job_id = job_service
                     .create_job(JobCreate {
                         data,
                         job_type: "scrape_feed".into(),
@@ -77,7 +77,7 @@ impl Service<Job> for RefreshFeedsHandler {
                 let mut scrape_feed_producer = scrape_feed_producer.lock().await;
 
                 scrape_feed_producer
-                    .push(job.id)
+                    .push(job_id)
                     .await
                     .map_err(|e| Error::Service(e.to_string()))?;
             }

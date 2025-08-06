@@ -33,7 +33,6 @@ pub(super) async fn handler(
         .get_subscription(
             subscription::SubscriptionGetQuery {
                 id,
-                with_feed: query.with_feed,
                 with_unread_count: query.with_unread_count,
                 with_tags: query.with_tags,
             },
@@ -54,19 +53,12 @@ pub(super) async fn handler(
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub(super) struct SubscriptionGetQuery {
-    /// Whether to include the feed associated with the subscription
-    #[serde(default = "with_feed")]
-    with_feed: bool,
     /// Whether to include the count of the unread subscription entries associated with the subscription
     #[serde(default = "with_unread_count")]
     with_unread_count: bool,
     /// Whether to include the tags linked to the subscription
     #[serde(default = "with_tags")]
     with_tags: bool,
-}
-
-fn with_feed() -> bool {
-    false
 }
 
 fn with_unread_count() -> bool {

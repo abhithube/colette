@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users\nSET\n  display_name = CASE\n    WHEN $2 THEN $3\n    ELSE users.display_name\n  END,\n  image_url = CASE\n    WHEN $4 THEN $5\n    ELSE users.image_url\n  END\nWHERE\n  id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Text",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e7530e4297a301d706dfd4c88076c18551422d1a54dd08d5ebd52ec1ad8ec194"
+}

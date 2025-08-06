@@ -1,47 +1,33 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use bytes::{Buf, Bytes};
-use chrono::Utc;
 use colette_opml::{Body, Opml, Outline, OutlineType};
-use colette_queue::JobProducer;
-use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
 
 use super::{
-    Error, ImportSubscriptionsData, Subscription, SubscriptionCursor, SubscriptionParams,
+    Error, ImportSubscriptionsParams, Subscription, SubscriptionCursor, SubscriptionFindParams,
     SubscriptionRepository,
 };
 use crate::{
-    Feed, SubscriptionEntry, Tag,
-    job::{Job, JobRepository},
     pagination::{Paginated, paginate},
-    subscription_entry::{SubscriptionEntryParams, SubscriptionEntryRepository},
-    tag::TagRepository,
+    subscription::{
+        SubscriptionBatchItem, SubscriptionInsertParams, SubscriptionLinkTagParams,
+        SubscriptionUpdateParams,
+    },
 };
 
 pub struct SubscriptionService {
     subscription_repository: Arc<dyn SubscriptionRepository>,
-    tag_repository: Arc<dyn TagRepository>,
-    subscription_entry_repository: Arc<dyn SubscriptionEntryRepository>,
-    job_repository: Arc<dyn JobRepository>,
-    import_subscriptions_producer: Box<Mutex<dyn JobProducer>>,
 }
 
 impl SubscriptionService {
-    pub fn new(
-        subscription_repository: Arc<dyn SubscriptionRepository>,
-        tag_repository: Arc<dyn TagRepository>,
-        subscription_entry_repository: Arc<dyn SubscriptionEntryRepository>,
-        job_repository: Arc<dyn JobRepository>,
-        import_subscriptions_producer: impl JobProducer,
-    ) -> Self {
+    pub fn new(subscription_repository: Arc<dyn SubscriptionRepository>) -> Self {
         Self {
             subscription_repository,
-            tag_repository,
-            subscription_entry_repository,
-            job_repository,
-            import_subscriptions_producer: Box::new(Mutex::new(import_subscriptions_producer)),
         }
     }
 
@@ -52,12 +38,11 @@ impl SubscriptionService {
     ) -> Result<Paginated<Subscription, SubscriptionCursor>, Error> {
         let subscriptions = self
             .subscription_repository
-            .query(SubscriptionParams {
-                tags: query.tags,
+            .find(SubscriptionFindParams {
                 user_id: Some(user_id),
+                tags: query.tags,
                 cursor: query.cursor.map(|e| (e.title, e.id)),
                 limit: query.limit.map(|e| e + 1),
-                with_feed: query.with_feed,
                 with_unread_count: query.with_unread_count,
                 with_tags: query.with_tags,
                 ..Default::default()
@@ -81,9 +66,8 @@ impl SubscriptionService {
     ) -> Result<Subscription, Error> {
         let mut subscriptions = self
             .subscription_repository
-            .query(SubscriptionParams {
+            .find(SubscriptionFindParams {
                 id: Some(query.id),
-                with_feed: query.with_feed,
                 with_unread_count: query.with_unread_count,
                 with_tags: query.with_tags,
                 ..Default::default()
@@ -106,16 +90,25 @@ impl SubscriptionService {
         data: SubscriptionCreate,
         user_id: Uuid,
     ) -> Result<Subscription, Error> {
-        let subscription = Subscription::builder()
-            .title(data.title)
-            .maybe_description(data.description)
-            .feed_id(data.feed_id)
-            .user_id(user_id)
-            .build();
+        let id = self
+            .subscription_repository
+            .insert(SubscriptionInsertParams {
+                title: data.title,
+                description: data.description,
+                feed_id: data.feed_id,
+                user_id,
+            })
+            .await?;
 
-        self.subscription_repository.save(&subscription).await?;
-
-        Ok(subscription)
+        self.get_subscription(
+            SubscriptionGetQuery {
+                id,
+                with_unread_count: false,
+                with_tags: false,
+            },
+            user_id,
+        )
+        .await
     }
 
     pub async fn update_subscription(
@@ -124,23 +117,30 @@ impl SubscriptionService {
         data: SubscriptionUpdate,
         user_id: Uuid,
     ) -> Result<Subscription, Error> {
-        let Some(mut subscription) = self.subscription_repository.find_by_id(id).await? else {
+        let Some(subscription) = self.subscription_repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };
         if subscription.user_id != user_id {
             return Err(Error::Forbidden(id));
         }
 
-        if let Some(title) = data.title {
-            subscription.title = title;
-        }
-        if let Some(description) = data.description {
-            subscription.description = description;
-        }
+        self.subscription_repository
+            .update(SubscriptionUpdateParams {
+                id,
+                title: data.title,
+                description: data.description,
+            })
+            .await?;
 
-        self.subscription_repository.save(&subscription).await?;
-
-        Ok(subscription)
+        self.get_subscription(
+            SubscriptionGetQuery {
+                id,
+                with_unread_count: false,
+                with_tags: false,
+            },
+            user_id,
+        )
+        .await
     }
 
     pub async fn delete_subscription(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
@@ -162,106 +162,21 @@ impl SubscriptionService {
         data: LinkSubscriptionTags,
         user_id: Uuid,
     ) -> Result<(), Error> {
-        let Some(mut subscription) = self.subscription_repository.find_by_id(id).await? else {
+        let Some(subscription) = self.subscription_repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };
         if subscription.user_id != user_id {
             return Err(Error::Forbidden(id));
         }
 
-        let tags = if data.tag_ids.is_empty() {
-            Vec::new()
-        } else {
-            self.tag_repository
-                .find_by_ids(data.tag_ids)
-                .await?
-                .into_iter()
-                .filter(|e| e.user_id == user_id)
-                .collect()
-        };
-
-        subscription.tags = Some(tags);
-
-        self.subscription_repository.save(&subscription).await?;
-
-        Ok(())
-    }
-
-    pub async fn get_subscription_entry(
-        &self,
-        id: Uuid,
-        user_id: Uuid,
-    ) -> Result<SubscriptionEntry, Error> {
-        let mut subscription_entries = self
-            .subscription_entry_repository
-            .query(SubscriptionEntryParams {
-                feed_entry_id: Some(id),
-                ..Default::default()
+        self.subscription_repository
+            .link_tags(SubscriptionLinkTagParams {
+                subscription_id: id,
+                tag_ids: data.tag_ids,
             })
             .await?;
-        if subscription_entries.is_empty() {
-            return Err(Error::NotFound(id));
-        }
 
-        let subscription_entry = subscription_entries.swap_remove(0);
-        if subscription_entry.user_id != user_id {
-            return Err(Error::Forbidden(id));
-        }
-
-        Ok(subscription_entry)
-    }
-
-    pub async fn mark_subscription_entry_as_read(
-        &self,
-        subscription_id: Uuid,
-        feed_entry_id: Uuid,
-        user_id: Uuid,
-    ) -> Result<SubscriptionEntry, Error> {
-        let Some(mut subscription_entry) = self
-            .subscription_entry_repository
-            .find_by_id(subscription_id, feed_entry_id)
-            .await?
-        else {
-            return Err(Error::NotFound(feed_entry_id));
-        };
-        if subscription_entry.user_id != user_id {
-            return Err(Error::Forbidden(feed_entry_id));
-        }
-
-        subscription_entry.has_read = Some(true);
-        subscription_entry.read_at = Some(Utc::now());
-
-        self.subscription_entry_repository
-            .save(&subscription_entry)
-            .await?;
-
-        Ok(subscription_entry)
-    }
-
-    pub async fn mark_subscription_entry_as_unread(
-        &self,
-        subscription_id: Uuid,
-        feed_entry_id: Uuid,
-        user_id: Uuid,
-    ) -> Result<SubscriptionEntry, Error> {
-        let Some(mut subscription_entry) = self
-            .subscription_entry_repository
-            .find_by_id(subscription_id, feed_entry_id)
-            .await?
-        else {
-            return Err(Error::NotFound(feed_entry_id));
-        };
-        if subscription_entry.user_id != user_id {
-            return Err(Error::Forbidden(feed_entry_id));
-        }
-
-        subscription_entry.has_read = Some(false);
-
-        self.subscription_entry_repository
-            .save(&subscription_entry)
-            .await?;
-
-        Ok(subscription_entry)
+        Ok(())
     }
 
     pub async fn import_subscriptions(&self, raw: Bytes, user_id: Uuid) -> Result<(), Error> {
@@ -270,71 +185,44 @@ impl SubscriptionService {
         let mut stack: Vec<(Option<String>, Outline)> =
             opml.body.outlines.into_iter().map(|e| (None, e)).collect();
 
-        let mut tag_map = HashMap::<String, Tag>::new();
-        let mut subscription_map = HashMap::<Url, Subscription>::new();
+        let mut tag_set = HashSet::<String>::new();
+        let mut subscription_map = HashMap::<Url, SubscriptionBatchItem>::new();
 
         while let Some((parent_title, outline)) = stack.pop() {
             if !outline.outline.is_empty() {
-                let tag = Tag::builder().title(outline.text).user_id(user_id).build();
-
                 for child in outline.outline {
-                    stack.push((Some(tag.title.clone()), child));
+                    stack.push((Some(outline.text.clone()), child));
                 }
 
-                tag_map.insert(tag.title.clone(), tag);
+                tag_set.insert(outline.text);
             } else if let Some(xml_url) = outline.xml_url {
                 let xml_url = xml_url.parse::<Url>().unwrap();
 
                 let subscription = subscription_map.entry(xml_url.clone()).or_insert_with(|| {
-                    let feed = Feed::builder()
-                        .source_url(xml_url.clone())
-                        .link(
-                            outline
-                                .html_url
-                                .and_then(|e| e.parse().ok())
-                                .unwrap_or(xml_url),
-                        )
-                        .title(outline.title.unwrap_or(outline.text))
-                        .build();
-
-                    Subscription::builder()
-                        .title(feed.title.clone())
-                        .feed_id(feed.id)
-                        .user_id(user_id)
-                        .build()
+                    SubscriptionBatchItem {
+                        feed_url: xml_url.clone(),
+                        feed_link: outline
+                            .html_url
+                            .and_then(|e| e.parse().ok())
+                            .unwrap_or(xml_url),
+                        feed_title: outline.title.unwrap_or(outline.text),
+                        tag_titles: Vec::new(),
+                    }
                 });
 
-                if let Some(title) = parent_title
-                    && let Some(tag) = tag_map.get(&title)
-                {
-                    subscription
-                        .tags
-                        .get_or_insert_default()
-                        .push(tag.to_owned());
+                if let Some(title) = parent_title {
+                    subscription.tag_titles.push(title);
                 }
             }
         }
 
         self.subscription_repository
-            .import(ImportSubscriptionsData {
-                subscriptions: subscription_map.into_values().collect(),
-                tags: tag_map.into_values().collect(),
+            .import(ImportSubscriptionsParams {
+                subscription_items: subscription_map.into_values().collect(),
+                tag_titles: tag_set.into_iter().collect(),
                 user_id,
             })
             .await?;
-
-        let data = serde_json::to_value(&ImportSubscriptionsJobData { user_id })?;
-
-        let job = Job::builder()
-            .job_type("import_subscriptions".into())
-            .data(data)
-            .build();
-
-        self.job_repository.save(&job).await?;
-
-        let mut producer = self.import_subscriptions_producer.lock().await;
-
-        producer.push(job.id).await?;
 
         Ok(())
     }
@@ -345,25 +233,20 @@ impl SubscriptionService {
 
         let subscriptions = self
             .subscription_repository
-            .query(SubscriptionParams {
+            .find(SubscriptionFindParams {
                 user_id: Some(user_id),
-                with_feed: true,
                 with_tags: true,
                 ..Default::default()
             })
             .await?;
 
         for subscription in subscriptions {
-            let Some(feed) = subscription.feed else {
-                continue;
-            };
-
             let outline = Outline {
                 r#type: Some(OutlineType::default()),
                 text: subscription.title.clone(),
-                xml_url: Some(feed.source_url.into()),
+                xml_url: Some(subscription.feed.source_url.into()),
                 title: Some(subscription.title),
-                html_url: Some(feed.link.into()),
+                html_url: Some(subscription.feed.link.into()),
                 ..Default::default()
             };
 
@@ -405,7 +288,6 @@ pub struct SubscriptionListQuery {
     pub tags: Option<Vec<Uuid>>,
     pub cursor: Option<SubscriptionCursor>,
     pub limit: Option<usize>,
-    pub with_feed: bool,
     pub with_unread_count: bool,
     pub with_tags: bool,
 }
@@ -413,7 +295,6 @@ pub struct SubscriptionListQuery {
 #[derive(Debug, Clone)]
 pub struct SubscriptionGetQuery {
     pub id: Uuid,
-    pub with_feed: bool,
     pub with_unread_count: bool,
     pub with_tags: bool,
 }

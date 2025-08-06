@@ -19,13 +19,12 @@ use colette_core::{
 use colette_http::{HttpClient, ReqwestClient};
 use colette_job::{
     archive_thumbnail::ArchiveThumbnailHandler, import_bookmarks::ImportBookmarksHandler,
-    import_subscriptions::ImportSubscriptionsHandler, refresh_feeds::RefreshFeedsHandler,
-    scrape_bookmark::ScrapeBookmarkHandler, scrape_feed::ScrapeFeedHandler,
+    refresh_feeds::RefreshFeedsHandler, scrape_bookmark::ScrapeBookmarkHandler,
+    scrape_feed::ScrapeFeedHandler,
 };
-use colette_migration::PostgresMigrator;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::{JobConsumerAdapter, JobProducerAdapter, LocalQueue};
-use colette_repository::postgres::{
+use colette_repository::{
     PostgresAccountRepository, PostgresApiKeyRepository, PostgresBackupRepository,
     PostgresBookmarkRepository, PostgresCollectionRepository, PostgresFeedEntryRepository,
     PostgresFeedRepository, PostgresJobRepository, PostgresSubscriptionEntryRepository,
@@ -82,27 +81,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let app_config = config::from_env().await?;
 
-    let pool = {
-        let pool = PgPool::connect_lazy(&app_config.database.url)?;
-
-        {
-            let mut migrator = PostgresMigrator::new(pool.clone());
-            let mut runner = postgres_migrations::migrations::runner();
-
-            if !migrator.is_fresh().await?
-                && runner
-                    .get_last_applied_migration_async(&mut migrator)
-                    .await?
-                    .is_none()
-            {
-                runner = runner.set_target(refinery::Target::Fake)
-            }
-
-            runner.run_async(&mut migrator).await?;
-        }
-
-        pool
-    };
+    let pool = PgPool::connect_lazy(&app_config.database.url)?;
 
     let storage_adapter = match app_config.storage.backend {
         StorageBackend::Fs(ref config) => {
@@ -163,14 +142,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             JobConsumerAdapter::Local(queue.1),
         )
     };
-    let (import_subscriptions_producer, import_subscriptions_consumer) = {
-        let queue = LocalQueue::new().split();
-
-        (
-            JobProducerAdapter::Local(queue.0),
-            JobConsumerAdapter::Local(queue.1),
-        )
-    };
     let (import_bookmarks_producer, import_bookmarks_consumer) = {
         let queue = LocalQueue::new().split();
 
@@ -191,7 +162,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository.clone(),
-        tag_repository.clone(),
         collection_repository.clone(),
         job_repository.clone(),
         http_client.clone(),
@@ -213,13 +183,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ),
     ));
     let job_service = Arc::new(JobService::new(job_repository.clone()));
-    let subscription_service = Arc::new(SubscriptionService::new(
-        subscription_repository.clone(),
-        tag_repository.clone(),
-        subscription_entry_repository.clone(),
-        job_repository,
-        import_subscriptions_producer.clone(),
-    ));
+    let subscription_service = Arc::new(SubscriptionService::new(subscription_repository.clone()));
 
     let mut oidc_config = None::<OidcConfig>;
     if let Some(config) = app_config.oidc.clone() {
@@ -333,17 +297,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .service(ArchiveThumbnailHandler::new(bookmark_service.clone()))
             .boxed(),
     );
-    let mut import_subscriptions_worker = JobWorker::new(
-        job_service.clone(),
-        import_subscriptions_consumer,
-        ServiceBuilder::new()
-            .service(ImportSubscriptionsHandler::new(
-                subscription_service,
-                job_service.clone(),
-                Arc::new(Mutex::new(scrape_feed_producer.clone())),
-            ))
-            .boxed(),
-    );
     let mut import_bookmarks_worker = JobWorker::new(
         job_service.clone(),
         import_bookmarks_consumer,
@@ -378,14 +331,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         scrape_feed_worker.start(),
         scrape_bookmark_worker.start(),
         archive_thumbnail_worker.start(),
-        import_subscriptions_worker.start(),
         import_bookmarks_worker.start(),
         start_refresh_feeds_worker
     );
 
     Ok(())
-}
-
-mod postgres_migrations {
-    refinery::embed_migrations!("../../migrations");
 }

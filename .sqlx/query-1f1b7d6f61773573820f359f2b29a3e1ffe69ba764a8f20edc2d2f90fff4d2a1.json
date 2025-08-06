@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  input_tags AS (\n    SELECT\n      *\n    FROM\n      unnest($2::UUID[]) AS t (id)\n  ),\n  deleted_bt AS (\n    DELETE FROM bookmark_tags\n    WHERE\n      bookmark_id = $1\n      AND NOT tag_id = ANY ($2)\n  )\nINSERT INTO\n  bookmark_tags (bookmark_id, tag_id)\nSELECT\n  $1,\n  id\nFROM\n  input_tags\nON CONFLICT (bookmark_id, tag_id) DO NOTHING\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1f1b7d6f61773573820f359f2b29a3e1ffe69ba764a8f20edc2d2f90fff4d2a1"
+}

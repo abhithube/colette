@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  input_bookmarks AS (\n    SELECT\n      *,\n      $1::UUID AS user_id\n    FROM\n      unnest(\n        $2::TEXT[],\n        $3::TEXT[],\n        $4::TEXT[],\n        $5::TIMESTAMPTZ[],\n        $6::TEXT[],\n        $7::TIMESTAMPTZ[],\n        $8::TIMESTAMPTZ[]\n      ) AS t (\n        link,\n        title,\n        thumbnail_url,\n        published_at,\n        author,\n        created_at,\n        updated_at\n      )\n  ),\n  input_tags AS (\n    SELECT\n      *,\n      $1::UUID AS user_id\n    FROM\n      unnest($9::TEXT[]) AS t (title)\n  ),\n  input_relationships AS (\n    SELECT\n      *\n    FROM\n      unnest($10::TEXT[], $11::TEXT[]) AS t (bookmark_link, tag_title)\n  ),\n  upserted_bookmarks AS (\n    INSERT INTO\n      bookmarks (\n        link,\n        title,\n        thumbnail_url,\n        published_at,\n        author,\n        user_id,\n        created_at,\n        updated_at\n      )\n    SELECT\n      link,\n      title,\n      thumbnail_url,\n      published_at,\n      author,\n      user_id,\n      created_at,\n      updated_at\n    FROM\n      input_bookmarks\n    ON CONFLICT (user_id, link) DO UPDATE\n    SET\n      title = EXCLUDED.title,\n      thumbnail_url = EXCLUDED.thumbnail_url,\n      published_at = EXCLUDED.published_at,\n      author = EXCLUDED.author,\n      created_at = EXCLUDED.created_at,\n      updated_at = EXCLUDED.updated_at\n    RETURNING\n      id,\n      link\n  ),\n  upserted_tags AS (\n    INSERT INTO\n      tags (title, user_id)\n    SELECT\n      title,\n      user_id\n    FROM\n      input_tags\n    ON CONFLICT (user_id, title) DO NOTHING\n  ),\n  new_tags AS (\n    SELECT\n      id,\n      title\n    FROM\n      tags\n    WHERE\n      title = ANY (\n        SELECT\n          title\n        FROM\n          input_tags\n      )\n  )\nINSERT INTO\n  bookmark_tags (bookmark_id, tag_id)\nSELECT\n  b.id,\n  t.id\nFROM\n  input_relationships i\n  JOIN upserted_bookmarks b ON b.link = i.bookmark_link\n  JOIN new_tags t ON t.title = i.tag_title\nON CONFLICT (bookmark_id, tag_id) DO NOTHING\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TimestamptzArray",
+        "TextArray",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "TextArray",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "400c807cc52dc26f0bda82cd795eac47df6d72ac149073c3b6591527610df1de"
+}

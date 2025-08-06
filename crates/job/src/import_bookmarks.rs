@@ -65,7 +65,7 @@ impl Service<Job> for ImportBookmarksHandler {
                     user_id: bookmark.user_id,
                 })?;
 
-                let job = job_service
+                let job_id = job_service
                     .create_job(JobCreate {
                         data,
                         job_type: "scrape_bookmark".into(),
@@ -75,7 +75,7 @@ impl Service<Job> for ImportBookmarksHandler {
 
                 let mut scrape_bookmark_producer = scrape_bookmark_producer.lock().await;
 
-                scrape_bookmark_producer.push(job.id).await?;
+                scrape_bookmark_producer.push(job_id).await?;
             }
 
             Ok(())

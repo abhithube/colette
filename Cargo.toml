@@ -7,11 +7,9 @@ members = [
   "crates/http",
   "crates/job",
   "crates/meta",
-  "crates/migration",
   "crates/netscape",
   "crates/opml",
   "crates/plugins",
-  "crates/query",
   "crates/queue",
   "crates/repository",
   "crates/scraper",
@@ -40,11 +38,9 @@ colette-feed.path = "crates/feed"
 colette-http.path = "crates/http"
 colette-job.path = "crates/job"
 colette-meta.path = "crates/meta"
-colette-migration.path = "crates/migration"
 colette-netscape.path = "crates/netscape"
 colette-opml.path = "crates/opml"
 colette-plugins.path = "crates/plugins"
-colette-query.path = "crates/query"
 colette-queue.path = "crates/queue"
 colette-repository.path = "crates/repository"
 colette-scraper.path = "crates/scraper"
@@ -63,12 +59,6 @@ rust-s3 = { version = "0.36.0-beta.2", default-features = false, features = [
   "fail-on-err",
 ] }
 scraper = { version = "0.23.1", default-features = false }
-sea-query = { version = "0.32.2", default-features = false, features = [
-  "backend-postgres",
-  "with-chrono",
-  "with-json",
-  "with-uuid",
-] }
 serde = { version = "1.0.217", default-features = false }
 serde_json = { version = "1.0.135", default-features = false, features = [
   "std",

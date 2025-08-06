@@ -11,7 +11,6 @@ colette-api.workspace = true
 colette-core.workspace = true
 colette-http.workspace = true
 colette-job.workspace = true
-colette-migration.workspace = true
 colette-plugins.workspace = true
 colette-queue.workspace = true
 colette-repository.workspace = true

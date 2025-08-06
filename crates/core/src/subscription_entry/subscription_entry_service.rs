@@ -4,10 +4,10 @@ use uuid::Uuid;
 
 use super::{
     Error, SubscriptionEntry, SubscriptionEntryCursor, SubscriptionEntryFilter,
-    SubscriptionEntryParams, SubscriptionEntryRepository,
+    SubscriptionEntryFindParams, SubscriptionEntryRepository,
 };
 use crate::{
-    collection::{CollectionParams, CollectionRepository},
+    collection::{CollectionFindParams, CollectionRepository},
     pagination::{Paginated, paginate},
 };
 
@@ -36,7 +36,7 @@ impl SubscriptionEntryService {
         if let Some(collection_id) = query.collection_id {
             let collections = self
                 .collection_repository
-                .query(CollectionParams {
+                .find(CollectionFindParams {
                     id: Some(collection_id),
                     user_id: Some(user_id),
                     ..Default::default()
@@ -54,7 +54,7 @@ impl SubscriptionEntryService {
 
         let subscription_entries = self
             .subscription_entry_repository
-            .query(SubscriptionEntryParams {
+            .find(SubscriptionEntryFindParams {
                 filter,
                 subscription_id: query.subscription_id,
                 has_read: query.has_read,
@@ -62,7 +62,7 @@ impl SubscriptionEntryService {
                 user_id: Some(user_id),
                 cursor: query.cursor.map(|e| (e.published_at, e.id)),
                 limit: query.limit.map(|e| e + 1),
-                with_read_entry: true,
+                with_feed_entry: true,
                 ..Default::default()
             })
             .await?;
@@ -75,6 +75,68 @@ impl SubscriptionEntryService {
                 ..Default::default()
             })
         }
+    }
+
+    pub async fn get_subscription_entry(
+        &self,
+        id: Uuid,
+        user_id: Uuid,
+    ) -> Result<SubscriptionEntry, Error> {
+        let mut subscription_entries = self
+            .subscription_entry_repository
+            .find(SubscriptionEntryFindParams {
+                id: Some(id),
+                ..Default::default()
+            })
+            .await?;
+        if subscription_entries.is_empty() {
+            return Err(Error::NotFound(id));
+        }
+
+        let subscription_entry = subscription_entries.swap_remove(0);
+        if subscription_entry.user_id != user_id {
+            return Err(Error::Forbidden(id));
+        }
+
+        Ok(subscription_entry)
+    }
+
+    pub async fn mark_subscription_entry_as_read(
+        &self,
+        id: Uuid,
+        user_id: Uuid,
+    ) -> Result<(), Error> {
+        let Some(subscription_entry) = self.subscription_entry_repository.find_by_id(id).await?
+        else {
+            return Err(Error::NotFound(id));
+        };
+        if subscription_entry.user_id != user_id {
+            return Err(Error::Forbidden(id));
+        }
+
+        self.subscription_entry_repository.mark_as_read(id).await?;
+
+        Ok(())
+    }
+
+    pub async fn mark_subscription_entry_as_unread(
+        &self,
+        id: Uuid,
+        user_id: Uuid,
+    ) -> Result<(), Error> {
+        let Some(subscription_entry) = self.subscription_entry_repository.find_by_id(id).await?
+        else {
+            return Err(Error::NotFound(id));
+        };
+        if subscription_entry.user_id != user_id {
+            return Err(Error::Forbidden(id));
+        }
+
+        self.subscription_entry_repository
+            .mark_as_unread(id)
+            .await?;
+
+        Ok(())
     }
 }
 

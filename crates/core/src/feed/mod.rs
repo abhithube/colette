@@ -1,75 +1,74 @@
-use std::str::Utf8Error;
+use std::{
+    fmt::{self, Display},
+    str::{FromStr, Utf8Error},
+};
 
 use chrono::{DateTime, Utc};
-use colette_scraper::feed::ProcessedFeed;
 pub use feed_repository::*;
 pub use feed_service::*;
 use url::Url;
 use uuid::Uuid;
 
-use crate::{FeedEntry, feed_entry, pagination::Cursor};
+use crate::{feed_entry, pagination::Cursor};
 
 mod feed_repository;
 mod feed_service;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, bon::Builder)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Feed {
-    #[builder(default = Uuid::new_v4())]
     pub id: Uuid,
     pub source_url: Url,
     pub link: Url,
     pub title: String,
     pub description: Option<String>,
     #[serde(skip_serializing, default = "default_refresh_interval_min")]
-    #[builder(default = 60)]
     pub refresh_interval_min: u32,
-    #[serde(skip_serializing, default = "default_is_refreshing")]
-    #[builder(default = false)]
-    pub is_refreshing: bool,
+    #[serde(skip_serializing, default = "FeedStatus::default")]
+    pub status: FeedStatus,
     #[serde(skip_serializing)]
     pub refreshed_at: Option<DateTime<Utc>>,
-    #[builder(default = false)]
     pub is_custom: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub entries: Option<Vec<FeedEntry>>,
+}
+
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename = "lowercase")]
+pub enum FeedStatus {
+    #[default]
+    Pending,
+    Healthy,
+    Refreshing,
+    Failed,
+}
+
+impl Display for FeedStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let value = match self {
+            Self::Pending => "pending",
+            Self::Healthy => "healthy",
+            Self::Refreshing => "refreshing",
+            Self::Failed => "failed",
+        };
+
+        write!(f, "{value}")
+    }
+}
+
+impl FromStr for FeedStatus {
+    type Err = serde_json::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "pending" => Ok(Self::Pending),
+            "healthy" => Ok(Self::Healthy),
+            "refreshing" => Ok(Self::Refreshing),
+            "failed" => Ok(Self::Failed),
+            _ => unreachable!(),
+        }
+    }
 }
 
 fn default_refresh_interval_min() -> u32 {
     60
-}
-fn default_is_refreshing() -> bool {
-    false
-}
-
-impl From<(Url, ProcessedFeed)> for Feed {
-    fn from((source_url, value): (Url, ProcessedFeed)) -> Self {
-        let feed_id = Uuid::new_v4();
-
-        let entries = value
-            .entries
-            .into_iter()
-            .map(|e| {
-                FeedEntry::builder()
-                    .link(e.link)
-                    .title(e.title)
-                    .published_at(e.published)
-                    .maybe_description(e.description)
-                    .maybe_author(e.author)
-                    .maybe_thumbnail_url(e.thumbnail)
-                    .feed_id(feed_id)
-                    .build()
-            })
-            .collect();
-
-        Feed::builder()
-            .id(feed_id)
-            .source_url(source_url)
-            .link(value.link)
-            .title(value.title)
-            .maybe_description(value.description)
-            .entries(entries)
-            .build()
-    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

@@ -8,7 +8,7 @@
   ],
   "overrides": [
     {
-      "files": ["./migrations/*"],
+      "files": ["./migrations/*", "./crates/repository/queries/**/*"],
       "options": {
         "language": "postgresql",
         "keywordCase": "upper",

@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n  bookmarks (\n    link,\n    title,\n    thumbnail_url,\n    published_at,\n    author,\n    user_id\n  )\nVALUES\n  ($1, $2, $3, $4, $5, $6)\nRETURNING\n  id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d4f94542c172e2ef9786ce72d97e859629caa1a923e84bb32f49e83ea83f7b7a"
+}

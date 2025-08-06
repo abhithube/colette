@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM subscriptions\nWHERE\n  id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a94b79fd58bac5b3e2c9875e1c752c0edb05254de40bf28648ca9c4fc8232f30"
+}

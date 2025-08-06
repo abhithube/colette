@@ -40,7 +40,10 @@ impl JobWorker {
                 )
                 .await
             {
-                Ok(job) => job,
+                Ok(_) => match self.service.get_job(job_id).await {
+                    Ok(job) => job,
+                    Err(e) => return Err(Error::Job(e)),
+                },
                 Err(job::Error::AlreadyCompleted(_)) => {
                     continue;
                 }
@@ -54,7 +57,6 @@ impl JobWorker {
                             job_id,
                             JobUpdate {
                                 status: Some(JobStatus::Completed),
-                                completed_at: Some(Some(Utc::now())),
                                 ..Default::default()
                             },
                         )
@@ -118,7 +120,13 @@ impl CronWorker {
                 })
                 .await
             {
-                Ok(job) => job,
+                Ok(id) => match self.service.get_job(id).await {
+                    Ok(job) => job,
+                    Err(e) => {
+                        tracing::error!("{}", e);
+                        continue;
+                    }
+                },
                 Err(e) => {
                     tracing::error!("{}", e);
                     continue;
@@ -135,7 +143,6 @@ impl CronWorker {
                             job_id,
                             JobUpdate {
                                 status: Some(JobStatus::Completed),
-                                completed_at: Some(Some(Utc::now())),
                                 ..Default::default()
                             },
                         )

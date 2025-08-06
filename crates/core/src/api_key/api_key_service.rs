@@ -6,8 +6,11 @@ use colette_util::{
 };
 use uuid::Uuid;
 
-use super::{ApiKey, ApiKeyCursor, ApiKeyParams, ApiKeyRepository, Error};
-use crate::pagination::{Paginated, paginate};
+use super::{ApiKey, ApiKeyCursor, ApiKeyFindParams, ApiKeyInsertParams, ApiKeyRepository, Error};
+use crate::{
+    api_key::{ApiKeyById, ApiKeyUpdateParams},
+    pagination::{Paginated, paginate},
+};
 
 pub struct ApiKeyService {
     repository: Arc<dyn ApiKeyRepository>,
@@ -25,7 +28,7 @@ impl ApiKeyService {
     ) -> Result<Paginated<ApiKey, ApiKeyCursor>, Error> {
         let api_keys = self
             .repository
-            .query(ApiKeyParams {
+            .find(ApiKeyFindParams {
                 user_id: Some(user_id),
                 cursor: query.cursor.map(|e| e.created_at),
                 limit: query.limit.map(|e| e + 1),
@@ -43,7 +46,7 @@ impl ApiKeyService {
         }
     }
 
-    pub async fn validate_api_key(&self, value: String) -> Result<ApiKey, Error> {
+    pub async fn validate_api_key(&self, value: String) -> Result<ApiKeyById, Error> {
         let lookup_hash = hex_encode(&sha256_hash(&value));
 
         let Some(api_key) = self.repository.find_by_lookup_hash(lookup_hash).await? else {
@@ -55,13 +58,16 @@ impl ApiKeyService {
             return Err(Error::Auth);
         }
 
-        Ok(api_key)
+        Ok(ApiKeyById {
+            id: api_key.id,
+            user_id: api_key.user_id,
+        })
     }
 
     pub async fn get_api_key(&self, id: Uuid, user_id: Uuid) -> Result<ApiKey, Error> {
         let mut api_keys = self
             .repository
-            .query(ApiKeyParams {
+            .find(ApiKeyFindParams {
                 id: Some(id),
                 ..Default::default()
             })
@@ -80,7 +86,7 @@ impl ApiKeyService {
 
     pub async fn create_api_key(
         &self,
-        data: ApiKeyCreate,
+        data: ApiKeyCreateData,
         user_id: Uuid,
     ) -> Result<ApiKeyCreated, Error> {
         let value = base64_encode(&random_generate(32));
@@ -88,19 +94,23 @@ impl ApiKeyService {
         let lookup_hash = hex_encode(&sha256_hash(&value));
         let verification_hash = argon2_hash(&value)?;
 
-        let api_key = ApiKey::builder()
-            .lookup_hash(lookup_hash)
-            .verification_hash(verification_hash)
-            .title(data.title)
-            .preview(format!(
-                "{}...{}",
-                &value[0..8],
-                &value[value.len() - 4..value.len()]
-            ))
-            .user_id(user_id)
-            .build();
+        let preview = format!(
+            "{}...{}",
+            &value[0..8],
+            &value[value.len() - 4..value.len()]
+        );
 
-        self.repository.save(&api_key).await?;
+        let id = self
+            .repository
+            .insert(ApiKeyInsertParams {
+                lookup_hash,
+                verification_hash,
+                title: data.title,
+                preview,
+                user_id,
+            })
+            .await?;
+        let api_key = self.get_api_key(id, user_id).await?;
 
         Ok(ApiKeyCreated {
             id: api_key.id,
@@ -113,24 +123,24 @@ impl ApiKeyService {
     pub async fn update_api_key(
         &self,
         id: Uuid,
-        data: ApiKeyUpdate,
+        data: ApiKeyUpdateData,
         user_id: Uuid,
     ) -> Result<ApiKey, Error> {
-        let Some(mut api_key) = self.repository.find_by_id(id).await? else {
+        let Some(api_key) = self.repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };
         if api_key.user_id != user_id {
             return Err(Error::Forbidden(id));
         }
 
-        if let Some(title) = data.title {
-            api_key.title = title;
-        }
+        self.repository
+            .update(ApiKeyUpdateParams {
+                id,
+                title: data.title,
+            })
+            .await?;
 
-        api_key.updated_at = Utc::now();
-        self.repository.save(&api_key).await?;
-
-        Ok(api_key)
+        self.get_api_key(id, user_id).await
     }
 
     pub async fn delete_api_key(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
@@ -154,7 +164,7 @@ pub struct ApiKeyListQuery {
 }
 
 #[derive(Debug, Clone)]
-pub struct ApiKeyCreate {
+pub struct ApiKeyCreateData {
     pub title: String,
 }
 
@@ -167,6 +177,6 @@ pub struct ApiKeyCreated {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct ApiKeyUpdate {
+pub struct ApiKeyUpdateData {
     pub title: Option<String>,
 }

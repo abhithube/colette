@@ -9,9 +9,8 @@ use crate::pagination::Cursor;
 mod feed_entry_repository;
 mod feed_entry_service;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, bon::Builder)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FeedEntry {
-    #[builder(default = Uuid::new_v4())]
     pub id: Uuid,
     pub link: Url,
     pub title: String,

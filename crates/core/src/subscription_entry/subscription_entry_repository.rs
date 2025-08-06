@@ -5,37 +5,33 @@ use super::{Error, SubscriptionEntry, SubscriptionEntryFilter};
 
 #[async_trait::async_trait]
 pub trait SubscriptionEntryRepository: Send + Sync + 'static {
-    async fn query(&self, params: SubscriptionEntryParams)
-    -> Result<Vec<SubscriptionEntry>, Error>;
-
-    async fn find_by_id(
+    async fn find(
         &self,
-        subscription_id: Uuid,
-        feed_entry_id: Uuid,
-    ) -> Result<Option<SubscriptionEntry>, Error> {
-        Ok(self
-            .query(SubscriptionEntryParams {
-                subscription_id: Some(subscription_id),
-                feed_entry_id: Some(feed_entry_id),
-                ..Default::default()
-            })
-            .await?
-            .into_iter()
-            .next())
-    }
+        params: SubscriptionEntryFindParams,
+    ) -> Result<Vec<SubscriptionEntry>, Error>;
 
-    async fn save(&self, data: &SubscriptionEntry) -> Result<(), Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<SubscriptionEntryById>, Error>;
+
+    async fn mark_as_read(&self, id: Uuid) -> Result<(), Error>;
+
+    async fn mark_as_unread(&self, id: Uuid) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct SubscriptionEntryParams {
+pub struct SubscriptionEntryFindParams {
     pub filter: Option<SubscriptionEntryFilter>,
+    pub id: Option<Uuid>,
     pub subscription_id: Option<Uuid>,
-    pub feed_entry_id: Option<Uuid>,
     pub has_read: Option<bool>,
     pub tags: Option<Vec<Uuid>>,
     pub user_id: Option<Uuid>,
     pub cursor: Option<(DateTime<Utc>, Uuid)>,
     pub limit: Option<usize>,
-    pub with_read_entry: bool,
+    pub with_feed_entry: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct SubscriptionEntryById {
+    pub id: Uuid,
+    pub user_id: Uuid,
 }

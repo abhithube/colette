@@ -14,12 +14,13 @@ mod subscription_entry_service;
 
 #[derive(Debug, Clone)]
 pub struct SubscriptionEntry {
+    pub id: Uuid,
+    pub has_read: bool,
+    pub read_at: Option<DateTime<Utc>>,
     pub subscription_id: Uuid,
     pub feed_entry_id: Uuid,
+    pub feed_entry: FeedEntry,
     pub user_id: Uuid,
-    pub feed_entry: Option<FeedEntry>,
-    pub has_read: Option<bool>,
-    pub read_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -32,13 +33,9 @@ impl Cursor for SubscriptionEntry {
     type Data = SubscriptionEntryCursor;
 
     fn to_cursor(&self) -> Self::Data {
-        if let Some(ref feed_entry) = self.feed_entry {
-            Self::Data {
-                published_at: feed_entry.published_at,
-                id: feed_entry.id,
-            }
-        } else {
-            Default::default()
+        Self::Data {
+            published_at: self.feed_entry.published_at,
+            id: self.feed_entry.id,
         }
     }
 }

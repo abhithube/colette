@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use bytes::{Buf, Bytes};
 use chrono::{DateTime, Utc};
@@ -13,22 +16,22 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{
-    Bookmark, BookmarkCursor, BookmarkFilter, Error, ImportBookmarksData,
-    bookmark_repository::{BookmarkParams, BookmarkRepository},
+    Bookmark, BookmarkCursor, BookmarkFilter, Error, ImportBookmarksParams,
+    bookmark_repository::{BookmarkFindParams, BookmarkRepository},
 };
 use crate::{
-    Tag,
-    collection::{CollectionParams, CollectionRepository},
-    job::{Job, JobRepository},
+    bookmark::{
+        BookmarkBatchItem, BookmarkInsertParams, BookmarkLinkTagParams, BookmarkUpdateParams,
+    },
+    collection::{CollectionFindParams, CollectionRepository},
+    job::{JobInsertParams, JobRepository},
     pagination::{Paginated, paginate},
-    tag::TagRepository,
 };
 
 const THUMBNAILS_DIR: &str = "thumbnails";
 
 pub struct BookmarkService {
     bookmark_repository: Arc<dyn BookmarkRepository>,
-    tag_repository: Arc<dyn TagRepository>,
     collection_repository: Arc<dyn CollectionRepository>,
     job_repository: Arc<dyn JobRepository>,
     http_client: Box<dyn HttpClient>,
@@ -42,7 +45,6 @@ impl BookmarkService {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         bookmark_repository: Arc<dyn BookmarkRepository>,
-        tag_repository: Arc<dyn TagRepository>,
         collection_repository: Arc<dyn CollectionRepository>,
         job_repository: Arc<dyn JobRepository>,
         http_client: impl HttpClient,
@@ -53,7 +55,6 @@ impl BookmarkService {
     ) -> Self {
         Self {
             bookmark_repository,
-            tag_repository,
             collection_repository,
             job_repository,
             http_client: Box::new(http_client),
@@ -73,7 +74,7 @@ impl BookmarkService {
         if let Some(collection_id) = query.collection_id {
             let mut collections = self
                 .collection_repository
-                .query(CollectionParams {
+                .find(CollectionFindParams {
                     id: Some(collection_id),
                     user_id: Some(user_id),
                     ..Default::default()
@@ -88,7 +89,7 @@ impl BookmarkService {
 
         let bookmarks = self
             .bookmark_repository
-            .query(BookmarkParams {
+            .find(BookmarkFindParams {
                 filter,
                 tags: query.tags,
                 user_id: Some(user_id),
@@ -116,7 +117,7 @@ impl BookmarkService {
     ) -> Result<Bookmark, Error> {
         let mut bookmarks = self
             .bookmark_repository
-            .query(BookmarkParams {
+            .find(BookmarkFindParams {
                 id: Some(query.id),
                 with_tags: query.with_tags,
                 ..Default::default()
@@ -139,37 +140,48 @@ impl BookmarkService {
         data: BookmarkCreate,
         user_id: Uuid,
     ) -> Result<Bookmark, Error> {
-        let bookmark = Bookmark::builder()
-            .link(data.url)
-            .title(data.title)
-            .maybe_thumbnail_url(data.thumbnail_url)
-            .maybe_published_at(data.published_at)
-            .maybe_author(data.author)
-            .user_id(user_id)
-            .build();
+        let id = self
+            .bookmark_repository
+            .insert(BookmarkInsertParams {
+                link: data.url,
+                title: data.title,
+                thumbnail_url: data.thumbnail_url.clone(),
+                published_at: data.published_at,
+                author: data.author,
+                user_id,
+                upsert: false,
+            })
+            .await?;
 
-        self.bookmark_repository.save(&bookmark).await?;
-
-        if let Some(thumbnail_url) = bookmark.thumbnail_url.clone() {
+        if let Some(thumbnail_url) = data.thumbnail_url {
             let data = serde_json::to_value(&ArchiveThumbnailJobData {
                 operation: ThumbnailOperation::Upload(thumbnail_url),
                 archived_path: None,
-                bookmark_id: bookmark.id,
+                bookmark_id: id,
             })?;
 
-            let job = Job::builder()
-                .job_type("archive_thumbnail".into())
-                .data(data)
-                .build();
-
-            self.job_repository.save(&job).await?;
+            let job_id = self
+                .job_repository
+                .insert(JobInsertParams {
+                    job_type: "archive_thumbnail".into(),
+                    data,
+                    group_identifier: None,
+                })
+                .await?;
 
             let mut producer = self.archive_thumbnail_producer.lock().await;
 
-            producer.push(job.id).await?;
+            producer.push(job_id).await?;
         }
 
-        Ok(bookmark)
+        self.get_bookmark(
+            BookmarkGetQuery {
+                id,
+                with_tags: false,
+            },
+            user_id,
+        )
+        .await
     }
 
     pub async fn update_bookmark(
@@ -178,7 +190,7 @@ impl BookmarkService {
         data: BookmarkUpdate,
         user_id: Uuid,
     ) -> Result<Bookmark, Error> {
-        let Some(mut bookmark) = self.bookmark_repository.find_by_id(id).await? else {
+        let Some(bookmark) = self.bookmark_repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };
         if bookmark.user_id != user_id {
@@ -187,21 +199,15 @@ impl BookmarkService {
 
         let new_thumbnail = data.thumbnail_url.clone();
 
-        if let Some(title) = data.title {
-            bookmark.title = title;
-        }
-        if let Some(thumbnail_url) = data.thumbnail_url {
-            bookmark.thumbnail_url = thumbnail_url;
-        }
-        if let Some(published_at) = data.published_at {
-            bookmark.published_at = published_at;
-        }
-        if let Some(author) = data.author {
-            bookmark.author = author;
-        }
-
-        bookmark.updated_at = Utc::now();
-        self.bookmark_repository.save(&bookmark).await?;
+        self.bookmark_repository
+            .update(BookmarkUpdateParams {
+                id,
+                title: data.title,
+                thumbnail_url: data.thumbnail_url,
+                published_at: data.published_at,
+                author: data.author,
+            })
+            .await?;
 
         if let Some(thumbnail_url) = new_thumbnail
             && thumbnail_url == bookmark.thumbnail_url
@@ -216,19 +222,28 @@ impl BookmarkService {
                 bookmark_id: bookmark.id,
             })?;
 
-            let job = Job::builder()
-                .job_type("archive_thumbnail".into())
-                .data(data)
-                .build();
-
-            self.job_repository.save(&job).await?;
+            let job_id = self
+                .job_repository
+                .insert(JobInsertParams {
+                    job_type: "archive_thumbnail".into(),
+                    data,
+                    group_identifier: None,
+                })
+                .await?;
 
             let mut producer = self.archive_thumbnail_producer.lock().await;
 
-            producer.push(job.id).await?;
+            producer.push(job_id).await?;
         }
 
-        Ok(bookmark)
+        self.get_bookmark(
+            BookmarkGetQuery {
+                id,
+                with_tags: false,
+            },
+            user_id,
+        )
+        .await
     }
 
     pub async fn delete_bookmark(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
@@ -247,16 +262,18 @@ impl BookmarkService {
             bookmark_id: bookmark.id,
         })?;
 
-        let job = Job::builder()
-            .job_type("archive_thumbnail".into())
-            .data(data)
-            .build();
-
-        self.job_repository.save(&job).await?;
+        let job_id = self
+            .job_repository
+            .insert(JobInsertParams {
+                job_type: "archive_thumbnail".into(),
+                data,
+                group_identifier: None,
+            })
+            .await?;
 
         let mut producer = self.archive_thumbnail_producer.lock().await;
 
-        producer.push(job.id).await?;
+        producer.push(job_id).await?;
 
         Ok(())
     }
@@ -264,30 +281,22 @@ impl BookmarkService {
     pub async fn link_bookmark_tags(
         &self,
         id: Uuid,
-        data: LinkSubscriptionTags,
+        data: LinkBookmarkTags,
         user_id: Uuid,
     ) -> Result<(), Error> {
-        let Some(mut bookmark) = self.bookmark_repository.find_by_id(id).await? else {
+        let Some(bookmark) = self.bookmark_repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };
         if bookmark.user_id != user_id {
             return Err(Error::Forbidden(id));
         }
 
-        let tags = if data.tag_ids.is_empty() {
-            Vec::new()
-        } else {
-            self.tag_repository
-                .find_by_ids(data.tag_ids)
-                .await?
-                .into_iter()
-                .filter(|e| e.user_id == user_id)
-                .collect()
-        };
-
-        bookmark.tags = Some(tags);
-
-        self.bookmark_repository.save(&bookmark).await?;
+        self.bookmark_repository
+            .link_tags(BookmarkLinkTagParams {
+                bookmark_id: id,
+                tag_ids: data.tag_ids,
+            })
+            .await?;
 
         Ok(())
     }
@@ -312,16 +321,19 @@ impl BookmarkService {
     pub async fn refresh_bookmark(&self, mut data: BookmarkRefresh) -> Result<(), Error> {
         let processed = self.scraper.scrape(&mut data.url).await?;
 
-        let bookmark = Bookmark::builder()
-            .link(data.url)
-            .title(processed.title)
-            .maybe_thumbnail_url(processed.thumbnail)
-            .maybe_published_at(processed.published)
-            .maybe_author(processed.author)
-            .user_id(data.user_id)
-            .build();
+        self.bookmark_repository
+            .insert(BookmarkInsertParams {
+                link: data.url,
+                title: processed.title,
+                thumbnail_url: processed.thumbnail,
+                published_at: processed.published,
+                author: processed.author,
+                user_id: data.user_id,
+                upsert: true,
+            })
+            .await?;
 
-        self.bookmark_repository.upsert(&bookmark).await
+        Ok(())
     }
 
     pub async fn archive_thumbnail(
@@ -372,76 +384,65 @@ impl BookmarkService {
         let mut stack: Vec<(Option<String>, Item)> =
             netscape.items.into_iter().map(|e| (None, e)).collect();
 
-        let mut tag_map = HashMap::<String, Tag>::new();
-        let mut bookmark_map = HashMap::<Url, Bookmark>::new();
+        let mut tag_set = HashSet::<String>::new();
+        let mut bookmark_map = HashMap::<Url, BookmarkBatchItem>::new();
 
         while let Some((parent_title, item)) = stack.pop() {
             if !item.item.is_empty() {
-                let tag = Tag::builder()
-                    .title(item.title)
-                    .user_id(user_id)
-                    .maybe_created_at(
-                        item.add_date
-                            .and_then(|e| DateTime::<Utc>::from_timestamp(e, 0)),
-                    )
-                    .maybe_updated_at(
-                        item.last_modified
-                            .and_then(|e| DateTime::<Utc>::from_timestamp(e, 0)),
-                    )
-                    .build();
-
                 for child in item.item {
-                    stack.push((Some(tag.title.clone()), child));
+                    stack.push((Some(item.title.clone()), child));
                 }
 
-                tag_map.insert(tag.title.clone(), tag);
+                tag_set.insert(item.title);
             } else if let Some(link) = item.href {
                 let link = link.parse::<Url>().unwrap();
 
-                let bookmark = bookmark_map.entry(link.clone()).or_insert_with(|| {
-                    Bookmark::builder()
-                        .link(link)
-                        .title(item.title)
-                        .user_id(user_id)
-                        .maybe_created_at(
-                            item.add_date
+                let bookmark =
+                    bookmark_map
+                        .entry(link.clone())
+                        .or_insert_with(|| BookmarkBatchItem {
+                            link,
+                            title: item.title,
+                            thumbnail_url: None,
+                            published_at: None,
+                            author: None,
+                            created_at: item
+                                .add_date
                                 .and_then(|e| DateTime::<Utc>::from_timestamp(e, 0)),
-                        )
-                        .maybe_updated_at(
-                            item.last_modified
+                            updated_at: item
+                                .last_modified
                                 .and_then(|e| DateTime::<Utc>::from_timestamp(e, 0)),
-                        )
-                        .build()
-                });
+                            tag_titles: Vec::new(),
+                        });
 
-                if let Some(title) = parent_title
-                    && let Some(tag) = tag_map.get(&title)
-                {
-                    bookmark.tags.get_or_insert_default().push(tag.to_owned());
+                if let Some(title) = parent_title {
+                    bookmark.tag_titles.push(title);
                 }
             }
         }
 
         self.bookmark_repository
-            .import(ImportBookmarksData {
-                bookmarks: bookmark_map.into_values().collect(),
-                tags: tag_map.into_values().collect(),
+            .import(ImportBookmarksParams {
+                bookmark_items: bookmark_map.into_values().collect(),
+                tag_titles: tag_set.into_iter().collect(),
                 user_id,
             })
             .await?;
 
         let data = serde_json::to_value(&ImportBookmarksJobData { user_id })?;
 
-        let job = Job::builder()
-            .job_type("import_bookmarks".into())
-            .data(data)
-            .build();
-
-        self.job_repository.save(&job).await?;
+        let job_id = self
+            .job_repository
+            .insert(JobInsertParams {
+                job_type: "import_bookmarks".into(),
+                data,
+                group_identifier: None,
+            })
+            .await?;
 
         let mut producer = self.import_bookmarks_producer.lock().await;
 
-        producer.push(job.id).await?;
+        producer.push(job_id).await?;
 
         Ok(())
     }
@@ -452,7 +453,7 @@ impl BookmarkService {
 
         let bookmarks = self
             .bookmark_repository
-            .query(BookmarkParams {
+            .find(BookmarkFindParams {
                 user_id: Some(user_id),
                 with_tags: true,
                 ..Default::default()
@@ -534,7 +535,7 @@ pub struct BookmarkUpdate {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct LinkSubscriptionTags {
+pub struct LinkBookmarkTags {
     pub tag_ids: Vec<Uuid>,
 }
 

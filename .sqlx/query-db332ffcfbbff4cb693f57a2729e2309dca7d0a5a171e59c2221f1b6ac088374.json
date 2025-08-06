@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  id,\n  source_url AS \"source_url: DbUrl\",\n  link AS \"link: DbUrl\",\n  title,\n  description,\n  refresh_interval_min,\n  status AS \"status: DbFeedStatus\",\n  refreshed_at,\n  is_custom\nFROM\n  feeds\nWHERE\n  source_url = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "source_url: DbUrl",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "link: DbUrl",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "refresh_interval_min",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "status: DbFeedStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "refreshed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_custom",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "db332ffcfbbff4cb693f57a2729e2309dca7d0a5a171e59c2221f1b6ac088374"
+}

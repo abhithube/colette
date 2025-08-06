@@ -12,19 +12,16 @@ use uuid::Uuid;
 mod job_repository;
 mod job_service;
 
-#[derive(Debug, Clone, bon::Builder)]
+#[derive(Debug, Clone)]
 pub struct Job {
-    #[builder(default = Uuid::new_v4())]
     pub id: Uuid,
     pub job_type: String,
     pub data: Value,
-    #[builder(default = Default::default())]
     pub status: JobStatus,
     pub group_identifier: Option<String>,
     pub message: Option<String>,
-    #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,
-    pub completed_at: Option<DateTime<Utc>>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]

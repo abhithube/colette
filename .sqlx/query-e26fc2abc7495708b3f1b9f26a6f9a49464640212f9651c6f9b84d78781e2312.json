@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n  collections (title, filter_json, user_id)\nVALUES\n  ($1, $2, $3)\nRETURNING\n  id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Jsonb",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e26fc2abc7495708b3f1b9f26a6f9a49464640212f9651c6f9b84d78781e2312"
+}

@@ -47,7 +47,7 @@ pub(super) struct ApiKeyCreate {
     title: NonEmptyString,
 }
 
-impl From<ApiKeyCreate> for api_key::ApiKeyCreate {
+impl From<ApiKeyCreate> for api_key::ApiKeyCreateData {
     fn from(value: ApiKeyCreate) -> Self {
         Self {
             title: value.title.into(),

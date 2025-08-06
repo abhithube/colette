@@ -51,7 +51,7 @@ pub(super) struct ApiKeyUpdate {
     title: Option<NonEmptyString>,
 }
 
-impl From<ApiKeyUpdate> for api_key::ApiKeyUpdate {
+impl From<ApiKeyUpdate> for api_key::ApiKeyUpdateData {
     fn from(value: ApiKeyUpdate) -> Self {
         Self {
             title: value.title.map(Into::into),

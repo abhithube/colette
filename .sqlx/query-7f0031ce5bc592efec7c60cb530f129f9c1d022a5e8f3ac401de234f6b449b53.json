@@ -1,0 +1,101 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  se.id,\n  se.has_read,\n  se.read_at,\n  se.subscription_id,\n  se.feed_entry_id,\n  fe.link,\n  fe.title,\n  fe.published_at,\n  fe.description,\n  fe.author,\n  fe.thumbnail_url,\n  fe.feed_id,\n  s.user_id\nFROM\n  subscription_entries se\n  INNER JOIN feed_entries fe ON fe.id = se.feed_entry_id\n  INNER JOIN subscriptions s ON s.id = se.subscription_id\nWHERE\n  (\n    $1::UUID IS NULL\n    OR se.id = $1\n  )\n  AND (\n    $2::UUID IS NULL\n    OR s.user_id = $2\n  )\n  AND (\n    $3::UUID IS NULL\n    OR se.subscription_id = $3\n  )\n  AND (\n    $4::BOOL IS NULL\n    OR se.has_read = $4\n  )\n  AND (\n    $5::UUID[] IS NULL\n    OR EXISTS (\n      SELECT\n        1\n      FROM\n        subscription_tags st\n      WHERE\n        st.subscription_id = s.id\n        AND st.tag_id = ANY ($5)\n    )\n  )\n  AND (\n    (\n      $6::TIMESTAMPTZ IS NULL\n      OR $7::UUID IS NULL\n    )\n    OR (fe.published_at, fe.id) > ($6, $7)\n  )\nORDER BY\n  fe.published_at DESC,\n  fe.id DESC\nLIMIT\n  $8\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "has_read",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "read_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "subscription_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "feed_entry_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "link",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "published_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "author",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "thumbnail_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "feed_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 12,
+        "name": "user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Timestamptz",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "7f0031ce5bc592efec7c60cb530f129f9c1d022a5e8f3ac401de234f6b449b53"
+}

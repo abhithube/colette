@@ -9,13 +9,13 @@ use colette_core::tag::{self};
 use super::{TAGS_TAG, TagDetails};
 use crate::{
     ApiState,
-    common::{ApiError, Auth, Id, Path, Query},
+    common::{ApiError, Auth, Id, Path},
 };
 
 #[utoipa::path(
     get,
     path = "/{id}",
-    params(Id, TagGetQuery),
+    params(Id),
     responses(OkResponse, ErrResponse),
     operation_id = "getTag",
     description = "Get a tag by ID",
@@ -25,21 +25,9 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    Query(query): Query<TagGetQuery>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state
-        .tag_service
-        .get_tag(
-            tag::TagGetQuery {
-                id,
-                with_subscription_count: query.with_subscription_count,
-                with_bookmark_count: query.with_bookmark_count,
-            },
-            user_id,
-        )
-        .await
-    {
+    match state.tag_service.get_tag(id, user_id).await {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
             tag::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
@@ -47,26 +35,6 @@ pub(super) async fn handler(
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
-}
-
-#[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
-#[serde(rename_all = "camelCase")]
-#[into_params(parameter_in = Query)]
-pub(super) struct TagGetQuery {
-    /// Whether to include the count of subscriptions the tag is linked to
-    #[serde(default = "with_subscription_count")]
-    with_subscription_count: bool,
-    /// Whether to include the count of bookmarks the tag is linked to
-    #[serde(default = "with_bookmark_count")]
-    with_bookmark_count: bool,
-}
-
-fn with_subscription_count() -> bool {
-    false
-}
-
-fn with_bookmark_count() -> bool {
-    false
 }
 
 #[derive(utoipa::IntoResponses)]

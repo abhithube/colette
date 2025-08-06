@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use uuid::Uuid;
 
-use super::{Error, FeedEntry, FeedEntryCursor, FeedEntryParams, FeedEntryRepository};
+use super::{Error, FeedEntry, FeedEntryCursor, FeedEntryFindParams, FeedEntryRepository};
 use crate::pagination::{Paginated, paginate};
 
 pub struct FeedEntryService {
@@ -20,7 +20,7 @@ impl FeedEntryService {
     ) -> Result<Paginated<FeedEntry, FeedEntryCursor>, Error> {
         let feed_entries = self
             .repository
-            .query(FeedEntryParams {
+            .find(FeedEntryFindParams {
                 feed_id: query.feed_id,
                 cursor: query.cursor.map(|e| (e.published_at, e.id)),
                 limit: query.limit.map(|e| e + 1),
@@ -41,7 +41,7 @@ impl FeedEntryService {
     pub async fn get_feed_entry(&self, id: Uuid) -> Result<FeedEntry, Error> {
         let mut feed_entries = self
             .repository
-            .query(FeedEntryParams {
+            .find(FeedEntryFindParams {
                 id: Some(id),
                 ..Default::default()
             })

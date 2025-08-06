@@ -5,40 +5,54 @@ use super::{ApiKey, Error};
 
 #[async_trait::async_trait]
 pub trait ApiKeyRepository: Send + Sync + 'static {
-    async fn query(&self, params: ApiKeyParams) -> Result<Vec<ApiKey>, Error>;
+    async fn find(&self, params: ApiKeyFindParams) -> Result<Vec<ApiKey>, Error>;
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<ApiKey>, Error> {
-        Ok(self
-            .query(ApiKeyParams {
-                id: Some(id),
-                ..Default::default()
-            })
-            .await?
-            .into_iter()
-            .next())
-    }
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<ApiKeyById>, Error>;
 
-    async fn find_by_lookup_hash(&self, lookup_hash: String) -> Result<Option<ApiKey>, Error> {
-        Ok(self
-            .query(ApiKeyParams {
-                lookup_hash: Some(lookup_hash),
-                ..Default::default()
-            })
-            .await?
-            .into_iter()
-            .next())
-    }
+    async fn find_by_lookup_hash(
+        &self,
+        lookup_hash: String,
+    ) -> Result<Option<ApiKeyByLookupHash>, Error>;
 
-    async fn save(&self, data: &ApiKey) -> Result<(), Error>;
+    async fn insert(&self, params: ApiKeyInsertParams) -> Result<Uuid, Error>;
+
+    async fn update(&self, params: ApiKeyUpdateParams) -> Result<(), Error>;
 
     async fn delete_by_id(&self, id: Uuid) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct ApiKeyParams {
+pub struct ApiKeyFindParams {
     pub id: Option<Uuid>,
-    pub lookup_hash: Option<String>,
     pub user_id: Option<Uuid>,
     pub cursor: Option<DateTime<Utc>>,
     pub limit: Option<usize>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ApiKeyById {
+    pub id: Uuid,
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, Clone)]
+pub struct ApiKeyByLookupHash {
+    pub id: Uuid,
+    pub verification_hash: String,
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, Clone)]
+pub struct ApiKeyInsertParams {
+    pub lookup_hash: String,
+    pub verification_hash: String,
+    pub title: String,
+    pub preview: String,
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, Clone)]
+pub struct ApiKeyUpdateParams {
+    pub id: Uuid,
+    pub title: Option<String>,
 }

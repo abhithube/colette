@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  id,\n  job_type,\n  data_json AS \"data_json: Json<Value>\",\n  status AS \"status: DbJobStatus\",\n  group_identifier,\n  message,\n  created_at,\n  updated_at\nFROM\n  jobs\nWHERE\n  (\n    $1::UUID IS NULL\n    OR id = $1\n  )\n  AND (\n    $2::TEXT IS NULL\n    OR group_identifier = $2\n  )\nORDER BY\n  created_at ASC\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "job_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "data_json: Json<Value>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 3,
+        "name": "status: DbJobStatus",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "group_identifier",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "message",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "e5f8252ba672dc699f1b67d3c603afdba03a7ad2a472dc54ca5d047be991341f"
+}

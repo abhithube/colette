@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use chrono::{DateTime, Utc};
 use serde_json::Value;
 use uuid::Uuid;
 
-use super::{Error, Job, JobParams, JobRepository, JobStatus};
+use super::{Error, Job, JobFindParams, JobRepository, JobStatus};
+use crate::job::{JobInsertParams, JobUpdateParams};
 
 pub struct JobService {
     job_repository: Arc<dyn JobRepository>,
@@ -18,7 +18,7 @@ impl JobService {
     pub async fn get_job(&self, id: Uuid) -> Result<Job, Error> {
         let mut jobs = self
             .job_repository
-            .query(JobParams {
+            .find(JobFindParams {
                 id: Some(id),
                 ..Default::default()
             })
@@ -30,42 +30,36 @@ impl JobService {
         Ok(jobs.swap_remove(0))
     }
 
-    pub async fn create_job(&self, data: JobCreate) -> Result<Job, Error> {
-        let job = Job::builder()
-            .job_type(data.job_type)
-            .data(data.data)
-            .maybe_group_identifier(data.group_identifier)
-            .build();
+    pub async fn create_job(&self, data: JobCreate) -> Result<Uuid, Error> {
+        let id = self
+            .job_repository
+            .insert(JobInsertParams {
+                job_type: data.job_type,
+                data: data.data,
+                group_identifier: data.group_identifier,
+            })
+            .await?;
 
-        self.job_repository.save(&job).await?;
-
-        Ok(job)
+        Ok(id)
     }
 
-    pub async fn update_job(&self, id: Uuid, data: JobUpdate) -> Result<Job, Error> {
-        let Some(mut job) = self.job_repository.find_by_id(id).await? else {
+    pub async fn update_job(&self, id: Uuid, data: JobUpdate) -> Result<(), Error> {
+        let Some(job) = self.job_repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };
         if job.status == JobStatus::Completed {
             return Err(Error::AlreadyCompleted(id));
         }
 
-        if let Some(data) = data.data {
-            job.data = data;
-        }
-        if let Some(status) = data.status {
-            job.status = status;
-        }
-        if let Some(message) = data.message {
-            job.message = message;
-        }
-        if let Some(completed_at) = data.completed_at {
-            job.completed_at = completed_at;
-        }
+        self.job_repository
+            .update(JobUpdateParams {
+                id,
+                status: data.status,
+                message: data.message,
+            })
+            .await?;
 
-        self.job_repository.save(&job).await?;
-
-        Ok(job)
+        Ok(())
     }
 }
 
@@ -81,5 +75,4 @@ pub struct JobUpdate {
     pub data: Option<Value>,
     pub status: Option<JobStatus>,
     pub message: Option<Option<String>>,
-    pub completed_at: Option<Option<DateTime<Utc>>>,
 }

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bookmarks\nSET\n  archived_path = $2\nWHERE\n  id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7fa963d6532931b56942269133cc43d4e93db467c179f6f70db8f86a6ef9bc7b"
+}

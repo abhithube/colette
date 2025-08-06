@@ -1,33 +1,37 @@
 use uuid::Uuid;
 
-use super::{Account, Error};
+use super::Error;
 
 #[async_trait::async_trait]
 pub trait AccountRepository: Send + Sync + 'static {
-    async fn query(&self, params: AccountParams) -> Result<Vec<Account>, Error>;
-
     async fn find_by_sub_and_provider(
         &self,
         sub: String,
         provider: String,
-    ) -> Result<Option<Account>, Error> {
-        Ok(self
-            .query(AccountParams {
-                sub: Some(sub),
-                provider: Some(provider),
-                ..Default::default()
-            })
-            .await?
-            .into_iter()
-            .next())
-    }
+    ) -> Result<Option<AccountBySubAndProvider>, Error>;
 
-    async fn save(&self, data: &Account) -> Result<(), Error>;
+    async fn insert(&self, params: AccountInsertParams) -> Result<Uuid, Error>;
+
+    async fn update(&self, params: AccountUpdateParams) -> Result<(), Error>;
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct AccountParams {
-    pub id: Option<Uuid>,
-    pub sub: Option<String>,
-    pub provider: Option<String>,
+#[derive(Debug, Clone)]
+pub struct AccountBySubAndProvider {
+    pub id: Uuid,
+    pub password_hash: Option<String>,
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, Clone)]
+pub struct AccountInsertParams {
+    pub sub: String,
+    pub provider: String,
+    pub password_hash: Option<String>,
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, Clone)]
+pub struct AccountUpdateParams {
+    pub id: Uuid,
+    pub password_hash: Option<Option<String>>,
 }

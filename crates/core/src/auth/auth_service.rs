@@ -11,9 +11,8 @@ use uuid::Uuid;
 
 use super::Error;
 use crate::{
-    Account,
-    account::AccountRepository,
-    user::{User, UserRepository},
+    account::{AccountInsertParams, AccountRepository},
+    user::{User, UserInsertParams, UserRepository},
 };
 
 const LOCAL_PROVIDER: &str = "local";
@@ -44,21 +43,18 @@ impl AuthService {
     pub async fn register_user(&self, data: RegisterPayload) -> Result<User, Error> {
         let password_hash = argon2_hash(&data.password)?;
 
-        let user = User::builder()
-            .email(data.email.clone())
-            .maybe_display_name(data.display_name)
-            .maybe_image_url(data.image_url)
-            .build();
-
-        let account = Account::builder()
-            .sub(data.email)
-            .provider(LOCAL_PROVIDER.into())
-            .password_hash(password_hash)
-            .user_id(user.id)
-            .user(user.clone())
-            .build();
-
-        self.account_repository.save(&account).await?;
+        let id = self
+            .user_repository
+            .insert(UserInsertParams {
+                email: data.email.clone(),
+                display_name: data.display_name,
+                image_url: data.image_url,
+                sub: data.email,
+                provider: LOCAL_PROVIDER.into(),
+                password_hash: Some(password_hash),
+            })
+            .await?;
+        let user = self.user_repository.find_by_id(id).await?.unwrap();
 
         Ok(user)
     }
@@ -238,28 +234,35 @@ impl AuthService {
                 None => Err(Error::NotAuthenticated),
             },
             None => {
-                let (user, insert) = match self.user_repository.find_by_email(email.clone()).await?
-                {
-                    Some(user) => (user, false),
-                    None => {
-                        let user = User::builder()
-                            .email(email)
-                            .maybe_display_name(claims.name)
-                            .maybe_image_url(claims.picture)
-                            .build();
+                let user = match self.user_repository.find_by_email(email.clone()).await? {
+                    Some(user) => {
+                        self.account_repository
+                            .insert(AccountInsertParams {
+                                sub: claims.sub,
+                                provider: OIDC_PROVIDER.into(),
+                                password_hash: None,
+                                user_id: user.id,
+                            })
+                            .await?;
 
-                        (user, true)
+                        user
+                    }
+                    None => {
+                        let id = self
+                            .user_repository
+                            .insert(UserInsertParams {
+                                email,
+                                display_name: claims.name,
+                                image_url: claims.picture,
+                                sub: claims.sub,
+                                provider: OIDC_PROVIDER.into(),
+                                password_hash: None,
+                            })
+                            .await?;
+
+                        self.user_repository.find_by_id(id).await?.unwrap()
                     }
                 };
-
-                let account = Account::builder()
-                    .sub(claims.sub)
-                    .provider(OIDC_PROVIDER.into())
-                    .user_id(user.id)
-                    .maybe_user(insert.then_some(user.clone()))
-                    .build();
-
-                self.account_repository.save(&account).await?;
 
                 Ok(user)
             }

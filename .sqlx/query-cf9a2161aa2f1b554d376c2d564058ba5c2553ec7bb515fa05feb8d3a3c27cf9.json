@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n  jobs (job_type, data_json, group_identifier)\nVALUES\n  ($1, $2, $3)\nRETURNING\n  id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Jsonb",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "cf9a2161aa2f1b554d376c2d564058ba5c2553ec7bb515fa05feb8d3a3c27cf9"
+}

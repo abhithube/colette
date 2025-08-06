@@ -1,37 +1,42 @@
 use uuid::Uuid;
 
-use super::{Error, Tag, TagType};
+use super::{Error, Tag};
 
 #[async_trait::async_trait]
 pub trait TagRepository: Send + Sync + 'static {
-    async fn query(&self, params: TagParams) -> Result<Vec<Tag>, Error>;
+    async fn find(&self, params: TagFindParams) -> Result<Vec<Tag>, Error>;
 
-    async fn find_by_ids(&self, ids: Vec<Uuid>) -> Result<Vec<Tag>, Error> {
-        self.query(TagParams {
-            ids: Some(ids),
-            ..Default::default()
-        })
-        .await
-    }
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<TagById>, Error>;
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Tag>, Error> {
-        Ok(self.find_by_ids(vec![id]).await?.into_iter().next())
-    }
+    async fn insert(&self, params: TagInsertParams) -> Result<Uuid, Error>;
 
-    async fn save(&self, data: &Tag) -> Result<(), Error>;
+    async fn update(&self, params: TagUpdateParams) -> Result<(), Error>;
 
     async fn delete_by_id(&self, id: Uuid) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct TagParams {
-    pub ids: Option<Vec<Uuid>>,
-    pub tag_type: Option<TagType>,
-    pub feed_id: Option<Uuid>,
-    pub bookmark_id: Option<Uuid>,
+pub struct TagFindParams {
+    pub id: Option<Uuid>,
     pub user_id: Option<Uuid>,
     pub cursor: Option<String>,
     pub limit: Option<usize>,
-    pub with_subscription_count: bool,
-    pub with_bookmark_count: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct TagById {
+    pub id: Uuid,
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, Clone)]
+pub struct TagInsertParams {
+    pub title: String,
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, Clone)]
+pub struct TagUpdateParams {
+    pub id: Uuid,
+    pub title: Option<String>,
 }

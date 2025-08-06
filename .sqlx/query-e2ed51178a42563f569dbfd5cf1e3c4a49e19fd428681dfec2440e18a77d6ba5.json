@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE api_keys\nSET\n  title = CASE\n    WHEN $2::TEXT IS NOT NULL THEN $2\n    ELSE api_keys.title\n  END\nWHERE\n  id = $1\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e2ed51178a42563f569dbfd5cf1e3c4a49e19fd428681dfec2440e18a77d6ba5"
+}

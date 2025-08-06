@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n  accounts (sub, provider, password_hash, user_id)\nVALUES\n  ($1, $2, $3, $4)\nRETURNING\n  id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "4cece1e804b8e7c7b3029dff22e9e845f4cfe75dab2347945b082c9997446db3"
+}

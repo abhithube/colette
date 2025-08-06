@@ -5,16 +5,13 @@ use uuid::Uuid;
 
 mod user_repository;
 
-#[derive(Debug, Clone, serde::Deserialize, bon::Builder)]
+#[derive(Debug, Clone, serde::Deserialize)]
 pub struct User {
-    #[builder(default = Uuid::new_v4())]
     pub id: Uuid,
     pub email: String,
     pub display_name: Option<String>,
     pub image_url: Option<Url>,
-    #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,
-    #[builder(default = Utc::now())]
     pub updated_at: DateTime<Utc>,
 }
 

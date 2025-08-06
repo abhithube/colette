@@ -59,19 +59,12 @@ pub(super) struct SubscriptionListQuery {
     /// Pagination cursor
     #[param(nullable = false)]
     cursor: Option<String>,
-    /// Whether to include the feed associated with the subscription
-    #[serde(default = "with_feed")]
-    with_feed: bool,
     /// Whether to include the count of the unread subscription entries associated with the subscription
     #[serde(default = "with_unread_count")]
     with_unread_count: bool,
     /// Whether to include the tags linked to the subscription
     #[serde(default = "with_tags")]
     with_tags: bool,
-}
-
-fn with_feed() -> bool {
-    false
 }
 
 fn with_unread_count() -> bool {
@@ -100,7 +93,6 @@ impl TryFrom<SubscriptionListQuery> for subscription::SubscriptionListQuery {
             },
             cursor,
             limit: Some(PAGINATION_LIMIT),
-            with_feed: value.with_feed,
             with_unread_count: value.with_unread_count,
             with_tags: value.with_tags,
         })
