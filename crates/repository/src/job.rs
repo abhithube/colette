@@ -1,6 +1,9 @@
 use chrono::{DateTime, Utc};
-use colette_core::job::{
-    Error, Job, JobById, JobFindParams, JobInsertParams, JobRepository, JobStatus, JobUpdateParams,
+use colette_core::{
+    RepositoryError,
+    job::{
+        Job, JobById, JobFindParams, JobInsertParams, JobRepository, JobStatus, JobUpdateParams,
+    },
 };
 use serde_json::Value;
 use sqlx::{
@@ -25,7 +28,7 @@ impl PostgresJobRepository {
 
 #[async_trait::async_trait]
 impl JobRepository for PostgresJobRepository {
-    async fn find(&self, params: JobFindParams) -> Result<Vec<Job>, Error> {
+    async fn find(&self, params: JobFindParams) -> Result<Vec<Job>, RepositoryError> {
         let jobs = sqlx::query_file_as!(
             JobRow,
             "queries/jobs/find.sql",
@@ -39,7 +42,7 @@ impl JobRepository for PostgresJobRepository {
         Ok(jobs)
     }
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<JobById>, Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<JobById>, RepositoryError> {
         let job = sqlx::query_file_as!(JobByIdRow, "queries/jobs/find_by_id.sql", id)
             .map(Into::into)
             .fetch_optional(&self.pool)
@@ -48,7 +51,7 @@ impl JobRepository for PostgresJobRepository {
         Ok(job)
     }
 
-    async fn insert(&self, params: JobInsertParams) -> Result<Uuid, Error> {
+    async fn insert(&self, params: JobInsertParams) -> Result<Uuid, RepositoryError> {
         let id = sqlx::query_file_scalar!(
             "queries/jobs/insert.sql",
             params.job_type,
@@ -61,7 +64,7 @@ impl JobRepository for PostgresJobRepository {
         Ok(id)
     }
 
-    async fn update(&self, params: JobUpdateParams) -> Result<(), Error> {
+    async fn update(&self, params: JobUpdateParams) -> Result<(), RepositoryError> {
         let (has_message, message) = if let Some(message) = params.message {
             (true, message)
         } else {
@@ -81,7 +84,7 @@ impl JobRepository for PostgresJobRepository {
         Ok(())
     }
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
+    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError> {
         sqlx::query_file!("queries/jobs/delete_by_id.sql", id)
             .execute(&self.pool)
             .await?;

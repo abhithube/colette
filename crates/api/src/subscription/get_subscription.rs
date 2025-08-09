@@ -4,7 +4,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::subscription;
+use colette_core::{
+    Handler as _,
+    subscription::{GetSubscriptionError, GetSubscriptionQuery},
+};
 
 use super::{SUBSCRIPTIONS_TAG, SubscriptionDetails};
 use crate::{
@@ -29,21 +32,19 @@ pub(super) async fn handler(
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .subscription_service
-        .get_subscription(
-            subscription::SubscriptionGetQuery {
-                id,
-                with_unread_count: query.with_unread_count,
-                with_tags: query.with_tags,
-            },
+        .get_subscription
+        .handle(GetSubscriptionQuery {
+            id,
+            with_unread_count: query.with_unread_count,
+            with_tags: query.with_tags,
             user_id,
-        )
+        })
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            subscription::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            subscription::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            GetSubscriptionError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            GetSubscriptionError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

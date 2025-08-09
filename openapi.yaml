@@ -181,12 +181,8 @@ paths:
               $ref: '#/components/schemas/ApiKeyUpdate'
         required: true
       responses:
-        '200':
-          description: Updated API key
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiKey'
+        '204':
+          description: Successfully updated API key
         '401':
           description: User not authenticated
           content:
@@ -230,12 +226,8 @@ paths:
               $ref: '#/components/schemas/RegisterPayload'
         required: true
       responses:
-        '200':
-          description: Created user
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
+        '204':
+          description: Successfully created user
         '409':
           description: Email already registered
           content:
@@ -553,11 +545,11 @@ paths:
         required: true
       responses:
         '201':
-          description: Created bookmark
+          description: New bookmark ID
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Bookmark'
+                $ref: '#/components/schemas/CreatedResource'
         '401':
           description: User not authenticated
           content:
@@ -693,12 +685,8 @@ paths:
               $ref: '#/components/schemas/BookmarkUpdate'
         required: true
       responses:
-        '200':
-          description: Updated bookmark
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Bookmark'
+        '204':
+          description: Successfully updated bookmark
         '401':
           description: User not authenticated
           content:
@@ -930,11 +918,11 @@ paths:
         required: true
       responses:
         '201':
-          description: Created collection
+          description: New collection ID
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Collection'
+                $ref: '#/components/schemas/CreatedResource'
         '401':
           description: User not authenticated
           content:
@@ -1064,12 +1052,8 @@ paths:
               $ref: '#/components/schemas/CollectionUpdate'
         required: true
       responses:
-        '200':
-          description: Updated collection
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Collection'
+        '204':
+          description: Successfully updated collection
         '401':
           description: User not authenticated
           content:
@@ -1359,11 +1343,11 @@ paths:
         required: true
       responses:
         '201':
-          description: Created subscription
+          description: New subscription ID
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Subscription'
+                $ref: '#/components/schemas/CreatedResource'
         '401':
           description: User not authenticated
           content:
@@ -1505,12 +1489,8 @@ paths:
               $ref: '#/components/schemas/SubscriptionUpdate'
         required: true
       responses:
-        '200':
-          description: Updated subscription
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Subscription'
+        '204':
+          description: Successfully updated subscription
         '401':
           description: User not authenticated
           content:
@@ -1854,11 +1834,11 @@ paths:
         required: true
       responses:
         '201':
-          description: Created tag
+          description: New tag ID
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Tag'
+                $ref: '#/components/schemas/CreatedResource'
         '401':
           description: User not authenticated
           content:
@@ -1988,12 +1968,8 @@ paths:
               $ref: '#/components/schemas/TagUpdate'
         required: true
       responses:
-        '200':
-          description: Updated tag
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Tag'
+        '204':
+          description: Successfully updated tag
         '401':
           description: User not authenticated
           content:
@@ -2478,7 +2454,6 @@ components:
       - title
       - description
       - refreshedAt
-      - isCustom
       properties:
         id:
           type: string
@@ -2506,9 +2481,6 @@ components:
           - 'null'
           format: date-time
           description: Timestamp at which the feed was refreshed
-        isCustom:
-          type: boolean
-          description: Whether the feed was scraped from a custom plugin
     FeedDetect:
       type: object
       description: Data to detect RSS feeds using

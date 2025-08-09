@@ -1,10 +1,10 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    Collection,
+    Collection, RepositoryError,
     bookmark::BookmarkFilter,
     collection::{
         CollectionById, CollectionFindParams, CollectionInsertParams, CollectionRepository,
-        CollectionUpdateParams, Error,
+        CollectionUpdateParams,
     },
 };
 use sqlx::{PgPool, types::Json};
@@ -23,7 +23,7 @@ impl PostgresCollectionRepository {
 
 #[async_trait::async_trait]
 impl CollectionRepository for PostgresCollectionRepository {
-    async fn find(&self, params: CollectionFindParams) -> Result<Vec<Collection>, Error> {
+    async fn find(&self, params: CollectionFindParams) -> Result<Vec<Collection>, RepositoryError> {
         let collections = sqlx::query_file_as!(
             CollectionRow,
             "queries/collections/find.sql",
@@ -39,7 +39,7 @@ impl CollectionRepository for PostgresCollectionRepository {
         Ok(collections)
     }
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<CollectionById>, Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<CollectionById>, RepositoryError> {
         let collection =
             sqlx::query_file_as!(CollectionByIdRow, "queries/collections/find_by_id.sql", id)
                 .map(Into::into)
@@ -49,7 +49,7 @@ impl CollectionRepository for PostgresCollectionRepository {
         Ok(collection)
     }
 
-    async fn insert(&self, params: CollectionInsertParams) -> Result<Uuid, Error> {
+    async fn insert(&self, params: CollectionInsertParams) -> Result<Uuid, RepositoryError> {
         let id = sqlx::query_file_scalar!(
             "queries/collections/insert.sql",
             params.title,
@@ -59,14 +59,14 @@ impl CollectionRepository for PostgresCollectionRepository {
         .fetch_one(&self.pool)
         .await
         .map_err(|e| match e {
-            sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(params.title),
-            _ => Error::Sqlx(e),
+            sqlx::Error::Database(e) if e.is_unique_violation() => RepositoryError::Duplicate,
+            _ => RepositoryError::Unknown(e),
         })?;
 
         Ok(id)
     }
 
-    async fn update(&self, params: CollectionUpdateParams) -> Result<(), Error> {
+    async fn update(&self, params: CollectionUpdateParams) -> Result<(), RepositoryError> {
         sqlx::query_file!(
             "queries/collections/update.sql",
             params.id,
@@ -79,7 +79,7 @@ impl CollectionRepository for PostgresCollectionRepository {
         Ok(())
     }
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
+    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError> {
         sqlx::query_file!("queries/collections/delete_by_id.sql", id)
             .execute(&self.pool)
             .await?;

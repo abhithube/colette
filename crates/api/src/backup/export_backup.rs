@@ -3,6 +3,7 @@ use axum::{
     http::{HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
+use colette_core::{Handler as _, backup::ExportBackupCommand};
 
 use super::BACKUPS_TAG;
 use crate::{
@@ -23,7 +24,11 @@ pub(super) async fn handler(
     State(state): State<ApiState>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.backup_service.export_backup(user_id).await {
+    match state
+        .export_backup
+        .handle(ExportBackupCommand { user_id })
+        .await
+    {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }

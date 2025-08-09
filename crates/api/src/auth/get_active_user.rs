@@ -4,6 +4,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use colette_core::{Handler as _, auth::GetUserQuery};
 
 use super::{AUTH_TAG, User};
 use crate::{
@@ -24,7 +25,7 @@ pub(super) async fn handler(
     State(state): State<ApiState>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.auth_service.get_user(user_id).await {
+    match state.get_user.handle(GetUserQuery { id: user_id }).await {
         Ok(user) => Ok(OkResponse(user.into())),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }

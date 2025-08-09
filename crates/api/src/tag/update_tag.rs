@@ -3,9 +3,9 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::tag;
+use colette_core::Handler as _;
 
-use super::{TAGS_TAG, Tag};
+use super::TAGS_TAG;
 use crate::{
     ApiState,
     common::{ApiError, Auth, Id, Json, NonEmptyString, Path},
@@ -28,11 +28,21 @@ pub(super) async fn handler(
     Auth { user_id }: Auth,
     Json(body): Json<TagUpdate>,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.tag_service.update_tag(id, body.into(), user_id).await {
-        Ok(data) => Ok(OkResponse(data.into())),
+    match state
+        .update_tag
+        .handle(colette_core::tag::UpdateTagCommand {
+            id,
+            title: body.title.map(Into::into),
+            user_id,
+        })
+        .await
+    {
+        Ok(_) => Ok(OkResponse),
         Err(e) => match e {
-            tag::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            tag::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            colette_core::tag::UpdateTagError::Forbidden(_) => {
+                Err(ErrResponse::Forbidden(e.into()))
+            }
+            colette_core::tag::UpdateTagError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
@@ -47,21 +57,13 @@ pub(super) struct TagUpdate {
     title: Option<NonEmptyString>,
 }
 
-impl From<TagUpdate> for tag::TagUpdate {
-    fn from(value: TagUpdate) -> Self {
-        Self {
-            title: value.title.map(Into::into),
-        }
-    }
-}
-
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::OK, description = "Updated tag")]
-pub(super) struct OkResponse(Tag);
+#[response(status = StatusCode::NO_CONTENT, description = "Successfully updated tag")]
+pub(super) struct OkResponse;
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {
-        (StatusCode::OK, axum::Json(self.0)).into_response()
+        StatusCode::NO_CONTENT.into_response()
     }
 }
 

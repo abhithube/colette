@@ -1,23 +1,27 @@
 use url::Url;
 use uuid::Uuid;
 
-use super::{Error, Subscription};
+use super::Subscription;
+use crate::RepositoryError;
 
 #[async_trait::async_trait]
 pub trait SubscriptionRepository: Send + Sync + 'static {
-    async fn find(&self, params: SubscriptionFindParams) -> Result<Vec<Subscription>, Error>;
+    async fn find(
+        &self,
+        params: SubscriptionFindParams,
+    ) -> Result<Vec<Subscription>, RepositoryError>;
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<SubscriptionById>, Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<SubscriptionById>, RepositoryError>;
 
-    async fn insert(&self, params: SubscriptionInsertParams) -> Result<Uuid, Error>;
+    async fn insert(&self, params: SubscriptionInsertParams) -> Result<Uuid, RepositoryError>;
 
-    async fn update(&self, params: SubscriptionUpdateParams) -> Result<(), Error>;
+    async fn update(&self, params: SubscriptionUpdateParams) -> Result<(), RepositoryError>;
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), Error>;
+    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError>;
 
-    async fn link_tags(&self, params: SubscriptionLinkTagParams) -> Result<(), Error>;
+    async fn link_tags(&self, params: SubscriptionLinkTagParams) -> Result<(), RepositoryError>;
 
-    async fn import(&self, params: ImportSubscriptionsParams) -> Result<(), Error>;
+    async fn import(&self, params: ImportSubscriptionsParams) -> Result<(), RepositoryError>;
 }
 
 #[derive(Debug, Clone, Default)]

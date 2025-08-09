@@ -1,13 +1,15 @@
 pub use backup_repository::*;
-pub use backup_service::*;
 use chrono::{DateTime, Utc};
+pub use export_backup_handler::*;
+pub use import_backup_handler::*;
 use url::Url;
 use uuid::Uuid;
 
-use crate::{Bookmark, Subscription, Tag, bookmark, subscription, tag};
+use crate::{Bookmark, Subscription, Tag};
 
 mod backup_repository;
-mod backup_service;
+mod export_backup_handler;
+mod import_backup_handler;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Backup {
@@ -96,22 +98,4 @@ impl From<Tag> for BackupTag {
             updated_at: value.created_at,
         }
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error(transparent)]
-    Subscription(#[from] subscription::Error),
-
-    #[error(transparent)]
-    Bookmark(#[from] bookmark::Error),
-
-    #[error(transparent)]
-    Tag(#[from] tag::Error),
-
-    #[error(transparent)]
-    SerdeJson(#[from] serde_json::Error),
-
-    #[error(transparent)]
-    Sqlx(#[from] sqlx::Error),
 }

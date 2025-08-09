@@ -3,19 +3,23 @@ use colette_scraper::feed::ProcessedFeedEntry;
 use url::Url;
 use uuid::Uuid;
 
-use super::{Error, Feed};
+use super::Feed;
+use crate::RepositoryError;
 
 #[async_trait::async_trait]
 pub trait FeedRepository: Send + Sync + 'static {
-    async fn find(&self, params: FeedFindParams) -> Result<Vec<Feed>, Error>;
+    async fn find(&self, params: FeedFindParams) -> Result<Vec<Feed>, RepositoryError>;
 
-    async fn find_by_source_url(&self, source_url: Url) -> Result<Option<Feed>, Error>;
+    async fn find_by_source_url(&self, source_url: Url) -> Result<Option<Feed>, RepositoryError>;
 
-    async fn find_outdated(&self, params: FeedFindOutdatedParams) -> Result<Vec<Feed>, Error>;
+    async fn find_outdated(
+        &self,
+        params: FeedFindOutdatedParams,
+    ) -> Result<Vec<Feed>, RepositoryError>;
 
-    async fn upsert(&self, params: FeedUpsertParams) -> Result<Uuid, Error>;
+    async fn upsert(&self, params: FeedUpsertParams) -> Result<Uuid, RepositoryError>;
 
-    async fn mark_as_failed(&self, source_url: Url) -> Result<(), Error>;
+    async fn mark_as_failed(&self, source_url: Url) -> Result<(), RepositoryError>;
 }
 
 #[derive(Debug, Clone, Default)]

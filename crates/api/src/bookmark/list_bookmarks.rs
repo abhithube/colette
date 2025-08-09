@@ -4,7 +4,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::bookmark::{self, BookmarkCursor};
+use colette_core::{
+    Handler as _,
+    bookmark::{BookmarkCursor, ListBookmarksQuery},
+};
 use uuid::Uuid;
 
 use super::{BOOKMARKS_TAG, BookmarkDetails};
@@ -29,9 +32,26 @@ pub(super) async fn handler(
     Query(query): Query<BookmarkListQuery>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
+    let cursor = query
+        .cursor
+        .map(|e| decode_cursor::<BookmarkCursor>(&e))
+        .transpose()
+        .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
+
     match state
-        .bookmark_service
-        .list_bookmarks(query.try_into()?, user_id)
+        .list_bookmarks
+        .handle(ListBookmarksQuery {
+            collection_id: query.collection_id,
+            tags: if query.filter_by_tags.unwrap_or(query.tags.is_some()) {
+                query.tags
+            } else {
+                None
+            },
+            cursor,
+            limit: Some(PAGINATION_LIMIT),
+            with_tags: query.with_tags,
+            user_id,
+        })
         .await
     {
         Ok(bookmarks) => {
@@ -69,30 +89,6 @@ pub(super) struct BookmarkListQuery {
 
 fn with_tags() -> bool {
     false
-}
-
-impl TryFrom<BookmarkListQuery> for bookmark::BookmarkListQuery {
-    type Error = ErrResponse;
-
-    fn try_from(value: BookmarkListQuery) -> Result<Self, Self::Error> {
-        let cursor = value
-            .cursor
-            .map(|e| decode_cursor::<BookmarkCursor>(&e))
-            .transpose()
-            .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
-
-        Ok(Self {
-            collection_id: value.collection_id,
-            tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
-                value.tags
-            } else {
-                None
-            },
-            cursor,
-            limit: Some(PAGINATION_LIMIT),
-            with_tags: value.with_tags,
-        })
-    }
 }
 
 #[derive(utoipa::IntoResponses)]

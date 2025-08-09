@@ -3,9 +3,12 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::api_key;
+use colette_core::{
+    Handler as _,
+    api_key::{UpdateApiKeyCommand, UpdateApiKeyError},
+};
 
-use super::{API_KEYS_TAG, ApiKey};
+use super::API_KEYS_TAG;
 use crate::{
     ApiState,
     common::{ApiError, Auth, Id, Json, NonEmptyString, Path},
@@ -29,14 +32,18 @@ pub(super) async fn handler(
     Json(body): Json<ApiKeyUpdate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .api_key_service
-        .update_api_key(id, body.into(), user_id)
+        .update_api_key
+        .handle(UpdateApiKeyCommand {
+            id,
+            title: body.title.map(Into::into),
+            user_id,
+        })
         .await
     {
-        Ok(data) => Ok(OkResponse(data.into())),
+        Ok(_) => Ok(OkResponse),
         Err(e) => match e {
-            api_key::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            api_key::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            UpdateApiKeyError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            UpdateApiKeyError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
@@ -51,21 +58,13 @@ pub(super) struct ApiKeyUpdate {
     title: Option<NonEmptyString>,
 }
 
-impl From<ApiKeyUpdate> for api_key::ApiKeyUpdateData {
-    fn from(value: ApiKeyUpdate) -> Self {
-        Self {
-            title: value.title.map(Into::into),
-        }
-    }
-}
-
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::OK, description = "Updated API key")]
-pub(super) struct OkResponse(ApiKey);
+#[response(status = StatusCode::NO_CONTENT, description = "Successfully updated API key")]
+pub(super) struct OkResponse;
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {
-        (StatusCode::OK, axum::Json(self.0)).into_response()
+        StatusCode::NO_CONTENT.into_response()
     }
 }
 

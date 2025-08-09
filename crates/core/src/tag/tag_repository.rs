@@ -1,18 +1,19 @@
 use uuid::Uuid;
 
-use super::{Error, Tag};
+use super::Tag;
+use crate::RepositoryError;
 
 #[async_trait::async_trait]
 pub trait TagRepository: Send + Sync + 'static {
-    async fn find(&self, params: TagFindParams) -> Result<Vec<Tag>, Error>;
+    async fn find(&self, params: TagFindParams) -> Result<Vec<Tag>, RepositoryError>;
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<TagById>, Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<TagById>, RepositoryError>;
 
-    async fn insert(&self, params: TagInsertParams) -> Result<Uuid, Error>;
+    async fn insert(&self, params: TagInsertParams) -> Result<Uuid, RepositoryError>;
 
-    async fn update(&self, params: TagUpdateParams) -> Result<(), Error>;
+    async fn update(&self, params: TagUpdateParams) -> Result<(), RepositoryError>;
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), Error>;
+    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError>;
 }
 
 #[derive(Debug, Clone, Default)]

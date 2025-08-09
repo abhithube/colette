@@ -1,9 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    Feed,
-    feed::{
-        Error, FeedFindOutdatedParams, FeedFindParams, FeedRepository, FeedStatus, FeedUpsertParams,
-    },
+    Feed, RepositoryError,
+    feed::{FeedFindOutdatedParams, FeedFindParams, FeedRepository, FeedStatus, FeedUpsertParams},
 };
 use sqlx::{
     Decode, Encode, PgPool, Postgres, Type,
@@ -29,7 +27,7 @@ impl PostgresFeedRepository {
 
 #[async_trait::async_trait]
 impl FeedRepository for PostgresFeedRepository {
-    async fn find(&self, params: FeedFindParams) -> Result<Vec<Feed>, Error> {
+    async fn find(&self, params: FeedFindParams) -> Result<Vec<Feed>, RepositoryError> {
         let feeds = sqlx::query_file_as!(
             FeedRow,
             "queries/feeds/find.sql",
@@ -44,7 +42,7 @@ impl FeedRepository for PostgresFeedRepository {
         Ok(feeds)
     }
 
-    async fn find_by_source_url(&self, source_url: Url) -> Result<Option<Feed>, Error> {
+    async fn find_by_source_url(&self, source_url: Url) -> Result<Option<Feed>, RepositoryError> {
         let feed = sqlx::query_file_as!(
             FeedRow,
             "queries/feeds/find_by_source_url.sql",
@@ -57,7 +55,10 @@ impl FeedRepository for PostgresFeedRepository {
         Ok(feed)
     }
 
-    async fn find_outdated(&self, params: FeedFindOutdatedParams) -> Result<Vec<Feed>, Error> {
+    async fn find_outdated(
+        &self,
+        params: FeedFindOutdatedParams,
+    ) -> Result<Vec<Feed>, RepositoryError> {
         let feeds = sqlx::query_file_as!(
             FeedRow,
             "queries/feeds/find_outdated.sql",
@@ -70,7 +71,7 @@ impl FeedRepository for PostgresFeedRepository {
         Ok(feeds)
     }
 
-    async fn upsert(&self, params: FeedUpsertParams) -> Result<Uuid, Error> {
+    async fn upsert(&self, params: FeedUpsertParams) -> Result<Uuid, RepositoryError> {
         let mut fe_links = Vec::<DbUrl>::new();
         let mut fe_titles = Vec::<String>::new();
         let mut fe_published_ats = Vec::<DateTime<Utc>>::new();
@@ -108,7 +109,7 @@ impl FeedRepository for PostgresFeedRepository {
         Ok(id)
     }
 
-    async fn mark_as_failed(&self, source_url: Url) -> Result<(), Error> {
+    async fn mark_as_failed(&self, source_url: Url) -> Result<(), RepositoryError> {
         sqlx::query_file!(
             "queries/feeds/mark_as_failed.sql",
             DbUrl(source_url) as DbUrl

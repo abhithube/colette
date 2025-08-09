@@ -1,20 +1,22 @@
 use serde_json::Value;
 use uuid::Uuid;
 
-use super::Error;
-use crate::job::{Job, JobStatus};
+use crate::{
+    RepositoryError,
+    job::{Job, JobStatus},
+};
 
 #[async_trait::async_trait]
 pub trait JobRepository: Send + Sync + 'static {
-    async fn find(&self, params: JobFindParams) -> Result<Vec<Job>, Error>;
+    async fn find(&self, params: JobFindParams) -> Result<Vec<Job>, RepositoryError>;
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<JobById>, Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<JobById>, RepositoryError>;
 
-    async fn insert(&self, params: JobInsertParams) -> Result<Uuid, Error>;
+    async fn insert(&self, params: JobInsertParams) -> Result<Uuid, RepositoryError>;
 
-    async fn update(&self, params: JobUpdateParams) -> Result<(), Error>;
+    async fn update(&self, params: JobUpdateParams) -> Result<(), RepositoryError>;
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), Error>;
+    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError>;
 }
 
 #[derive(Debug, Clone, Default)]

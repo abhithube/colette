@@ -12,10 +12,33 @@ use axum_extra::{
 };
 use chrono::{DateTime, Utc};
 use colette_core::{
-    api_key::ApiKeyService, auth::AuthService, backup::BackupService, bookmark::BookmarkService,
-    collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService, filter,
-    job::JobService, subscription::SubscriptionService,
-    subscription_entry::SubscriptionEntryService, tag::TagService,
+    Handler as _,
+    api_key::{
+        CreateApiKeyHandler, DeleteApiKeyHandler, GetApiKeyHandler, ListApiKeysHandler,
+        UpdateApiKeyHandler, ValidateApiKeyHandler, ValidateApiKeyQuery,
+    },
+    auth::{
+        BuildAuthorizationUrlHandler, ExchangeCodeHandler, GetUserHandler, GetUserQuery,
+        LoginUserHandler, RefreshAccessTokenHandler, RegisterUserHandler,
+        ValidateAccessTokenHandler, ValidateAccessTokenQuery,
+    },
+    backup::{ExportBackupHandler, ImportBackupHandler},
+    bookmark::{
+        ArchiveThumbnailHandler, CreateBookmarkHandler, DeleteBookmarkHandler,
+        ExportBookmarksHandler, GetBookmarkHandler, ImportBookmarksHandler,
+        LinkBookmarkTagsHandler, ListBookmarksHandler, RefreshBookmarkHandler,
+        ScrapeBookmarkHandler, UpdateBookmarkHandler,
+    },
+    feed::{GetFeedHandler, ListFeedsHandler},
+    feed_entry::{GetFeedEntryHandler, ListFeedEntriesHandler},
+    filter,
+    subscription::{
+        CreateSubscriptionHandler, DeleteSubscriptionHandler, ExportSubscriptionsHandler,
+        GetSubscriptionHandler, ImportSubscriptionsHandler, LinkSubscriptionTagsHandler,
+        ListSubscriptionsHandler, UpdateSubscriptionHandler,
+    },
+    subscription_entry::{GetSubscriptionEntryHandler, ListSubscriptionEntriesHandler},
+    tag::{CreateTagHandler, DeleteTagHandler, GetTagHandler, ListTagsHandler, UpdateTagHandler},
 };
 use url::Url;
 use uuid::Uuid;
@@ -60,17 +83,82 @@ pub struct StorageConfig {
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct ApiState {
-    pub api_key_service: Arc<ApiKeyService>,
-    pub auth_service: Arc<AuthService>,
-    pub backup_service: Arc<BackupService>,
-    pub bookmark_service: Arc<BookmarkService>,
-    pub collection_service: Arc<CollectionService>,
-    pub feed_service: Arc<FeedService>,
-    pub feed_entry_service: Arc<FeedEntryService>,
-    pub job_service: Arc<JobService>,
-    pub subscription_service: Arc<SubscriptionService>,
-    pub subscription_entry_service: Arc<SubscriptionEntryService>,
-    pub tag_service: Arc<TagService>,
+    // API Keys
+    pub list_api_keys: Arc<ListApiKeysHandler>,
+    pub get_api_key: Arc<GetApiKeyHandler>,
+    pub create_api_key: Arc<CreateApiKeyHandler>,
+    pub update_api_key: Arc<UpdateApiKeyHandler>,
+    pub delete_api_key: Arc<DeleteApiKeyHandler>,
+    pub validate_api_key: Arc<ValidateApiKeyHandler>,
+
+    // Auth
+    pub build_authorization_url: Arc<BuildAuthorizationUrlHandler>,
+    pub exchange_code: Arc<ExchangeCodeHandler>,
+    pub get_user: Arc<GetUserHandler>,
+    pub login_user: Arc<LoginUserHandler>,
+    pub refresh_access_token: Arc<RefreshAccessTokenHandler>,
+    pub register_user: Arc<RegisterUserHandler>,
+    pub validate_access_token: Arc<ValidateAccessTokenHandler>,
+
+    // Backup
+    pub import_backup: Arc<ImportBackupHandler>,
+    pub export_backup: Arc<ExportBackupHandler>,
+
+    // Bookmarks
+    pub list_bookmarks: Arc<ListBookmarksHandler>,
+    pub get_bookmark: Arc<GetBookmarkHandler>,
+    pub create_bookmark: Arc<CreateBookmarkHandler>,
+    pub update_bookmark: Arc<UpdateBookmarkHandler>,
+    pub delete_bookmark: Arc<DeleteBookmarkHandler>,
+    pub scrape_bookmark: Arc<ScrapeBookmarkHandler>,
+    pub refresh_bookmark: Arc<RefreshBookmarkHandler>,
+    pub link_bookmark_tags: Arc<LinkBookmarkTagsHandler>,
+    pub import_bookmarks: Arc<ImportBookmarksHandler>,
+    pub export_bookmarks: Arc<ExportBookmarksHandler>,
+    pub archive_thumbnail: Arc<ArchiveThumbnailHandler>,
+
+    // Collections
+    pub list_collections: Arc<colette_core::collection::ListCollectionsHandler>,
+    pub get_collection: Arc<colette_core::collection::GetCollectionHandler>,
+    pub create_collection: Arc<colette_core::collection::CreateCollectionHandler>,
+    pub update_collection: Arc<colette_core::collection::UpdateCollectionHandler>,
+    pub delete_collection: Arc<colette_core::collection::DeleteCollectionHandler>,
+
+    // Feeds
+    pub list_feeds: Arc<ListFeedsHandler>,
+    pub get_feed: Arc<GetFeedHandler>,
+    pub detect_feeds: Arc<colette_core::feed::DetectFeedsHandler>,
+    pub refresh_feed: Arc<colette_core::feed::RefreshFeedHandler>,
+
+    // Feed Entries
+    pub list_feed_entries: Arc<ListFeedEntriesHandler>,
+    pub get_feed_entry: Arc<GetFeedEntryHandler>,
+
+    // Subscriptions
+    pub list_subscriptions: Arc<ListSubscriptionsHandler>,
+    pub get_subscription: Arc<GetSubscriptionHandler>,
+    pub create_subscription: Arc<CreateSubscriptionHandler>,
+    pub update_subscription: Arc<UpdateSubscriptionHandler>,
+    pub delete_subscription: Arc<DeleteSubscriptionHandler>,
+    pub link_subscription_tags: Arc<LinkSubscriptionTagsHandler>,
+    pub import_subscriptions: Arc<ImportSubscriptionsHandler>,
+    pub export_subscriptions: Arc<ExportSubscriptionsHandler>,
+
+    // Subscription Entries
+    pub list_subscription_entries: Arc<ListSubscriptionEntriesHandler>,
+    pub get_subscription_entry: Arc<GetSubscriptionEntryHandler>,
+    pub mark_subscription_entry_as_read:
+        Arc<colette_core::subscription_entry::MarkSubscriptionEntryAsReadHandler>,
+    pub mark_subscription_entry_as_unread:
+        Arc<colette_core::subscription_entry::MarkSubscriptionEntryAsUnreadHandler>,
+
+    // Tags
+    pub list_tags: Arc<ListTagsHandler>,
+    pub get_tag: Arc<GetTagHandler>,
+    pub create_tag: Arc<CreateTagHandler>,
+    pub update_tag: Arc<UpdateTagHandler>,
+    pub delete_tag: Arc<DeleteTagHandler>,
+
     pub config: Config,
 }
 
@@ -92,6 +180,12 @@ pub(crate) struct Id(
     /// Unique identifier of the resource
     pub(crate) Uuid,
 );
+
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+pub(crate) struct CreatedResource {
+    /// Unique identifier of the resource
+    pub(crate) id: Uuid,
+}
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(try_from = "String", into = "String")]
@@ -128,8 +222,10 @@ pub(crate) async fn verify_auth_extension(
 ) -> Result<Response, ApiError> {
     if let Some(Authorization(bearer)) = req.headers().typed_get::<Authorization<Bearer>>() {
         let claims = state
-            .auth_service
-            .validate_access_token(bearer.token())
+            .validate_access_token
+            .handle(ValidateAccessTokenQuery {
+                access_token: bearer.token().to_string(),
+            })
             .await
             .map_err(|_| ApiError::not_authenticated())?;
 
@@ -137,13 +233,25 @@ pub(crate) async fn verify_auth_extension(
             user_id: claims.sub,
         });
     } else if let Some(header) = req.headers().get("X-Api-Key").and_then(|e| e.to_str().ok()) {
-        let Ok(api_key) = state.api_key_service.validate_api_key(header.into()).await else {
+        let Ok(api_key) = state
+            .validate_api_key
+            .handle(ValidateApiKeyQuery {
+                value: header.into(),
+            })
+            .await
+        else {
             tracing::debug!("invalid API key");
 
             return Err(ApiError::not_authenticated());
         };
 
-        let Ok(user) = state.auth_service.get_user(api_key.user_id).await else {
+        let Ok(user) = state
+            .get_user
+            .handle(GetUserQuery {
+                id: api_key.user_id,
+            })
+            .await
+        else {
             tracing::debug!("user not found");
 
             return Err(ApiError::not_authenticated());

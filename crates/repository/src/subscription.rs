@@ -1,9 +1,9 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    Feed, Subscription, Tag,
+    Feed, RepositoryError, Subscription, Tag,
     feed::DEFAULT_INTERVAL,
     subscription::{
-        Error, ImportSubscriptionsParams, SubscriptionById, SubscriptionFindParams,
+        ImportSubscriptionsParams, SubscriptionById, SubscriptionFindParams,
         SubscriptionInsertParams, SubscriptionLinkTagParams, SubscriptionRepository,
         SubscriptionUpdateParams,
     },
@@ -26,7 +26,10 @@ impl PostgresSubscriptionRepository {
 
 #[async_trait::async_trait]
 impl SubscriptionRepository for PostgresSubscriptionRepository {
-    async fn find(&self, params: SubscriptionFindParams) -> Result<Vec<Subscription>, Error> {
+    async fn find(
+        &self,
+        params: SubscriptionFindParams,
+    ) -> Result<Vec<Subscription>, RepositoryError> {
         let (cursor_title, cursor_id) = if let Some((title, id)) = params.cursor {
             (Some(title), Some(id))
         } else {
@@ -52,7 +55,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         Ok(subscriptions)
     }
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<SubscriptionById>, Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<SubscriptionById>, RepositoryError> {
         let subscription = sqlx::query_file_as!(
             SubscriptionByIdRow,
             "queries/subscriptions/find_by_id.sql",
@@ -65,7 +68,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         Ok(subscription)
     }
 
-    async fn insert(&self, params: SubscriptionInsertParams) -> Result<Uuid, Error> {
+    async fn insert(&self, params: SubscriptionInsertParams) -> Result<Uuid, RepositoryError> {
         let id = sqlx::query_file_scalar!(
             "queries/subscriptions/insert.sql",
             params.title,
@@ -76,14 +79,14 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         .fetch_one(&self.pool)
         .await
         .map_err(|e| match e {
-            sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(params.feed_id),
-            _ => Error::Sqlx(e),
+            sqlx::Error::Database(e) if e.is_unique_violation() => RepositoryError::Duplicate,
+            _ => RepositoryError::Unknown(e),
         })?;
 
         Ok(id)
     }
 
-    async fn update(&self, params: SubscriptionUpdateParams) -> Result<(), Error> {
+    async fn update(&self, params: SubscriptionUpdateParams) -> Result<(), RepositoryError> {
         let (has_description, description) = if let Some(description) = params.description {
             (true, description)
         } else {
@@ -103,7 +106,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         Ok(())
     }
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
+    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError> {
         sqlx::query_file!("queries/subscriptions/delete_by_id.sql", id)
             .execute(&self.pool)
             .await?;
@@ -111,7 +114,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         Ok(())
     }
 
-    async fn link_tags(&self, params: SubscriptionLinkTagParams) -> Result<(), Error> {
+    async fn link_tags(&self, params: SubscriptionLinkTagParams) -> Result<(), RepositoryError> {
         sqlx::query_file!(
             "queries/subscription_tags/update.sql",
             params.subscription_id,
@@ -123,7 +126,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         Ok(())
     }
 
-    async fn import(&self, params: ImportSubscriptionsParams) -> Result<(), Error> {
+    async fn import(&self, params: ImportSubscriptionsParams) -> Result<(), RepositoryError> {
         let mut feed_source_urls = Vec::<DbUrl>::new();
         let mut feed_links = Vec::<DbUrl>::new();
         let mut feed_titles = Vec::<String>::new();

@@ -3,7 +3,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::subscription;
+use colette_core::{
+    Handler as _,
+    subscription::{LinkSubscriptionTagsCommand, LinkSubscriptionTagsError},
+};
 use uuid::Uuid;
 
 use super::SUBSCRIPTIONS_TAG;
@@ -30,14 +33,18 @@ pub(super) async fn handler(
     Json(body): Json<LinkSubscriptionTags>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .subscription_service
-        .link_subscription_tags(id, body.into(), user_id)
+        .link_subscription_tags
+        .handle(LinkSubscriptionTagsCommand {
+            id,
+            tag_ids: body.tag_ids,
+            user_id,
+        })
         .await
     {
         Ok(_) => Ok(OkResponse),
         Err(e) => match e {
-            subscription::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            subscription::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            LinkSubscriptionTagsError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            LinkSubscriptionTagsError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
@@ -49,14 +56,6 @@ pub(super) async fn handler(
 pub(super) struct LinkSubscriptionTags {
     /// Unique identifiers of the tags to link to the subscription
     tag_ids: Vec<Uuid>,
-}
-
-impl From<LinkSubscriptionTags> for subscription::LinkSubscriptionTags {
-    fn from(value: LinkSubscriptionTags) -> Self {
-        Self {
-            tag_ids: value.tag_ids,
-        }
-    }
 }
 
 #[derive(utoipa::IntoResponses)]

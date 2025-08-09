@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use super::Error;
+use crate::RepositoryError;
 
 #[async_trait::async_trait]
 pub trait AccountRepository: Send + Sync + 'static {
@@ -8,11 +8,11 @@ pub trait AccountRepository: Send + Sync + 'static {
         &self,
         sub: String,
         provider: String,
-    ) -> Result<Option<AccountBySubAndProvider>, Error>;
+    ) -> Result<Option<AccountBySubAndProvider>, RepositoryError>;
 
-    async fn insert(&self, params: AccountInsertParams) -> Result<Uuid, Error>;
+    async fn insert(&self, params: AccountInsertParams) -> Result<Uuid, RepositoryError>;
 
-    async fn update(&self, params: AccountUpdateParams) -> Result<(), Error>;
+    async fn update(&self, params: AccountUpdateParams) -> Result<(), RepositoryError>;
 }
 
 #[derive(Debug, Clone)]

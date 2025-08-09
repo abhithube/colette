@@ -5,7 +5,11 @@ use std::{
 };
 
 use colette_core::{
-    bookmark::{ArchiveThumbnailJobData, BookmarkService, ThumbnailArchive, ThumbnailOperation},
+    Handler as _,
+    bookmark::{
+        ArchiveThumbnailCommand, ArchiveThumbnailHandler, ArchiveThumbnailJobData,
+        ThumbnailOperation,
+    },
     job::Job,
 };
 use futures::FutureExt;
@@ -13,19 +17,17 @@ use tower::Service;
 
 use super::Error;
 
-pub struct ArchiveThumbnailHandler {
-    bookmark_service: Arc<BookmarkService>,
+pub struct ArchiveThumbnailJobHandler {
+    archive_thumbnail: Arc<ArchiveThumbnailHandler>,
 }
 
-impl ArchiveThumbnailHandler {
-    pub fn new(service: Arc<BookmarkService>) -> Self {
-        Self {
-            bookmark_service: service,
-        }
+impl ArchiveThumbnailJobHandler {
+    pub fn new(archive_thumbnail: Arc<ArchiveThumbnailHandler>) -> Self {
+        Self { archive_thumbnail }
     }
 }
 
-impl Service<Job> for ArchiveThumbnailHandler {
+impl Service<Job> for ArchiveThumbnailJobHandler {
     type Response = ();
     type Error = Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
@@ -35,7 +37,7 @@ impl Service<Job> for ArchiveThumbnailHandler {
     }
 
     fn call(&mut self, job: Job) -> Self::Future {
-        let service = self.bookmark_service.clone();
+        let archive_thumbnail = self.archive_thumbnail.clone();
 
         async move {
             let data = serde_json::from_value::<ArchiveThumbnailJobData>(job.data)?;
@@ -47,14 +49,12 @@ impl Service<Job> for ArchiveThumbnailHandler {
                 tracing::debug!("Archiving archived URL: {}", archived_url.as_str());
             }
 
-            service
-                .archive_thumbnail(
-                    data.bookmark_id,
-                    ThumbnailArchive {
-                        operation: data.operation,
-                        archived_path: data.archived_path,
-                    },
-                )
+            archive_thumbnail
+                .handle(ArchiveThumbnailCommand {
+                    bookmark_id: data.bookmark_id,
+                    operation: data.operation,
+                    archived_path: data.archived_path,
+                })
                 .await
                 .map_err(|e| Error::Service(e.to_string()))
         }

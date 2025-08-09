@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    FeedEntry,
-    feed_entry::{Error, FeedEntryFindParams, FeedEntryRepository},
+    FeedEntry, RepositoryError,
+    feed_entry::{FeedEntryFindParams, FeedEntryRepository},
 };
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -21,7 +21,7 @@ impl PostgresFeedEntryRepository {
 
 #[async_trait::async_trait]
 impl FeedEntryRepository for PostgresFeedEntryRepository {
-    async fn find(&self, params: FeedEntryFindParams) -> Result<Vec<FeedEntry>, Error> {
+    async fn find(&self, params: FeedEntryFindParams) -> Result<Vec<FeedEntry>, RepositoryError> {
         let (cursor_published_at, cursor_id) = if let Some((published_at, id)) = params.cursor {
             (Some(published_at), Some(id))
         } else {

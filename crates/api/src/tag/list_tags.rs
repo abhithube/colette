@@ -4,7 +4,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::tag::{self, TagCursor};
+use colette_core::{Handler as _, tag::TagCursor};
 
 use super::{TAGS_TAG, TagDetails};
 use crate::{
@@ -28,9 +28,19 @@ pub(super) async fn handler(
     Query(query): Query<TagListQuery>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
+    let cursor = query
+        .cursor
+        .map(|e| decode_cursor::<TagCursor>(&e))
+        .transpose()
+        .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
+
     match state
-        .tag_service
-        .list_tags(query.try_into()?, user_id)
+        .list_tags
+        .handle(colette_core::tag::ListTagsQuery {
+            cursor,
+            limit: Some(PAGINATION_LIMIT),
+            user_id,
+        })
         .await
     {
         Ok(tags) => {
@@ -49,23 +59,6 @@ pub(super) struct TagListQuery {
     /// Pagination cursor
     #[param(nullable = false)]
     cursor: Option<String>,
-}
-
-impl TryFrom<TagListQuery> for tag::TagListQuery {
-    type Error = ErrResponse;
-
-    fn try_from(value: TagListQuery) -> Result<Self, Self::Error> {
-        let cursor = value
-            .cursor
-            .map(|e| decode_cursor::<TagCursor>(&e))
-            .transpose()
-            .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
-
-        Ok(Self {
-            cursor,
-            limit: Some(PAGINATION_LIMIT),
-        })
-    }
 }
 
 #[derive(utoipa::IntoResponses)]

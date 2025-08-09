@@ -1,20 +1,21 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use super::{Error, SubscriptionEntry, SubscriptionEntryFilter};
+use super::{SubscriptionEntry, SubscriptionEntryFilter};
+use crate::RepositoryError;
 
 #[async_trait::async_trait]
 pub trait SubscriptionEntryRepository: Send + Sync + 'static {
     async fn find(
         &self,
         params: SubscriptionEntryFindParams,
-    ) -> Result<Vec<SubscriptionEntry>, Error>;
+    ) -> Result<Vec<SubscriptionEntry>, RepositoryError>;
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<SubscriptionEntryById>, Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<SubscriptionEntryById>, RepositoryError>;
 
-    async fn mark_as_read(&self, id: Uuid) -> Result<(), Error>;
+    async fn mark_as_read(&self, id: Uuid) -> Result<(), RepositoryError>;
 
-    async fn mark_as_unread(&self, id: Uuid) -> Result<(), Error>;
+    async fn mark_as_unread(&self, id: Uuid) -> Result<(), RepositoryError>;
 }
 
 #[derive(Debug, Clone, Default)]

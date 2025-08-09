@@ -1,17 +1,13 @@
-use core::str;
 use std::{cmp, sync::Arc};
 
-use bytes::Buf;
-use colette_http::HttpClient;
 use colette_scraper::feed::{FeedScraper, ProcessedFeed};
 use url::Url;
 use uuid::Uuid;
 
-use super::{Error, Feed, FeedCursor, FeedFindParams, FeedRepository};
+use super::{Feed, FeedFindParams, FeedRepository, FeedUpsertParams};
 use crate::{
-    feed::FeedUpsertParams,
+    Handler, RepositoryError,
     feed_entry::{FeedEntryFindParams, FeedEntryRepository},
-    pagination::{Paginated, paginate},
 };
 
 pub const DEFAULT_INTERVAL: u32 = 60;
@@ -20,99 +16,38 @@ const MAX_INTERVAL: u32 = DEFAULT_INTERVAL * 24;
 const SAMPLE_SIZE: usize = 20;
 const BACKOFF_MULTIPLIER: f32 = 1.15;
 
-pub struct FeedService {
-    feed_repository: Arc<dyn FeedRepository>,
-    feed_entry_repository: Arc<dyn FeedEntryRepository>,
-    client: Box<dyn HttpClient>,
-    scraper: FeedScraper,
+#[derive(Debug, Clone)]
+pub struct RefreshFeedCommand {
+    pub url: Url,
 }
 
-impl FeedService {
+pub struct RefreshFeedHandler {
+    feed_repository: Box<dyn FeedRepository>,
+    feed_entry_repository: Box<dyn FeedEntryRepository>,
+    feed_scraper: Arc<FeedScraper>,
+}
+
+impl RefreshFeedHandler {
     pub fn new(
-        feed_repository: Arc<dyn FeedRepository>,
-        feed_entry_repository: Arc<dyn FeedEntryRepository>,
-        client: impl HttpClient,
-        scraper: FeedScraper,
+        feed_repository: impl FeedRepository,
+        feed_entry_repository: impl FeedEntryRepository,
+        feed_scraper: Arc<FeedScraper>,
     ) -> Self {
         Self {
-            feed_repository,
-            feed_entry_repository,
-            client: Box::new(client),
-            scraper,
+            feed_repository: Box::new(feed_repository),
+            feed_entry_repository: Box::new(feed_entry_repository),
+            feed_scraper,
         }
     }
+}
 
-    pub async fn list_feeds(
-        &self,
-        query: FeedListQuery,
-    ) -> Result<Paginated<Feed, FeedCursor>, Error> {
-        let feeds = self
-            .feed_repository
-            .find(FeedFindParams {
-                ready_to_refresh: query.ready_to_refresh,
-                cursor: query.cursor.map(|e| e.source_url),
-                limit: query.limit.map(|e| e + 1),
-                ..Default::default()
-            })
-            .await?;
+#[async_trait::async_trait]
+impl Handler<RefreshFeedCommand> for RefreshFeedHandler {
+    type Response = Feed;
+    type Error = RefreshFeedError;
 
-        if let Some(limit) = query.limit {
-            Ok(paginate(feeds, limit))
-        } else {
-            Ok(Paginated {
-                items: feeds,
-                ..Default::default()
-            })
-        }
-    }
-
-    pub async fn get_feed(&self, id: Uuid) -> Result<Feed, Error> {
-        let mut feeds = self
-            .feed_repository
-            .find(FeedFindParams {
-                id: Some(id),
-                ..Default::default()
-            })
-            .await?;
-        if feeds.is_empty() {
-            return Err(Error::NotFound(id));
-        }
-
-        let feed = feeds.swap_remove(0);
-
-        Ok(feed)
-    }
-
-    pub async fn detect_feeds(&self, mut data: FeedDetect) -> Result<Vec<FeedDetected>, Error> {
-        match self.scraper.scrape(&mut data.url).await {
-            Ok(processed) => {
-                let detected = vec![FeedDetected {
-                    url: data.url,
-                    title: processed.title,
-                }];
-
-                Ok(detected)
-            }
-            Err(colette_scraper::feed::FeedError::Unsupported) => {
-                let body = self.client.get(&data.url).await?;
-
-                let metadata = colette_meta::parse_metadata(body.reader())
-                    .map_err(|_| colette_scraper::feed::FeedError::Unsupported)?;
-
-                let detected = metadata
-                    .feeds
-                    .into_iter()
-                    .map(FeedDetected::from)
-                    .collect::<Vec<_>>();
-
-                Ok(detected)
-            }
-            Err(e) => Err(Error::Scraper(e)),
-        }
-    }
-
-    pub async fn refresh_feed(&self, mut data: FeedRefresh) -> Result<Feed, Error> {
-        let mut processed = match self.scraper.scrape(&mut data.url).await {
+    async fn handle(&self, mut data: RefreshFeedCommand) -> Result<Self::Response, Self::Error> {
+        let mut processed = match self.feed_scraper.scrape(&mut data.url).await {
             Ok(processed) => Ok(processed),
             Err(e) => {
                 self.feed_repository
@@ -149,12 +84,29 @@ impl FeedService {
 
         self.get_feed(id).await
     }
+}
+
+impl RefreshFeedHandler {
+    async fn get_feed(&self, id: Uuid) -> Result<Feed, RefreshFeedError> {
+        let mut feeds = self
+            .feed_repository
+            .find(FeedFindParams {
+                id: Some(id),
+                ..Default::default()
+            })
+            .await?;
+        if feeds.is_empty() {
+            return Err(RefreshFeedError::NotFound(id));
+        }
+
+        Ok(feeds.swap_remove(0))
+    }
 
     async fn calculate_refresh_interval(
         &self,
         source_url: Url,
         processed: &ProcessedFeed,
-    ) -> Result<u32, Error> {
+    ) -> Result<u32, RefreshFeedError> {
         match self.feed_repository.find_by_source_url(source_url).await? {
             Some(feed) => {
                 let latest_entries = self
@@ -227,39 +179,23 @@ impl FeedService {
     }
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct FeedListQuery {
-    pub ready_to_refresh: bool,
-    pub cursor: Option<FeedCursor>,
-    pub limit: Option<usize>,
-}
+#[derive(Debug, thiserror::Error)]
+pub enum RefreshFeedError {
+    #[error("feed not found with ID: {0}")]
+    NotFound(Uuid),
 
-#[derive(Debug, Clone)]
-pub struct FeedDetect {
-    pub url: Url,
-}
+    #[error(transparent)]
+    Http(#[from] colette_http::Error),
 
-#[derive(Debug, Clone)]
-pub struct FeedDetected {
-    pub url: Url,
-    pub title: String,
-}
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
 
-impl From<colette_meta::rss::Feed> for FeedDetected {
-    fn from(value: colette_meta::rss::Feed) -> Self {
-        Self {
-            url: value.href.parse().unwrap(),
-            title: value.title,
-        }
-    }
-}
+    #[error(transparent)]
+    Utf(#[from] std::str::Utf8Error),
 
-#[derive(Debug, Clone)]
-pub struct FeedRefresh {
-    pub url: Url,
-}
+    #[error(transparent)]
+    Scraper(#[from] colette_scraper::feed::FeedError),
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct ScrapeFeedJobData {
-    pub url: Url,
+    #[error(transparent)]
+    Repository(#[from] RepositoryError),
 }

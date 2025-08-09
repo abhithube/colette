@@ -5,7 +5,8 @@ use std::{
 };
 
 use colette_core::{
-    feed::{FeedRefresh, FeedService, ScrapeFeedJobData},
+    Handler as _,
+    feed::{RefreshFeedCommand, RefreshFeedHandler, ScrapeFeedJobData},
     job::Job,
 };
 use futures::FutureExt;
@@ -13,17 +14,17 @@ use tower::Service;
 
 use super::Error;
 
-pub struct ScrapeFeedHandler {
-    feed_service: Arc<FeedService>,
+pub struct ScrapeFeedJobHandler {
+    refresh_feed: Arc<RefreshFeedHandler>,
 }
 
-impl ScrapeFeedHandler {
-    pub fn new(feed_service: Arc<FeedService>) -> Self {
-        Self { feed_service }
+impl ScrapeFeedJobHandler {
+    pub fn new(refresh_feed: Arc<RefreshFeedHandler>) -> Self {
+        Self { refresh_feed }
     }
 }
 
-impl Service<Job> for ScrapeFeedHandler {
+impl Service<Job> for ScrapeFeedJobHandler {
     type Response = ();
     type Error = Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
@@ -33,15 +34,15 @@ impl Service<Job> for ScrapeFeedHandler {
     }
 
     fn call(&mut self, job: Job) -> Self::Future {
-        let feed_service = self.feed_service.clone();
+        let refresh_feed = self.refresh_feed.clone();
 
         async move {
             let data = serde_json::from_value::<ScrapeFeedJobData>(job.data)?;
 
             tracing::debug!("Scraping feed at URL: {}", data.url.as_str());
 
-            feed_service
-                .refresh_feed(FeedRefresh { url: data.url })
+            refresh_feed
+                .handle(RefreshFeedCommand { url: data.url })
                 .await
                 .map_err(|e| Error::Service(e.to_string()))?;
 

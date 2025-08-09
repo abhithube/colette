@@ -3,6 +3,7 @@ use axum::{
     http::{HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
+use colette_core::{Handler as _, subscription::ExportSubscriptionsQuery};
 
 use super::SUBSCRIPTIONS_TAG;
 use crate::{
@@ -24,8 +25,8 @@ pub(super) async fn handler(
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .subscription_service
-        .export_subscriptions(user_id)
+        .export_subscriptions
+        .handle(ExportSubscriptionsQuery { user_id })
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),

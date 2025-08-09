@@ -3,12 +3,15 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::tag;
+use colette_core::{
+    Handler as _,
+    tag::{CreateTagCommand, CreateTagError},
+};
 
-use super::{TAGS_TAG, Tag};
+use super::TAGS_TAG;
 use crate::{
     ApiState,
-    common::{ApiError, Auth, Json, NonEmptyString},
+    common::{ApiError, Auth, CreatedResource, Json, NonEmptyString},
 };
 
 #[utoipa::path(
@@ -26,10 +29,17 @@ pub(super) async fn handler(
     Auth { user_id }: Auth,
     Json(body): Json<TagCreate>,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.tag_service.create_tag(body.into(), user_id).await {
-        Ok(data) => Ok(OkResponse(data.into())),
+    match state
+        .create_tag
+        .handle(CreateTagCommand {
+            title: body.title.into(),
+            user_id,
+        })
+        .await
+    {
+        Ok(data) => Ok(OkResponse(CreatedResource { id: data.id })),
         Err(e) => match e {
-            tag::Error::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
+            CreateTagError::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
@@ -44,17 +54,9 @@ pub(super) struct TagCreate {
     title: NonEmptyString,
 }
 
-impl From<TagCreate> for tag::TagCreate {
-    fn from(value: TagCreate) -> Self {
-        Self {
-            title: value.title.into(),
-        }
-    }
-}
-
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::CREATED, description = "Created tag")]
-pub(super) struct OkResponse(Tag);
+#[response(status = StatusCode::CREATED, description = "New tag ID")]
+pub(super) struct OkResponse(CreatedResource);
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {

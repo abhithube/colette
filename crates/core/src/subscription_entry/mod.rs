@@ -1,16 +1,22 @@
 use chrono::{DateTime, Utc};
+pub use get_subscription_entry_handler::*;
+pub use list_subscription_entries_handler::*;
+pub use mark_subscription_entry_as_read_handler::*;
+pub use mark_subscription_entry_as_unread_handler::*;
 pub use subscription_entry_repository::*;
-pub use subscription_entry_service::*;
 use uuid::Uuid;
 
 use crate::{
-    FeedEntry, collection,
+    FeedEntry,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
     pagination::Cursor,
 };
 
+mod get_subscription_entry_handler;
+mod list_subscription_entries_handler;
+mod mark_subscription_entry_as_read_handler;
+mod mark_subscription_entry_as_unread_handler;
 mod subscription_entry_repository;
-mod subscription_entry_service;
 
 #[derive(Debug, Clone)]
 pub struct SubscriptionEntry {
@@ -89,19 +95,4 @@ pub enum SubscriptionEntryBooleanField {
 #[serde(rename_all = "camelCase")]
 pub enum SubscriptionEntryDateField {
     PublishedAt,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("feed entry not found with ID: {0}")]
-    NotFound(Uuid),
-
-    #[error("not authorized to access feed entry with ID: {0}")]
-    Forbidden(Uuid),
-
-    #[error(transparent)]
-    Collection(#[from] collection::Error),
-
-    #[error(transparent)]
-    Sqlx(#[from] sqlx::Error),
 }

@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bytes::Bytes;
+use colette_core::{Handler, bookmark::ImportBookmarksCommand};
 
 use super::BOOKMARKS_TAG;
 use crate::{
@@ -24,11 +25,11 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Auth { user_id }: Auth,
-    bytes: Bytes,
+    raw: Bytes,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .bookmark_service
-        .import_bookmarks(bytes, user_id)
+        .import_bookmarks
+        .handle(ImportBookmarksCommand { raw, user_id })
         .await
     {
         Ok(_) => Ok(OkResponse),

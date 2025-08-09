@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bytes::Bytes;
+use colette_core::{Handler as _, backup::ImportBackupCommand};
 
 use super::BACKUPS_TAG;
 use crate::{
@@ -24,9 +25,13 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Auth { user_id }: Auth,
-    bytes: Bytes,
+    raw: Bytes,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.backup_service.import_backup(bytes, user_id).await {
+    match state
+        .import_backup
+        .handle(ImportBackupCommand { raw, user_id })
+        .await
+    {
         Ok(_) => Ok(OkResponse),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }

@@ -4,7 +4,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::subscription_entry::{self, SubscriptionEntryCursor};
+use colette_core::{
+    Handler as _,
+    subscription_entry::{ListSubscriptionEntriesQuery, SubscriptionEntryCursor},
+};
 use uuid::Uuid;
 
 use super::{SUBSCRIPTION_ENTRIES_TAG, SubscriptionEntryDetails};
@@ -29,9 +32,23 @@ pub(super) async fn handler(
     Query(query): Query<SubscriptionEntryListQuery>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
+    let cursor = query
+        .cursor
+        .map(|e| decode_cursor::<SubscriptionEntryCursor>(&e))
+        .transpose()
+        .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
+
     match state
-        .subscription_entry_service
-        .list_subscription_entries(query.try_into()?, user_id)
+        .list_subscription_entries
+        .handle(ListSubscriptionEntriesQuery {
+            collection_id: query.collection_id,
+            subscription_id: query.subscription_id,
+            has_read: query.has_read,
+            tags: query.tags,
+            cursor,
+            limit: Some(PAGINATION_LIMIT),
+            user_id,
+        })
         .await
     {
         Ok(subscription_entries) => {
@@ -65,27 +82,6 @@ pub(super) struct SubscriptionEntryListQuery {
     /// Pagination cursor
     #[param(nullable = false)]
     cursor: Option<String>,
-}
-
-impl TryFrom<SubscriptionEntryListQuery> for subscription_entry::SubscriptionEntryListQuery {
-    type Error = ErrResponse;
-
-    fn try_from(value: SubscriptionEntryListQuery) -> Result<Self, Self::Error> {
-        let cursor = value
-            .cursor
-            .map(|e| decode_cursor::<SubscriptionEntryCursor>(&e))
-            .transpose()
-            .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
-
-        Ok(Self {
-            collection_id: value.collection_id,
-            subscription_id: value.subscription_id,
-            has_read: value.has_read,
-            tags: value.tags,
-            cursor,
-            limit: Some(PAGINATION_LIMIT),
-        })
-    }
 }
 
 #[derive(utoipa::IntoResponses)]

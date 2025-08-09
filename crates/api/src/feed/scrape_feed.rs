@@ -3,7 +3,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::feed;
+use colette_core::{
+    Handler as _,
+    feed::{RefreshFeedCommand, RefreshFeedError},
+};
 use url::Url;
 
 use super::{FEEDS_TAG, Feed};
@@ -26,9 +29,13 @@ pub(super) async fn handler(
     State(state): State<ApiState>,
     Json(body): Json<FeedScrape>,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.feed_service.refresh_feed(body.into()).await {
+    match state
+        .refresh_feed
+        .handle(RefreshFeedCommand { url: body.url })
+        .await
+    {
         Ok(data) => Ok(OkResponse(data.into())),
-        Err(feed::Error::Scraper(e)) => Err(ErrResponse::BadGateway(e.into())),
+        Err(RefreshFeedError::Scraper(e)) => Err(ErrResponse::BadGateway(e.into())),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
@@ -39,12 +46,6 @@ pub(super) async fn handler(
 pub(super) struct FeedScrape {
     /// URL of an RSS feed to scrape
     url: Url,
-}
-
-impl From<FeedScrape> for feed::FeedRefresh {
-    fn from(value: FeedScrape) -> Self {
-        Self { url: value.url }
-    }
 }
 
 #[derive(utoipa::IntoResponses)]

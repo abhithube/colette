@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    Tag,
-    tag::{Error, TagById, TagFindParams, TagInsertParams, TagRepository, TagUpdateParams},
+    RepositoryError, Tag,
+    tag::{TagById, TagFindParams, TagInsertParams, TagRepository, TagUpdateParams},
 };
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -19,7 +19,7 @@ impl PostgresTagRepository {
 
 #[async_trait::async_trait]
 impl TagRepository for PostgresTagRepository {
-    async fn find(&self, params: TagFindParams) -> Result<Vec<Tag>, Error> {
+    async fn find(&self, params: TagFindParams) -> Result<Vec<Tag>, RepositoryError> {
         let tags = sqlx::query_file_as!(
             TagRow,
             "queries/tags/find.sql",
@@ -35,7 +35,7 @@ impl TagRepository for PostgresTagRepository {
         Ok(tags)
     }
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<TagById>, Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<TagById>, RepositoryError> {
         let tag = sqlx::query_file_as!(TagByIdRow, "queries/tags/find_by_id.sql", id)
             .map(Into::into)
             .fetch_optional(&self.pool)
@@ -44,21 +44,19 @@ impl TagRepository for PostgresTagRepository {
         Ok(tag)
     }
 
-    async fn insert(&self, params: TagInsertParams) -> Result<Uuid, Error> {
+    async fn insert(&self, params: TagInsertParams) -> Result<Uuid, RepositoryError> {
         let id = sqlx::query_file_scalar!("queries/tags/insert.sql", params.title, params.user_id)
             .fetch_one(&self.pool)
             .await
             .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => {
-                    Error::Conflict(params.title)
-                }
-                _ => Error::Sqlx(e),
+                sqlx::Error::Database(e) if e.is_unique_violation() => RepositoryError::Duplicate,
+                _ => RepositoryError::Unknown(e),
             })?;
 
         Ok(id)
     }
 
-    async fn update(&self, params: TagUpdateParams) -> Result<(), Error> {
+    async fn update(&self, params: TagUpdateParams) -> Result<(), RepositoryError> {
         sqlx::query_file!("queries/tags/update.sql", params.id, params.title)
             .execute(&self.pool)
             .await?;
@@ -66,7 +64,7 @@ impl TagRepository for PostgresTagRepository {
         Ok(())
     }
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
+    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError> {
         sqlx::query_file!("queries/tags/delete_by_id.sql", id)
             .execute(&self.pool)
             .await?;

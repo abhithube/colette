@@ -1,5 +1,8 @@
 use chrono::{DateTime, Utc};
-use colette_core::backup::{BackupRepository, Error, ImportBackupParams};
+use colette_core::{
+    RepositoryError,
+    backup::{BackupRepository, ImportBackupParams},
+};
 use sqlx::PgPool;
 
 use crate::DbUrl;
@@ -17,7 +20,7 @@ impl PostgresBackupRepository {
 
 #[async_trait::async_trait]
 impl BackupRepository for PostgresBackupRepository {
-    async fn import(&self, params: ImportBackupParams) -> Result<(), Error> {
+    async fn import(&self, params: ImportBackupParams) -> Result<(), RepositoryError> {
         let mut bookmark_links = Vec::<DbUrl>::new();
         let mut bookmark_titles = Vec::<String>::new();
         let mut bookmark_thumbnail_urls = Vec::<Option<DbUrl>>::new();

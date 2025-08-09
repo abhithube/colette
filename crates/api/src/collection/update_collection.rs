@@ -3,9 +3,12 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::collection;
+use colette_core::{
+    Handler as _,
+    collection::{UpdateCollectionCommand, UpdateCollectionError},
+};
 
-use super::{COLLECTIONS_TAG, Collection};
+use super::COLLECTIONS_TAG;
 use crate::{
     ApiState,
     bookmark::BookmarkFilter,
@@ -30,14 +33,19 @@ pub(super) async fn handler(
     Json(body): Json<CollectionUpdate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .collection_service
-        .update_collection(id, body.into(), user_id)
+        .update_collection
+        .handle(UpdateCollectionCommand {
+            id,
+            title: body.title.map(Into::into),
+            filter: body.filter.map(Into::into),
+            user_id,
+        })
         .await
     {
-        Ok(data) => Ok(OkResponse(data.into())),
+        Ok(_) => Ok(OkResponse),
         Err(e) => match e {
-            collection::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            collection::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            UpdateCollectionError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            UpdateCollectionError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
@@ -51,22 +59,13 @@ pub(super) struct CollectionUpdate {
     filter: Option<BookmarkFilter>,
 }
 
-impl From<CollectionUpdate> for collection::CollectionUpdate {
-    fn from(value: CollectionUpdate) -> Self {
-        Self {
-            title: value.title.map(Into::into),
-            filter: value.filter.map(Into::into),
-        }
-    }
-}
-
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::OK, description = "Updated collection")]
-pub(super) struct OkResponse(Collection);
+#[response(status = StatusCode::NO_CONTENT, description = "Successfully updated collection")]
+pub(super) struct OkResponse;
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {
-        (StatusCode::OK, axum::Json(self.0)).into_response()
+        StatusCode::NO_CONTENT.into_response()
     }
 }
 

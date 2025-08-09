@@ -1,9 +1,9 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    Bookmark, Tag,
+    Bookmark, RepositoryError, Tag,
     bookmark::{
         BookmarkById, BookmarkDateField, BookmarkFilter, BookmarkFindParams, BookmarkInsertParams,
-        BookmarkLinkTagParams, BookmarkRepository, BookmarkTextField, BookmarkUpdateParams, Error,
+        BookmarkLinkTagParams, BookmarkRepository, BookmarkTextField, BookmarkUpdateParams,
         ImportBookmarksParams,
     },
 };
@@ -40,7 +40,7 @@ impl PostgresBookmarkRepository {
 
 #[async_trait::async_trait]
 impl BookmarkRepository for PostgresBookmarkRepository {
-    async fn find(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, Error> {
+    async fn find(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, RepositoryError> {
         let mut qb = QueryBuilder::new(format!(
             r#"WITH results AS ({BASE_QUERY}) SELECT * FROM results WHERE TRUE"#
         ));
@@ -62,7 +62,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<BookmarkById>, Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<BookmarkById>, RepositoryError> {
         let bookmark =
             sqlx::query_file_as!(BookmarkByIdRow, "queries/bookmarks/find_by_id.sql", id)
                 .map(Into::into)
@@ -72,7 +72,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         Ok(bookmark)
     }
 
-    async fn insert(&self, params: BookmarkInsertParams) -> Result<Uuid, Error> {
+    async fn insert(&self, params: BookmarkInsertParams) -> Result<Uuid, RepositoryError> {
         if params.upsert {
             let id = sqlx::query_file_scalar!(
                 "queries/bookmarks/upsert.sql",
@@ -100,15 +100,15 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             .fetch_one(&self.pool)
             .await
             .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(params.link),
-                _ => Error::Sqlx(e),
+                sqlx::Error::Database(e) if e.is_unique_violation() => RepositoryError::Duplicate,
+                _ => RepositoryError::Unknown(e),
             })?;
 
             Ok(id)
         }
     }
 
-    async fn update(&self, params: BookmarkUpdateParams) -> Result<(), Error> {
+    async fn update(&self, params: BookmarkUpdateParams) -> Result<(), RepositoryError> {
         let (has_thumbnail_url, thumbnail_url) = if let Some(thumbnail_url) = params.thumbnail_url {
             (true, thumbnail_url)
         } else {
@@ -142,7 +142,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         Ok(())
     }
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
+    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError> {
         sqlx::query_file!("queries/bookmarks/delete_by_id.sql", id)
             .execute(&self.pool)
             .await?;
@@ -154,7 +154,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         &self,
         bookmark_id: Uuid,
         archived_path: Option<String>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), RepositoryError> {
         sqlx::query_file!(
             "queries/bookmarks/update_archived_path.sql",
             bookmark_id,
@@ -166,7 +166,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         Ok(())
     }
 
-    async fn link_tags(&self, params: BookmarkLinkTagParams) -> Result<(), Error> {
+    async fn link_tags(&self, params: BookmarkLinkTagParams) -> Result<(), RepositoryError> {
         sqlx::query_file!(
             "queries/bookmark_tags/update.sql",
             params.bookmark_id,
@@ -178,7 +178,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         Ok(())
     }
 
-    async fn import(&self, params: ImportBookmarksParams) -> Result<(), Error> {
+    async fn import(&self, params: ImportBookmarksParams) -> Result<(), RepositoryError> {
         let mut bookmark_links = Vec::<DbUrl>::new();
         let mut bookmark_titles = Vec::<String>::new();
         let mut bookmark_thumbnail_urls = Vec::<Option<DbUrl>>::new();

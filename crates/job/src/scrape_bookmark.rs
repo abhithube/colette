@@ -5,7 +5,8 @@ use std::{
 };
 
 use colette_core::{
-    bookmark::{BookmarkRefresh, BookmarkService, ScrapeBookmarkJobData},
+    Handler as _,
+    bookmark::{RefreshBookmarkCommand, RefreshBookmarkHandler, ScrapeBookmarkJobData},
     job::Job,
 };
 use futures::FutureExt;
@@ -13,17 +14,17 @@ use tower::Service;
 
 use super::Error;
 
-pub struct ScrapeBookmarkHandler {
-    bookmark_service: Arc<BookmarkService>,
+pub struct ScrapeBookmarkJobHandler {
+    bookmark_service: Arc<RefreshBookmarkHandler>,
 }
 
-impl ScrapeBookmarkHandler {
-    pub fn new(bookmark_service: Arc<BookmarkService>) -> Self {
+impl ScrapeBookmarkJobHandler {
+    pub fn new(bookmark_service: Arc<RefreshBookmarkHandler>) -> Self {
         Self { bookmark_service }
     }
 }
 
-impl Service<Job> for ScrapeBookmarkHandler {
+impl Service<Job> for ScrapeBookmarkJobHandler {
     type Response = ();
     type Error = Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
@@ -41,7 +42,7 @@ impl Service<Job> for ScrapeBookmarkHandler {
             tracing::debug!("Scraping bookmark at URL: {}", data.url.as_str());
 
             bookmark_service
-                .refresh_bookmark(BookmarkRefresh {
+                .handle(RefreshBookmarkCommand {
                     url: data.url,
                     user_id: data.user_id,
                 })

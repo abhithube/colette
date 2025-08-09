@@ -1,12 +1,26 @@
 use chrono::{DateTime, Utc};
+pub use create_subscription_handler::*;
+pub use delete_subscription_handler::*;
+pub use export_subscriptions_handler::*;
+pub use get_subscription_handler::*;
+pub use import_subscriptions_handler::*;
+pub use link_subscription_tags_handler::*;
+pub use list_subscriptions_handler::*;
 pub use subscription_repository::*;
-pub use subscription_service::*;
+pub use update_subscription_handler::*;
 use uuid::Uuid;
 
-use crate::{Feed, Tag, job, pagination::Cursor, subscription_entry, tag};
+use crate::{Feed, Tag, pagination::Cursor};
 
+mod create_subscription_handler;
+mod delete_subscription_handler;
+mod export_subscriptions_handler;
+mod get_subscription_handler;
+mod import_subscriptions_handler;
+mod link_subscription_tags_handler;
+mod list_subscriptions_handler;
 mod subscription_repository;
-mod subscription_service;
+mod update_subscription_handler;
 
 #[derive(Debug, Clone)]
 pub struct Subscription {
@@ -37,37 +51,4 @@ impl Cursor for Subscription {
             id: self.id,
         }
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("subscription not found with ID: {0}")]
-    NotFound(Uuid),
-
-    #[error("not authorized to access subscription with ID: {0}")]
-    Forbidden(Uuid),
-
-    #[error("already subscribed to feed with ID: {0}")]
-    Conflict(Uuid),
-
-    #[error(transparent)]
-    Tag(#[from] tag::Error),
-
-    #[error(transparent)]
-    SubscriptionEntry(#[from] subscription_entry::Error),
-
-    #[error(transparent)]
-    Job(#[from] job::Error),
-
-    #[error(transparent)]
-    Queue(#[from] colette_queue::Error),
-
-    #[error(transparent)]
-    Opml(#[from] colette_opml::Error),
-
-    #[error(transparent)]
-    Serde(#[from] serde_json::Error),
-
-    #[error(transparent)]
-    Sqlx(#[from] sqlx::Error),
 }

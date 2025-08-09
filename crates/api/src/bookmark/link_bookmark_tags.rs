@@ -3,7 +3,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::bookmark;
+use colette_core::{
+    Handler as _,
+    bookmark::{LinkBookmarkTagsCommand, LinkBookmarkTagsError},
+};
 use uuid::Uuid;
 
 use super::BOOKMARKS_TAG;
@@ -30,14 +33,18 @@ pub(super) async fn handler(
     Json(body): Json<LinkBookmarkTags>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .bookmark_service
-        .link_bookmark_tags(id, body.into(), user_id)
+        .link_bookmark_tags
+        .handle(LinkBookmarkTagsCommand {
+            id,
+            tag_ids: body.tag_ids,
+            user_id,
+        })
         .await
     {
         Ok(_) => Ok(OkResponse),
         Err(e) => match e {
-            bookmark::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            bookmark::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            LinkBookmarkTagsError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            LinkBookmarkTagsError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
@@ -49,14 +56,6 @@ pub(super) async fn handler(
 pub(super) struct LinkBookmarkTags {
     /// Unique identifiers of the tags to link to the bookmark
     tag_ids: Vec<Uuid>,
-}
-
-impl From<LinkBookmarkTags> for bookmark::LinkBookmarkTags {
-    fn from(value: LinkBookmarkTags) -> Self {
-        Self {
-            tag_ids: value.tag_ids,
-        }
-    }
 }
 
 #[derive(utoipa::IntoResponses)]

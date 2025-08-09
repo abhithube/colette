@@ -1,10 +1,11 @@
 use uuid::Uuid;
 
-use super::{Backup, Error};
+use super::Backup;
+use crate::RepositoryError;
 
 #[async_trait::async_trait]
 pub trait BackupRepository: Send + Sync + 'static {
-    async fn import(&self, params: ImportBackupParams) -> Result<(), Error>;
+    async fn import(&self, params: ImportBackupParams) -> Result<(), RepositoryError>;
 }
 
 pub struct ImportBackupParams {

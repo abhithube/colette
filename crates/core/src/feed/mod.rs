@@ -1,18 +1,24 @@
 use std::{
     fmt::{self, Display},
-    str::{FromStr, Utf8Error},
+    str::FromStr,
 };
 
 use chrono::{DateTime, Utc};
+pub use detect_feeds_handler::*;
 pub use feed_repository::*;
-pub use feed_service::*;
+pub use get_feed_handler::*;
+pub use list_feeds_handler::*;
+pub use refresh_feed_handler::*;
 use url::Url;
 use uuid::Uuid;
 
-use crate::{feed_entry, pagination::Cursor};
+use crate::pagination::Cursor;
 
+mod detect_feeds_handler;
 mod feed_repository;
-mod feed_service;
+mod get_feed_handler;
+mod list_feeds_handler;
+mod refresh_feed_handler;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Feed {
@@ -86,26 +92,13 @@ impl Cursor for Feed {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("feed not found with ID: {0}")]
-    NotFound(Uuid),
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct FeedDetected {
+    pub url: Url,
+    pub title: String,
+}
 
-    #[error(transparent)]
-    FeedEntry(#[from] feed_entry::Error),
-
-    #[error(transparent)]
-    Http(#[from] colette_http::Error),
-
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
-
-    #[error(transparent)]
-    Utf(#[from] Utf8Error),
-
-    #[error(transparent)]
-    Scraper(#[from] colette_scraper::feed::FeedError),
-
-    #[error(transparent)]
-    Sqlx(#[from] sqlx::Error),
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ScrapeFeedJobData {
+    pub url: Url,
 }

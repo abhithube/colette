@@ -3,7 +3,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::api_key;
+use colette_core::{
+    Handler as _,
+    api_key::{DeleteApiKeyCommand, DeleteApiKeyError},
+};
 
 use super::API_KEYS_TAG;
 use crate::{
@@ -26,11 +29,15 @@ pub(super) async fn handler(
     Path(Id(id)): Path<Id>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.api_key_service.delete_api_key(id, user_id).await {
+    match state
+        .delete_api_key
+        .handle(DeleteApiKeyCommand { id, user_id })
+        .await
+    {
         Ok(()) => Ok(OkResponse),
         Err(e) => match e {
-            api_key::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            api_key::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            DeleteApiKeyError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            DeleteApiKeyError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

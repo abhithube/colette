@@ -4,10 +4,13 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
-use colette_core::bookmark;
+use colette_core::{
+    Handler as _,
+    bookmark::{UpdateBookmarkCommand, UpdateBookmarkError},
+};
 use url::Url;
 
-use super::{BOOKMARKS_TAG, Bookmark};
+use super::BOOKMARKS_TAG;
 use crate::{
     ApiState,
     common::{ApiError, Auth, Id, Json, NonEmptyString, Path},
@@ -31,14 +34,21 @@ pub(super) async fn handler(
     Json(body): Json<BookmarkUpdate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .bookmark_service
-        .update_bookmark(id, body.into(), user_id)
+        .update_bookmark
+        .handle(UpdateBookmarkCommand {
+            id,
+            title: body.title.map(Into::into),
+            thumbnail_url: body.thumbnail_url,
+            published_at: body.published_at,
+            author: body.author.map(|e| e.map(Into::into)),
+            user_id,
+        })
         .await
     {
-        Ok(data) => Ok(OkResponse(data.into())),
+        Ok(_) => Ok(OkResponse),
         Err(e) => match e {
-            bookmark::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            bookmark::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            UpdateBookmarkError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            UpdateBookmarkError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
@@ -65,24 +75,13 @@ pub(super) struct BookmarkUpdate {
     author: Option<Option<NonEmptyString>>,
 }
 
-impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
-    fn from(value: BookmarkUpdate) -> Self {
-        Self {
-            title: value.title.map(Into::into),
-            thumbnail_url: value.thumbnail_url,
-            published_at: value.published_at,
-            author: value.author.map(|e| e.map(Into::into)),
-        }
-    }
-}
-
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::OK, description = "Updated bookmark")]
-pub(super) struct OkResponse(Bookmark);
+#[response(status = StatusCode::NO_CONTENT, description = "Successfully updated bookmark")]
+pub(super) struct OkResponse;
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {
-        (StatusCode::OK, axum::Json(self.0)).into_response()
+        StatusCode::NO_CONTENT.into_response()
     }
 }
 

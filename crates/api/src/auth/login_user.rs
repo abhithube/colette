@@ -4,7 +4,10 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::CookieJar;
-use colette_core::auth;
+use colette_core::{
+    Handler as _,
+    auth::{LoginUserCommand, LoginUserError},
+};
 use email_address::EmailAddress;
 
 use super::{AUTH_TAG, REFRESH_COOKIE, TokenData};
@@ -28,7 +31,14 @@ pub(super) async fn handler(
     jar: CookieJar,
     Json(body): Json<LoginPayload>,
 ) -> Result<impl IntoResponse, ErrResponse> {
-    match state.auth_service.login_user(body.into()).await {
+    match state
+        .login_user
+        .handle(LoginUserCommand {
+            email: body.email.to_string(),
+            password: body.password.into(),
+        })
+        .await
+    {
         Ok(tokens) => {
             let refresh_cookie = build_cookie(
                 (REFRESH_COOKIE, tokens.refresh_token.clone()),
@@ -38,7 +48,7 @@ pub(super) async fn handler(
             Ok((jar.add(refresh_cookie), OkResponse(tokens.into())))
         }
         Err(e) => match e {
-            auth::Error::NotAuthenticated => Err(ErrResponse::Unauthorized(e.into())),
+            LoginUserError::NotAuthenticated => Err(ErrResponse::Unauthorized(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
@@ -51,15 +61,6 @@ pub(super) struct LoginPayload {
     email: EmailAddress,
     #[schema(value_type = String, min_length = 1)]
     password: NonEmptyString,
-}
-
-impl From<LoginPayload> for auth::LoginPayload {
-    fn from(value: LoginPayload) -> Self {
-        auth::LoginPayload {
-            email: value.email.into(),
-            password: value.password.into(),
-        }
-    }
 }
 
 #[derive(utoipa::IntoResponses)]

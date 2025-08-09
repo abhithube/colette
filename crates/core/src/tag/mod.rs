@@ -1,12 +1,20 @@
 use chrono::{DateTime, Utc};
+pub use create_tag_handler::*;
+pub use delete_tag_handler::*;
+pub use get_tag_handler::*;
+pub use list_tags_handler::*;
 pub use tag_repository::*;
-pub use tag_service::*;
+pub use update_tag_handler::*;
 use uuid::Uuid;
 
 use crate::pagination::Cursor;
 
+mod create_tag_handler;
+mod delete_tag_handler;
+mod get_tag_handler;
+mod list_tags_handler;
 mod tag_repository;
-mod tag_service;
+mod update_tag_handler;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Tag {
@@ -31,19 +39,4 @@ impl Cursor for Tag {
             title: self.title.clone(),
         }
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("tag not found with ID: {0}")]
-    NotFound(Uuid),
-
-    #[error("not authorized to access tag with ID: {0}")]
-    Forbidden(Uuid),
-
-    #[error("tag already exists with title: {0}")]
-    Conflict(String),
-
-    #[error(transparent)]
-    Sqlx(#[from] sqlx::Error),
 }

@@ -4,7 +4,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::api_key;
+use colette_core::{
+    Handler as _,
+    api_key::{GetApiKeyError, GetApiKeyQuery},
+};
 
 use super::{API_KEYS_TAG, ApiKey};
 use crate::{
@@ -27,11 +30,15 @@ pub(super) async fn handler(
     Path(Id(id)): Path<Id>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.api_key_service.get_api_key(id, user_id).await {
+    match state
+        .get_api_key
+        .handle(GetApiKeyQuery { id, user_id })
+        .await
+    {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            api_key::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            api_key::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            GetApiKeyError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            GetApiKeyError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

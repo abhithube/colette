@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
 };
 use axum_extra::extract::CookieJar;
+use colette_core::{Handler as _, auth::BuildAuthorizationUrlQuery};
 
 use super::{AUTH_TAG, CODE_VERIFIER_COOKIE, STATE_COOKIE};
 use crate::{
@@ -24,7 +25,11 @@ pub(super) async fn handler(
     State(state): State<ApiState>,
     jar: CookieJar,
 ) -> Result<impl IntoResponse, ErrResponse> {
-    match state.auth_service.build_authorization_url().await {
+    match state
+        .build_authorization_url
+        .handle(BuildAuthorizationUrlQuery {})
+        .await
+    {
         Ok(data) => {
             let code_verifier_cookie =
                 build_cookie((CODE_VERIFIER_COOKIE, data.code_verifier), None);

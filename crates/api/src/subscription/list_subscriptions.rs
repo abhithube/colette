@@ -4,7 +4,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::subscription::{self, SubscriptionCursor};
+use colette_core::{
+    Handler as _,
+    subscription::{ListSubscriptionsQuery, SubscriptionCursor},
+};
 use uuid::Uuid;
 
 use super::{SUBSCRIPTIONS_TAG, SubscriptionDetails};
@@ -29,9 +32,26 @@ pub(super) async fn handler(
     Query(query): Query<SubscriptionListQuery>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
+    let cursor = query
+        .cursor
+        .map(|e| decode_cursor::<SubscriptionCursor>(&e))
+        .transpose()
+        .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
+
     match state
-        .subscription_service
-        .list_subscriptions(query.try_into()?, user_id)
+        .list_subscriptions
+        .handle(ListSubscriptionsQuery {
+            tags: if query.filter_by_tags.unwrap_or(query.tags.is_some()) {
+                query.tags
+            } else {
+                None
+            },
+            cursor,
+            limit: Some(PAGINATION_LIMIT),
+            with_unread_count: query.with_unread_count,
+            with_tags: query.with_tags,
+            user_id,
+        })
         .await
     {
         Ok(subscriptions) => {
@@ -73,30 +93,6 @@ fn with_unread_count() -> bool {
 
 fn with_tags() -> bool {
     false
-}
-
-impl TryFrom<SubscriptionListQuery> for subscription::SubscriptionListQuery {
-    type Error = ErrResponse;
-
-    fn try_from(value: SubscriptionListQuery) -> Result<Self, Self::Error> {
-        let cursor = value
-            .cursor
-            .map(|e| decode_cursor::<SubscriptionCursor>(&e))
-            .transpose()
-            .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
-
-        Ok(Self {
-            tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
-                value.tags
-            } else {
-                None
-            },
-            cursor,
-            limit: Some(PAGINATION_LIMIT),
-            with_unread_count: value.with_unread_count,
-            with_tags: value.with_tags,
-        })
-    }
 }
 
 #[derive(utoipa::IntoResponses)]

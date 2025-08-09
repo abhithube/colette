@@ -3,11 +3,11 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::auth;
+use colette_core::{Handler as _, auth::RegisterUserCommand};
 use email_address::EmailAddress;
 use url::Url;
 
-use super::{AUTH_TAG, User};
+use super::AUTH_TAG;
 use crate::{
     ApiState,
     common::{ApiError, Json, NonEmptyString},
@@ -27,8 +27,17 @@ pub(super) async fn handler(
     State(state): State<ApiState>,
     Json(body): Json<RegisterPayload>,
 ) -> Result<impl IntoResponse, ErrResponse> {
-    match state.auth_service.register_user(body.into()).await {
-        Ok(user) => Ok(OkResponse(user.into())),
+    match state
+        .register_user
+        .handle(RegisterUserCommand {
+            email: body.email.to_string(),
+            password: body.password.into(),
+            display_name: body.display_name.map(Into::into),
+            image_url: body.image_url,
+        })
+        .await
+    {
+        Ok(_) => Ok(OkResponse),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
@@ -45,24 +54,13 @@ pub(super) struct RegisterPayload {
     image_url: Option<Url>,
 }
 
-impl From<RegisterPayload> for auth::RegisterPayload {
-    fn from(value: RegisterPayload) -> Self {
-        auth::RegisterPayload {
-            email: value.email.into(),
-            password: value.password.into(),
-            display_name: value.display_name.map(Into::into),
-            image_url: value.image_url,
-        }
-    }
-}
-
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::OK, description = "Created user")]
-pub(super) struct OkResponse(User);
+#[response(status = StatusCode::NO_CONTENT, description = "Successfully created user")]
+pub(super) struct OkResponse;
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {
-        (StatusCode::OK, axum::Json(self.0)).into_response()
+        StatusCode::NO_CONTENT.into_response()
     }
 }
 

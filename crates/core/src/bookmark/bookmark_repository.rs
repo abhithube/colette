@@ -2,30 +2,30 @@ use chrono::{DateTime, Utc};
 use url::Url;
 use uuid::Uuid;
 
-use super::{Bookmark, Error};
-use crate::bookmark::BookmarkFilter;
+use super::Bookmark;
+use crate::{RepositoryError, bookmark::BookmarkFilter};
 
 #[async_trait::async_trait]
 pub trait BookmarkRepository: Send + Sync + 'static {
-    async fn find(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, Error>;
+    async fn find(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, RepositoryError>;
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<BookmarkById>, Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<BookmarkById>, RepositoryError>;
 
-    async fn insert(&self, params: BookmarkInsertParams) -> Result<Uuid, Error>;
+    async fn insert(&self, params: BookmarkInsertParams) -> Result<Uuid, RepositoryError>;
 
-    async fn update(&self, params: BookmarkUpdateParams) -> Result<(), Error>;
+    async fn update(&self, params: BookmarkUpdateParams) -> Result<(), RepositoryError>;
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), Error>;
+    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError>;
 
     async fn set_archived_path(
         &self,
         bookmark_id: Uuid,
         archived_path: Option<String>,
-    ) -> Result<(), Error>;
+    ) -> Result<(), RepositoryError>;
 
-    async fn link_tags(&self, params: BookmarkLinkTagParams) -> Result<(), Error>;
+    async fn link_tags(&self, params: BookmarkLinkTagParams) -> Result<(), RepositoryError>;
 
-    async fn import(&self, params: ImportBookmarksParams) -> Result<(), Error>;
+    async fn import(&self, params: ImportBookmarksParams) -> Result<(), RepositoryError>;
 }
 
 #[derive(Debug, Clone, Default)]

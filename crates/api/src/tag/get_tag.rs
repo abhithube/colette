@@ -4,7 +4,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::tag::{self};
+use colette_core::Handler as _;
 
 use super::{TAGS_TAG, TagDetails};
 use crate::{
@@ -27,11 +27,15 @@ pub(super) async fn handler(
     Path(Id(id)): Path<Id>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.tag_service.get_tag(id, user_id).await {
+    match state
+        .get_tag
+        .handle(colette_core::tag::GetTagQuery { id, user_id })
+        .await
+    {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            tag::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            tag::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            colette_core::tag::GetTagError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            colette_core::tag::GetTagError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

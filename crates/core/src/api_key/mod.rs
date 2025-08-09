@@ -1,12 +1,22 @@
 pub use api_key_repository::*;
-pub use api_key_service::*;
 use chrono::{DateTime, Utc};
+pub use create_api_key_handler::*;
+pub use delete_api_key_handler::*;
+pub use get_api_key_handler::*;
+pub use list_api_keys_handler::*;
+pub use update_api_key_handler::*;
 use uuid::Uuid;
+pub use validate_api_key_handler::*;
 
 use crate::pagination::Cursor;
 
 mod api_key_repository;
-mod api_key_service;
+mod create_api_key_handler;
+mod delete_api_key_handler;
+mod get_api_key_handler;
+mod list_api_keys_handler;
+mod update_api_key_handler;
+mod validate_api_key_handler;
 
 #[derive(Debug, Clone)]
 pub struct ApiKey {
@@ -31,22 +41,4 @@ impl Cursor for ApiKey {
             created_at: self.created_at,
         }
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("API key not found with ID: {0}")]
-    NotFound(Uuid),
-
-    #[error("not authorized to access API key with ID: {0}")]
-    Forbidden(Uuid),
-
-    #[error("invalid API key")]
-    Auth,
-
-    #[error(transparent)]
-    Crypto(#[from] colette_util::CryptoError),
-
-    #[error(transparent)]
-    Sqlx(#[from] sqlx::Error),
 }

@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::tag;
+use colette_core::Handler as _;
 
 use super::TAGS_TAG;
 use crate::{
@@ -26,11 +26,17 @@ pub(super) async fn handler(
     Path(Id(id)): Path<Id>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.tag_service.delete_tag(id, user_id).await {
+    match state
+        .delete_tag
+        .handle(colette_core::tag::DeleteTagCommand { id, user_id })
+        .await
+    {
         Ok(()) => Ok(OkResponse),
         Err(e) => match e {
-            tag::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            tag::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            colette_core::tag::DeleteTagError::Forbidden(_) => {
+                Err(ErrResponse::Forbidden(e.into()))
+            }
+            colette_core::tag::DeleteTagError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

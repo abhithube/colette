@@ -3,7 +3,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::bookmark;
+use colette_core::{
+    Handler as _,
+    bookmark::{DeleteBookmarkCommand, DeleteBookmarkError},
+};
 
 use super::BOOKMARKS_TAG;
 use crate::{
@@ -26,11 +29,15 @@ pub(super) async fn handler(
     Path(Id(id)): Path<Id>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.bookmark_service.delete_bookmark(id, user_id).await {
+    match state
+        .delete_bookmark
+        .handle(DeleteBookmarkCommand { id, user_id })
+        .await
+    {
         Ok(()) => Ok(OkResponse),
         Err(e) => match e {
-            bookmark::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            bookmark::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            DeleteBookmarkError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            DeleteBookmarkError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

@@ -1,19 +1,19 @@
 use uuid::Uuid;
 
-use super::{Collection, Error};
-use crate::bookmark::BookmarkFilter;
+use super::Collection;
+use crate::{RepositoryError, bookmark::BookmarkFilter};
 
 #[async_trait::async_trait]
 pub trait CollectionRepository: Send + Sync + 'static {
-    async fn find(&self, params: CollectionFindParams) -> Result<Vec<Collection>, Error>;
+    async fn find(&self, params: CollectionFindParams) -> Result<Vec<Collection>, RepositoryError>;
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<CollectionById>, Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<CollectionById>, RepositoryError>;
 
-    async fn insert(&self, params: CollectionInsertParams) -> Result<Uuid, Error>;
+    async fn insert(&self, params: CollectionInsertParams) -> Result<Uuid, RepositoryError>;
 
-    async fn update(&self, params: CollectionUpdateParams) -> Result<(), Error>;
+    async fn update(&self, params: CollectionUpdateParams) -> Result<(), RepositoryError>;
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), Error>;
+    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError>;
 }
 
 #[derive(Debug, Clone, Default)]

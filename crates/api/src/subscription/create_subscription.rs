@@ -3,13 +3,16 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::subscription;
+use colette_core::{
+    Handler as _,
+    subscription::{CreateSubscriptionCommand, CreateSubscriptionError},
+};
 use uuid::Uuid;
 
-use super::{SUBSCRIPTIONS_TAG, Subscription};
+use super::SUBSCRIPTIONS_TAG;
 use crate::{
     ApiState,
-    common::{ApiError, Auth, Json, NonEmptyString},
+    common::{ApiError, Auth, CreatedResource, Json, NonEmptyString},
 };
 
 #[utoipa::path(
@@ -28,13 +31,18 @@ pub(super) async fn handler(
     Json(body): Json<SubscriptionCreate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .subscription_service
-        .create_subscription(body.into(), user_id)
+        .create_subscription
+        .handle(CreateSubscriptionCommand {
+            title: body.title.into(),
+            description: body.description.map(Into::into),
+            feed_id: body.feed_id,
+            user_id,
+        })
         .await
     {
-        Ok(data) => Ok(OkResponse(data.into())),
+        Ok(data) => Ok(OkResponse(CreatedResource { id: data.id })),
         Err(e) => match e {
-            subscription::Error::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
+            CreateSubscriptionError::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
@@ -54,19 +62,9 @@ pub(super) struct SubscriptionCreate {
     feed_id: Uuid,
 }
 
-impl From<SubscriptionCreate> for subscription::SubscriptionCreate {
-    fn from(value: SubscriptionCreate) -> Self {
-        Self {
-            title: value.title.into(),
-            description: value.description.map(Into::into),
-            feed_id: value.feed_id,
-        }
-    }
-}
-
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::CREATED, description = "Created subscription")]
-pub(super) struct OkResponse(Subscription);
+#[response(status = StatusCode::CREATED, description = "New subscription ID")]
+pub(super) struct OkResponse(CreatedResource);
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {

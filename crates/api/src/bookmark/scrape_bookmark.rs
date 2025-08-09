@@ -4,7 +4,10 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
-use colette_core::bookmark;
+use colette_core::{
+    Handler as _,
+    bookmark::{self, ScrapeBookmarkCommand},
+};
 use url::Url;
 
 use super::BOOKMARKS_TAG;
@@ -27,10 +30,13 @@ pub(super) async fn handler(
     State(state): State<ApiState>,
     Json(body): Json<BookmarkScrape>,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.bookmark_service.scrape_bookmark(body.into()).await {
+    match state
+        .scrape_bookmark
+        .handle(ScrapeBookmarkCommand { url: body.url })
+        .await
+    {
         Ok(data) => Ok(OkResponse(data.into())),
-        Err(bookmark::Error::Scraper(e)) => Err(ErrResponse::BadGateway(e.into())),
-        Err(e) => Err(ErrResponse::InternalServerError(e.into())),
+        Err(e) => Err(ErrResponse::BadGateway(e.into())),
     }
 }
 
@@ -40,12 +46,6 @@ pub(super) async fn handler(
 pub(super) struct BookmarkScrape {
     /// URL of a webpage to scrape
     url: Url,
-}
-
-impl From<BookmarkScrape> for bookmark::BookmarkScrape {
-    fn from(value: BookmarkScrape) -> Self {
-        Self { url: value.url }
-    }
 }
 
 /// Scraped bookmark

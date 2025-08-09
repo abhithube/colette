@@ -3,7 +3,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::collection;
+use colette_core::{
+    Handler as _,
+    collection::{DeleteCollectionCommand, DeleteCollectionError},
+};
 
 use super::COLLECTIONS_TAG;
 use crate::{
@@ -27,14 +30,14 @@ pub(super) async fn handler(
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .collection_service
-        .delete_collection(id, user_id)
+        .delete_collection
+        .handle(DeleteCollectionCommand { id, user_id })
         .await
     {
         Ok(()) => Ok(OkResponse),
         Err(e) => match e {
-            collection::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            collection::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            DeleteCollectionError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            DeleteCollectionError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

@@ -4,7 +4,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::collection::CollectionCursor;
+use colette_core::{
+    Handler as _,
+    collection::{CollectionCursor, ListCollectionsQuery},
+};
 
 use super::{COLLECTIONS_TAG, Collection};
 use crate::{
@@ -28,9 +31,19 @@ pub(super) async fn handler(
     Query(query): Query<CollectionListQuery>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
+    let cursor = query
+        .cursor
+        .map(|e| decode_cursor::<CollectionCursor>(&e))
+        .transpose()
+        .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
+
     match state
-        .collection_service
-        .list_collections(query.try_into()?, user_id)
+        .list_collections
+        .handle(ListCollectionsQuery {
+            cursor,
+            limit: Some(PAGINATION_LIMIT),
+            user_id,
+        })
         .await
     {
         Ok(collections) => {
@@ -51,23 +64,6 @@ pub(super) struct CollectionListQuery {
     /// Pagination cursor
     #[param(nullable = false)]
     cursor: Option<String>,
-}
-
-impl TryFrom<CollectionListQuery> for colette_core::collection::CollectionListQuery {
-    type Error = ErrResponse;
-
-    fn try_from(value: CollectionListQuery) -> Result<Self, Self::Error> {
-        let cursor = value
-            .cursor
-            .map(|e| decode_cursor::<CollectionCursor>(&e))
-            .transpose()
-            .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
-
-        Ok(Self {
-            cursor,
-            limit: Some(PAGINATION_LIMIT),
-        })
-    }
 }
 
 #[derive(utoipa::IntoResponses)]

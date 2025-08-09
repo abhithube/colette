@@ -4,13 +4,17 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
+pub use create_job_handler::*;
+pub use get_job_handler::*;
 pub use job_repository::*;
-pub use job_service::*;
 use serde_json::Value;
+pub use update_job_handler::*;
 use uuid::Uuid;
 
+mod create_job_handler;
+mod get_job_handler;
 mod job_repository;
-mod job_service;
+mod update_job_handler;
 
 #[derive(Debug, Clone)]
 pub struct Job {
@@ -58,16 +62,4 @@ impl FromStr for JobStatus {
             _ => unreachable!(),
         }
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("Job not found with ID: {0}")]
-    NotFound(Uuid),
-
-    #[error("Already completed job with ID: {0}")]
-    AlreadyCompleted(Uuid),
-
-    #[error(transparent)]
-    Sqlx(#[from] sqlx::Error),
 }

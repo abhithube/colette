@@ -3,6 +3,7 @@ use axum::{
     http::{HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
+use colette_core::{Handler, bookmark::ExportBookmarksQuery};
 
 use super::BOOKMARKS_TAG;
 use crate::{
@@ -23,7 +24,11 @@ pub(super) async fn handler(
     State(state): State<ApiState>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.bookmark_service.export_bookmarks(user_id).await {
+    match state
+        .export_bookmarks
+        .handle(ExportBookmarksQuery { user_id })
+        .await
+    {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }

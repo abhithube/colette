@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    User,
-    user::{Error, UserInsertParams, UserRepository, UserUpdateParams},
+    RepositoryError, User,
+    user::{UserInsertParams, UserRepository, UserUpdateParams},
 };
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -21,7 +21,7 @@ impl PostgresUserRepository {
 
 #[async_trait::async_trait]
 impl UserRepository for PostgresUserRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, RepositoryError> {
         let user = sqlx::query_file_as!(UserRow, "queries/users/find_by_id.sql", id)
             .map(Into::into)
             .fetch_optional(&self.pool)
@@ -30,7 +30,7 @@ impl UserRepository for PostgresUserRepository {
         Ok(user)
     }
 
-    async fn find_by_email(&self, email: String) -> Result<Option<User>, Error> {
+    async fn find_by_email(&self, email: String) -> Result<Option<User>, RepositoryError> {
         let user = sqlx::query_file_as!(UserRow, "queries/users/find_by_email.sql", email)
             .map(Into::into)
             .fetch_optional(&self.pool)
@@ -39,7 +39,7 @@ impl UserRepository for PostgresUserRepository {
         Ok(user)
     }
 
-    async fn insert(&self, params: UserInsertParams) -> Result<Uuid, Error> {
+    async fn insert(&self, params: UserInsertParams) -> Result<Uuid, RepositoryError> {
         let mut tx = self.pool.begin().await?;
 
         let id = sqlx::query_file_scalar!(
@@ -66,7 +66,7 @@ impl UserRepository for PostgresUserRepository {
         Ok(id)
     }
 
-    async fn update(&self, params: UserUpdateParams) -> Result<(), Error> {
+    async fn update(&self, params: UserUpdateParams) -> Result<(), RepositoryError> {
         let (has_display_name, display_name) = if let Some(display_name) = params.display_name {
             (true, display_name)
         } else {

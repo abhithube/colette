@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::CookieJar;
+use colette_core::{Handler as _, auth::RefreshAccessTokenCommand};
 
 use super::{AUTH_TAG, REFRESH_COOKIE, TokenData};
 use crate::{
@@ -29,8 +30,10 @@ pub(super) async fn handler(
     };
 
     match state
-        .auth_service
-        .refresh_access_token(refresh_cookie.value())
+        .refresh_access_token
+        .handle(RefreshAccessTokenCommand {
+            refresh_token: refresh_cookie.value().to_string(),
+        })
         .await
     {
         Ok(tokens) => {

@@ -1,24 +1,25 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use super::{ApiKey, Error};
+use super::ApiKey;
+use crate::RepositoryError;
 
 #[async_trait::async_trait]
 pub trait ApiKeyRepository: Send + Sync + 'static {
-    async fn find(&self, params: ApiKeyFindParams) -> Result<Vec<ApiKey>, Error>;
+    async fn find(&self, params: ApiKeyFindParams) -> Result<Vec<ApiKey>, RepositoryError>;
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<ApiKeyById>, Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<ApiKeyById>, RepositoryError>;
 
     async fn find_by_lookup_hash(
         &self,
         lookup_hash: String,
-    ) -> Result<Option<ApiKeyByLookupHash>, Error>;
+    ) -> Result<Option<ApiKeyByLookupHash>, RepositoryError>;
 
-    async fn insert(&self, params: ApiKeyInsertParams) -> Result<Uuid, Error>;
+    async fn insert(&self, params: ApiKeyInsertParams) -> Result<ApiKey, RepositoryError>;
 
-    async fn update(&self, params: ApiKeyUpdateParams) -> Result<(), Error>;
+    async fn update(&self, params: ApiKeyUpdateParams) -> Result<(), RepositoryError>;
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), Error>;
+    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError>;
 }
 
 #[derive(Debug, Clone, Default)]

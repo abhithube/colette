@@ -1,9 +1,9 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    ApiKey,
+    ApiKey, RepositoryError,
     api_key::{
         ApiKeyById, ApiKeyByLookupHash, ApiKeyFindParams, ApiKeyInsertParams, ApiKeyRepository,
-        ApiKeyUpdateParams, Error,
+        ApiKeyUpdateParams,
     },
 };
 use sqlx::PgPool;
@@ -22,7 +22,7 @@ impl PostgresApiKeyRepository {
 
 #[async_trait::async_trait]
 impl ApiKeyRepository for PostgresApiKeyRepository {
-    async fn find(&self, params: ApiKeyFindParams) -> Result<Vec<ApiKey>, Error> {
+    async fn find(&self, params: ApiKeyFindParams) -> Result<Vec<ApiKey>, RepositoryError> {
         let api_keys = sqlx::query_file_as!(
             ApiKeyRow,
             "queries/api_keys/find.sql",
@@ -38,7 +38,7 @@ impl ApiKeyRepository for PostgresApiKeyRepository {
         Ok(api_keys)
     }
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<ApiKeyById>, Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<ApiKeyById>, RepositoryError> {
         let api_key = sqlx::query_file_as!(ApiKeyByIdRow, "queries/api_keys/find_by_id.sql", id)
             .map(Into::into)
             .fetch_optional(&self.pool)
@@ -50,7 +50,7 @@ impl ApiKeyRepository for PostgresApiKeyRepository {
     async fn find_by_lookup_hash(
         &self,
         lookup_hash: String,
-    ) -> Result<Option<ApiKeyByLookupHash>, Error> {
+    ) -> Result<Option<ApiKeyByLookupHash>, RepositoryError> {
         let api_key = sqlx::query_file_as!(
             ApiKeyByLookupHashRow,
             "queries/api_keys/find_by_lookup_hash.sql",
@@ -63,8 +63,9 @@ impl ApiKeyRepository for PostgresApiKeyRepository {
         Ok(api_key)
     }
 
-    async fn insert(&self, params: ApiKeyInsertParams) -> Result<Uuid, Error> {
-        let id = sqlx::query_file_scalar!(
+    async fn insert(&self, params: ApiKeyInsertParams) -> Result<ApiKey, RepositoryError> {
+        let api_key = sqlx::query_file_as!(
+            ApiKeyRow,
             "queries/api_keys/insert.sql",
             params.lookup_hash,
             params.verification_hash,
@@ -72,13 +73,14 @@ impl ApiKeyRepository for PostgresApiKeyRepository {
             params.preview,
             params.user_id
         )
+        .map(Into::into)
         .fetch_one(&self.pool)
         .await?;
 
-        Ok(id)
+        Ok(api_key)
     }
 
-    async fn update(&self, params: ApiKeyUpdateParams) -> Result<(), Error> {
+    async fn update(&self, params: ApiKeyUpdateParams) -> Result<(), RepositoryError> {
         sqlx::query_file!("queries/api_keys/update.sql", params.id, params.title)
             .execute(&self.pool)
             .await?;
@@ -86,7 +88,7 @@ impl ApiKeyRepository for PostgresApiKeyRepository {
         Ok(())
     }
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
+    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError> {
         sqlx::query_file!("queries/api_keys/delete_by_id.sql", id)
             .execute(&self.pool)
             .await?;

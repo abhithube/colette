@@ -1,12 +1,20 @@
 use chrono::{DateTime, Utc};
 pub use collection_repository::*;
-pub use collection_service::*;
+pub use create_collection_handler::*;
+pub use delete_collection_handler::*;
+pub use get_collection_handler::*;
+pub use list_collections_handler::*;
+pub use update_collection_handler::*;
 use uuid::Uuid;
 
 use crate::{bookmark::BookmarkFilter, pagination::Cursor};
 
 mod collection_repository;
-mod collection_service;
+mod create_collection_handler;
+mod delete_collection_handler;
+mod get_collection_handler;
+mod list_collections_handler;
+mod update_collection_handler;
 
 #[derive(Debug, Clone)]
 pub struct Collection {
@@ -31,19 +39,4 @@ impl Cursor for Collection {
             title: self.title.clone(),
         }
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("collection not found with ID: {0}")]
-    NotFound(Uuid),
-
-    #[error("not authorized to access collection with ID: {0}")]
-    Forbidden(Uuid),
-
-    #[error("collection already exists with title: {0}")]
-    Conflict(String),
-
-    #[error(transparent)]
-    Sqlx(#[from] sqlx::Error),
 }

@@ -4,23 +4,45 @@ use axum_embed::{FallbackBehavior, ServeEmbed};
 use chrono::Duration;
 use colette_api::{ApiConfig, ApiOidcConfig, ApiServerConfig, ApiState, ApiStorageConfig};
 use colette_core::{
-    api_key::ApiKeyService,
-    auth::{AuthConfig, AuthService, JwtConfig, OidcConfig},
-    backup::BackupService,
-    bookmark::BookmarkService,
-    collection::CollectionService,
-    feed::FeedService,
-    feed_entry::FeedEntryService,
-    job::JobService,
-    subscription::SubscriptionService,
-    subscription_entry::SubscriptionEntryService,
-    tag::TagService,
+    api_key::{
+        CreateApiKeyHandler, DeleteApiKeyHandler, GetApiKeyHandler, ListApiKeysHandler,
+        UpdateApiKeyHandler, ValidateApiKeyHandler,
+    },
+    auth::{
+        AuthConfig, BuildAuthorizationUrlHandler, ExchangeCodeHandler, GetUserHandler, JwtConfig,
+        LoginUserHandler, OidcConfig, RefreshAccessTokenHandler, RegisterUserHandler,
+        ValidateAccessTokenHandler,
+    },
+    backup::{ExportBackupHandler, ImportBackupHandler},
+    bookmark::{
+        ArchiveThumbnailHandler, CreateBookmarkHandler, DeleteBookmarkHandler,
+        ExportBookmarksHandler, GetBookmarkHandler, ImportBookmarksHandler,
+        LinkBookmarkTagsHandler, ListBookmarksHandler, RefreshBookmarkHandler,
+        ScrapeBookmarkHandler, UpdateBookmarkHandler,
+    },
+    collection::{
+        CreateCollectionHandler, DeleteCollectionHandler, GetCollectionHandler,
+        ListCollectionsHandler, UpdateCollectionHandler,
+    },
+    feed::{DetectFeedsHandler, GetFeedHandler, ListFeedsHandler, RefreshFeedHandler},
+    feed_entry::{GetFeedEntryHandler, ListFeedEntriesHandler},
+    job::{CreateJobHandler, GetJobHandler, UpdateJobHandler},
+    subscription::{
+        CreateSubscriptionHandler, DeleteSubscriptionHandler, ExportSubscriptionsHandler,
+        GetSubscriptionHandler, ImportSubscriptionsHandler, LinkSubscriptionTagsHandler,
+        ListSubscriptionsHandler, UpdateSubscriptionHandler,
+    },
+    subscription_entry::{
+        GetSubscriptionEntryHandler, ListSubscriptionEntriesHandler,
+        MarkSubscriptionEntryAsReadHandler, MarkSubscriptionEntryAsUnreadHandler,
+    },
+    tag::{CreateTagHandler, DeleteTagHandler, GetTagHandler, ListTagsHandler, UpdateTagHandler},
 };
 use colette_http::{HttpClient, ReqwestClient};
 use colette_job::{
-    archive_thumbnail::ArchiveThumbnailHandler, import_bookmarks::ImportBookmarksHandler,
-    refresh_feeds::RefreshFeedsHandler, scrape_bookmark::ScrapeBookmarkHandler,
-    scrape_feed::ScrapeFeedHandler,
+    archive_thumbnail::ArchiveThumbnailJobHandler, import_bookmarks::ImportBookmarksJobHandler,
+    refresh_feeds::RefreshFeedsJobHandler, scrape_bookmark::ScrapeBookmarkJobHandler,
+    scrape_feed::ScrapeFeedJobHandler,
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::{JobConsumerAdapter, JobProducerAdapter, LocalQueue};
@@ -151,39 +173,28 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )
     };
 
-    let bookmark_repository = Arc::new(PostgresBookmarkRepository::new(pool.clone()));
-    let collection_repository = Arc::new(PostgresCollectionRepository::new(pool.clone()));
-    let feed_entry_repository = Arc::new(PostgresFeedEntryRepository::new(pool.clone()));
-    let job_repository = Arc::new(PostgresJobRepository::new(pool.clone()));
-    let subscription_repository = Arc::new(PostgresSubscriptionRepository::new(pool.clone()));
-    let subscription_entry_repository =
-        Arc::new(PostgresSubscriptionEntryRepository::new(pool.clone()));
-    let tag_repository = Arc::new(PostgresTagRepository::new(pool.clone()));
+    let account_repository = PostgresAccountRepository::new(pool.clone());
+    let api_key_repository = PostgresApiKeyRepository::new(pool.clone());
+    let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
+    let collection_repository = PostgresCollectionRepository::new(pool.clone());
+    let feed_entry_repository = PostgresFeedEntryRepository::new(pool.clone());
+    let job_repository = PostgresJobRepository::new(pool.clone());
+    let subscription_repository = PostgresSubscriptionRepository::new(pool.clone());
+    let subscription_entry_repository = PostgresSubscriptionEntryRepository::new(pool.clone());
+    let tag_repository = PostgresTagRepository::new(pool.clone());
 
-    let bookmark_service = Arc::new(BookmarkService::new(
-        bookmark_repository.clone(),
-        collection_repository.clone(),
-        job_repository.clone(),
+    let bookmark_scraper = Arc::new(BookmarkScraper::new(
         http_client.clone(),
-        BookmarkScraper::new(
-            http_client.clone(),
-            register_bookmark_plugins(reqwest_client.clone()),
-        ),
-        storage_adapter,
-        archive_thumbnail_producer.clone(),
-        import_bookmarks_producer.clone(),
+        register_bookmark_plugins(reqwest_client.clone()),
     ));
-    let feed_service = Arc::new(FeedService::new(
-        Arc::new(PostgresFeedRepository::new(pool.clone())),
-        feed_entry_repository.clone(),
+
+    let feed_repository = PostgresFeedRepository::new(pool.clone());
+    let user_repository = PostgresUserRepository::new(pool.clone());
+
+    let feed_scraper = Arc::new(FeedScraper::new(
         http_client.clone(),
-        FeedScraper::new(
-            http_client.clone(),
-            register_feed_plugins(reqwest_client.clone()),
-        ),
+        register_feed_plugins(reqwest_client),
     ));
-    let job_service = Arc::new(JobService::new(job_repository.clone()));
-    let subscription_service = Arc::new(SubscriptionService::new(subscription_repository.clone()));
 
     let mut oidc_config = None::<OidcConfig>;
     if let Some(config) = app_config.oidc.clone() {
@@ -205,43 +216,171 @@ async fn main() -> Result<(), Box<dyn Error>> {
         })
     }
 
+    let auth_config = AuthConfig {
+        jwt: JwtConfig {
+            issuer: app_config.jwt.issuer,
+            audience: app_config.jwt.audience,
+            encoding_key: EncodingKey::from_secret(app_config.jwt.secret.as_bytes()),
+            decoding_key: DecodingKey::from_secret(app_config.jwt.secret.as_bytes()),
+            access_duration: Duration::minutes(15),
+            refresh_duration: Duration::days(7),
+        },
+        oidc: oidc_config,
+    };
+
+    let list_bookmarks_handler = Arc::new(ListBookmarksHandler::new(
+        bookmark_repository.clone(),
+        collection_repository.clone(),
+    ));
+    let refresh_bookmark_handler = Arc::new(RefreshBookmarkHandler::new(
+        bookmark_repository.clone(),
+        bookmark_scraper.clone(),
+    ));
+    let archive_thumbnail_handler = Arc::new(ArchiveThumbnailHandler::new(
+        bookmark_repository.clone(),
+        http_client.clone(),
+        storage_adapter,
+    ));
+    let list_feeds_handler = Arc::new(ListFeedsHandler::new(feed_repository.clone()));
+    let refresh_feed_handler = Arc::new(RefreshFeedHandler::new(
+        feed_repository.clone(),
+        feed_entry_repository.clone(),
+        feed_scraper.clone(),
+    ));
+    let get_job_handler = Arc::new(GetJobHandler::new(job_repository.clone()));
+    let create_job_handler = Arc::new(CreateJobHandler::new(job_repository.clone()));
+    let update_job_handler = Arc::new(UpdateJobHandler::new(job_repository.clone()));
+
     let api_state = ApiState {
-        api_key_service: Arc::new(ApiKeyService::new(Arc::new(PostgresApiKeyRepository::new(
-            pool.clone(),
-        )))),
-        auth_service: Arc::new(AuthService::new(
-            Arc::new(PostgresUserRepository::new(pool.clone())),
-            Arc::new(PostgresAccountRepository::new(pool.clone())),
-            http_client,
-            AuthConfig {
-                jwt: JwtConfig {
-                    issuer: app_config.jwt.issuer,
-                    audience: app_config.jwt.audience,
-                    encoding_key: EncodingKey::from_secret(app_config.jwt.secret.as_bytes()),
-                    decoding_key: DecodingKey::from_secret(app_config.jwt.secret.as_bytes()),
-                    access_duration: Duration::minutes(15),
-                    refresh_duration: Duration::days(7),
-                },
-                oidc: oidc_config.clone(),
-            },
+        // API Keys
+        list_api_keys: Arc::new(ListApiKeysHandler::new(api_key_repository.clone())),
+        get_api_key: Arc::new(GetApiKeyHandler::new(api_key_repository.clone())),
+        create_api_key: Arc::new(CreateApiKeyHandler::new(api_key_repository.clone())),
+        update_api_key: Arc::new(UpdateApiKeyHandler::new(api_key_repository.clone())),
+        delete_api_key: Arc::new(DeleteApiKeyHandler::new(api_key_repository.clone())),
+        validate_api_key: Arc::new(ValidateApiKeyHandler::new(api_key_repository)),
+
+        // Auth
+        build_authorization_url: Arc::new(BuildAuthorizationUrlHandler::new(auth_config.clone())),
+        exchange_code: Arc::new(ExchangeCodeHandler::new(
+            user_repository.clone(),
+            account_repository.clone(),
+            http_client.clone(),
+            auth_config.clone(),
         )),
-        backup_service: Arc::new(BackupService::new(
-            Arc::new(PostgresBackupRepository::new(pool.clone())),
-            bookmark_repository,
-            subscription_repository,
+        get_user: Arc::new(GetUserHandler::new(user_repository.clone())),
+        login_user: Arc::new(LoginUserHandler::new(
+            account_repository,
+            user_repository.clone(),
+            auth_config.clone(),
+        )),
+        refresh_access_token: Arc::new(RefreshAccessTokenHandler::new(
+            user_repository.clone(),
+            auth_config.clone(),
+        )),
+        register_user: Arc::new(RegisterUserHandler::new(user_repository)),
+        validate_access_token: Arc::new(ValidateAccessTokenHandler::new(auth_config)),
+
+        // Backup
+        import_backup: Arc::new(ImportBackupHandler::new(PostgresBackupRepository::new(
+            pool,
+        ))),
+        export_backup: Arc::new(ExportBackupHandler::new(
+            bookmark_repository.clone(),
+            subscription_repository.clone(),
             tag_repository.clone(),
         )),
-        bookmark_service: bookmark_service.clone(),
-        collection_service: Arc::new(CollectionService::new(collection_repository.clone())),
-        feed_service: feed_service.clone(),
-        feed_entry_service: Arc::new(FeedEntryService::new(feed_entry_repository)),
-        job_service: job_service.clone(),
-        subscription_service: subscription_service.clone(),
-        subscription_entry_service: Arc::new(SubscriptionEntryService::new(
-            subscription_entry_repository,
+
+        // Bookmarks
+        list_bookmarks: list_bookmarks_handler.clone(),
+        get_bookmark: Arc::new(GetBookmarkHandler::new(bookmark_repository.clone())),
+        create_bookmark: Arc::new(CreateBookmarkHandler::new(
+            bookmark_repository.clone(),
+            job_repository.clone(),
+            archive_thumbnail_producer.clone(),
+        )),
+        update_bookmark: Arc::new(UpdateBookmarkHandler::new(
+            bookmark_repository.clone(),
+            job_repository.clone(),
+            archive_thumbnail_producer.clone(),
+        )),
+        delete_bookmark: Arc::new(DeleteBookmarkHandler::new(
+            bookmark_repository.clone(),
+            job_repository.clone(),
+            archive_thumbnail_producer,
+        )),
+        scrape_bookmark: Arc::new(ScrapeBookmarkHandler::new(bookmark_scraper)),
+        refresh_bookmark: refresh_bookmark_handler.clone(),
+        link_bookmark_tags: Arc::new(LinkBookmarkTagsHandler::new(bookmark_repository.clone())),
+        import_bookmarks: Arc::new(ImportBookmarksHandler::new(
+            bookmark_repository.clone(),
+            job_repository,
+            import_bookmarks_producer,
+        )),
+        export_bookmarks: Arc::new(ExportBookmarksHandler::new(bookmark_repository)),
+        archive_thumbnail: archive_thumbnail_handler.clone(),
+
+        // Collections
+        list_collections: Arc::new(ListCollectionsHandler::new(collection_repository.clone())),
+        get_collection: Arc::new(GetCollectionHandler::new(collection_repository.clone())),
+        create_collection: Arc::new(CreateCollectionHandler::new(collection_repository.clone())),
+        update_collection: Arc::new(UpdateCollectionHandler::new(collection_repository.clone())),
+        delete_collection: Arc::new(DeleteCollectionHandler::new(collection_repository.clone())),
+
+        // Feeds
+        list_feeds: list_feeds_handler.clone(),
+        get_feed: Arc::new(GetFeedHandler::new(feed_repository)),
+        detect_feeds: Arc::new(DetectFeedsHandler::new(http_client, feed_scraper)),
+        refresh_feed: refresh_feed_handler.clone(),
+
+        // Feed Entries
+        list_feed_entries: Arc::new(ListFeedEntriesHandler::new(feed_entry_repository.clone())),
+        get_feed_entry: Arc::new(GetFeedEntryHandler::new(feed_entry_repository)),
+
+        // Subscriptions
+        list_subscriptions: Arc::new(ListSubscriptionsHandler::new(
+            subscription_repository.clone(),
+        )),
+        get_subscription: Arc::new(GetSubscriptionHandler::new(subscription_repository.clone())),
+        create_subscription: Arc::new(CreateSubscriptionHandler::new(
+            subscription_repository.clone(),
+        )),
+        update_subscription: Arc::new(UpdateSubscriptionHandler::new(
+            subscription_repository.clone(),
+        )),
+        delete_subscription: Arc::new(DeleteSubscriptionHandler::new(
+            subscription_repository.clone(),
+        )),
+        link_subscription_tags: Arc::new(LinkSubscriptionTagsHandler::new(
+            subscription_repository.clone(),
+        )),
+        import_subscriptions: Arc::new(ImportSubscriptionsHandler::new(
+            subscription_repository.clone(),
+        )),
+        export_subscriptions: Arc::new(ExportSubscriptionsHandler::new(subscription_repository)),
+
+        // Subscription Entries
+        list_subscription_entries: Arc::new(ListSubscriptionEntriesHandler::new(
+            subscription_entry_repository.clone(),
             collection_repository,
         )),
-        tag_service: Arc::new(TagService::new(tag_repository)),
+        get_subscription_entry: Arc::new(GetSubscriptionEntryHandler::new(
+            subscription_entry_repository.clone(),
+        )),
+        mark_subscription_entry_as_read: Arc::new(MarkSubscriptionEntryAsReadHandler::new(
+            subscription_entry_repository.clone(),
+        )),
+        mark_subscription_entry_as_unread: Arc::new(MarkSubscriptionEntryAsUnreadHandler::new(
+            subscription_entry_repository,
+        )),
+
+        // Tags
+        list_tags: Arc::new(ListTagsHandler::new(tag_repository.clone())),
+        get_tag: Arc::new(GetTagHandler::new(tag_repository.clone())),
+        create_tag: Arc::new(CreateTagHandler::new(tag_repository.clone())),
+        update_tag: Arc::new(UpdateTagHandler::new(tag_repository.clone())),
+        delete_tag: Arc::new(DeleteTagHandler::new(tag_repository)),
+
         config: ApiConfig {
             server: ApiServerConfig {
                 base_url: app_config.server.base_url,
@@ -274,36 +413,40 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
 
     let mut scrape_feed_worker = JobWorker::new(
-        job_service.clone(),
+        get_job_handler.clone(),
+        update_job_handler.clone(),
         scrape_feed_consumer,
         ServiceBuilder::new()
             .concurrency_limit(5)
-            .service(ScrapeFeedHandler::new(feed_service.clone()))
+            .service(ScrapeFeedJobHandler::new(refresh_feed_handler))
             .boxed(),
     );
     let mut scrape_bookmark_worker = JobWorker::new(
-        job_service.clone(),
+        get_job_handler.clone(),
+        update_job_handler.clone(),
         scrape_bookmark_consumer,
         ServiceBuilder::new()
             .concurrency_limit(5)
-            .service(ScrapeBookmarkHandler::new(bookmark_service.clone()))
+            .service(ScrapeBookmarkJobHandler::new(refresh_bookmark_handler))
             .boxed(),
     );
     let mut archive_thumbnail_worker = JobWorker::new(
-        job_service.clone(),
+        get_job_handler.clone(),
+        update_job_handler.clone(),
         archive_thumbnail_consumer,
         ServiceBuilder::new()
             .concurrency_limit(5)
-            .service(ArchiveThumbnailHandler::new(bookmark_service.clone()))
+            .service(ArchiveThumbnailJobHandler::new(archive_thumbnail_handler))
             .boxed(),
     );
     let mut import_bookmarks_worker = JobWorker::new(
-        job_service.clone(),
+        get_job_handler.clone(),
+        update_job_handler.clone(),
         import_bookmarks_consumer,
         ServiceBuilder::new()
-            .service(ImportBookmarksHandler::new(
-                bookmark_service,
-                job_service.clone(),
+            .service(ImportBookmarksJobHandler::new(
+                list_bookmarks_handler,
+                create_job_handler.clone(),
                 Arc::new(Mutex::new(scrape_bookmark_producer)),
             ))
             .boxed(),
@@ -313,11 +456,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let mut worker = CronWorker::new(
             "refresh_feeds",
             "0 * * * * *".parse().unwrap(),
-            job_service.clone(),
+            get_job_handler,
+            create_job_handler.clone(),
+            update_job_handler,
             ServiceBuilder::new()
-                .service(RefreshFeedsHandler::new(
-                    feed_service,
-                    job_service,
+                .service(RefreshFeedsJobHandler::new(
+                    list_feeds_handler,
+                    create_job_handler,
                     Arc::new(Mutex::new(scrape_feed_producer)),
                 ))
                 .boxed(),

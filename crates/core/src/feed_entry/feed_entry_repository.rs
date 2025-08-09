@@ -1,11 +1,12 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use super::{Error, FeedEntry};
+use super::FeedEntry;
+use crate::RepositoryError;
 
 #[async_trait::async_trait]
 pub trait FeedEntryRepository: Send + Sync + 'static {
-    async fn find(&self, params: FeedEntryFindParams) -> Result<Vec<FeedEntry>, Error>;
+    async fn find(&self, params: FeedEntryFindParams) -> Result<Vec<FeedEntry>, RepositoryError>;
 }
 
 #[derive(Debug, Clone, Default)]

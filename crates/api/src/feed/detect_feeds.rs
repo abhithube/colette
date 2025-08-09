@@ -3,7 +3,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::feed;
+use colette_core::{
+    Handler as _,
+    feed::{self, DetectFeedsCommand, DetectFeedsError},
+};
 use url::Url;
 
 use super::FEEDS_TAG;
@@ -26,9 +29,13 @@ pub(super) async fn handler(
     State(state): State<ApiState>,
     Json(body): Json<FeedDetect>,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.feed_service.detect_feeds(body.into()).await {
+    match state
+        .detect_feeds
+        .handle(DetectFeedsCommand { url: body.url })
+        .await
+    {
         Ok(data) => Ok(OkResponse(data.into_iter().map(Into::into).collect())),
-        Err(feed::Error::Scraper(e)) => Err(ErrResponse::BadGateway(e.into())),
+        Err(DetectFeedsError::Scraper(e)) => Err(ErrResponse::BadGateway(e.into())),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
@@ -39,12 +46,6 @@ pub(super) async fn handler(
 pub(super) struct FeedDetect {
     /// URL of a webpage to detect RSS feeds on
     url: Url,
-}
-
-impl From<FeedDetect> for feed::FeedDetect {
-    fn from(value: FeedDetect) -> Self {
-        Self { url: value.url }
-    }
 }
 
 /// Detected RSS feed

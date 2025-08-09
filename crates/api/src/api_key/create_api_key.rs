@@ -4,7 +4,10 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
-use colette_core::api_key;
+use colette_core::{
+    Handler as _,
+    api_key::{self, CreateApiKeyCommand},
+};
 use uuid::Uuid;
 
 use super::API_KEYS_TAG;
@@ -29,8 +32,11 @@ pub(super) async fn handler(
     Json(body): Json<ApiKeyCreate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .api_key_service
-        .create_api_key(body.into(), user_id)
+        .create_api_key
+        .handle(CreateApiKeyCommand {
+            title: body.title.into(),
+            user_id,
+        })
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),
@@ -45,14 +51,6 @@ pub(super) struct ApiKeyCreate {
     /// Human-readable name for the API key to create, cannot be empty
     #[schema(value_type = String, min_length = 1)]
     title: NonEmptyString,
-}
-
-impl From<ApiKeyCreate> for api_key::ApiKeyCreateData {
-    fn from(value: ApiKeyCreate) -> Self {
-        Self {
-            title: value.title.into(),
-        }
-    }
 }
 
 /// Newly created API key, containing the full value. This value must be saved in a safe location, as subsequent GET requests will only show a preview.

@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::CookieJar;
-use colette_core::auth;
+use colette_core::{Handler as _, auth::ExchangeCodeCommand};
 
 use super::{AUTH_TAG, CODE_VERIFIER_COOKIE, REFRESH_COOKIE, STATE_COOKIE, TokenData};
 use crate::{
@@ -51,8 +51,8 @@ pub(super) async fn handler(
     }
 
     match state
-        .auth_service
-        .exchange_code(auth::CodePayload {
+        .exchange_code
+        .handle(ExchangeCodeCommand {
             code: body.code,
             code_verifier: code_verifier_cookie.value().into(),
         })

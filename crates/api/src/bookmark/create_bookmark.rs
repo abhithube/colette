@@ -4,13 +4,16 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
-use colette_core::bookmark;
+use colette_core::{
+    Handler as _,
+    bookmark::{CreateBookmarkCommand, CreateBookmarkError},
+};
 use url::Url;
 
-use super::{BOOKMARKS_TAG, Bookmark};
+use super::BOOKMARKS_TAG;
 use crate::{
     ApiState,
-    common::{ApiError, Auth, Json, NonEmptyString},
+    common::{ApiError, Auth, CreatedResource, Json, NonEmptyString},
 };
 
 #[utoipa::path(
@@ -29,13 +32,20 @@ pub(super) async fn handler(
     Json(body): Json<BookmarkCreate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .bookmark_service
-        .create_bookmark(body.into(), user_id)
+        .create_bookmark
+        .handle(CreateBookmarkCommand {
+            url: body.url,
+            title: body.title.into(),
+            thumbnail_url: body.thumbnail_url,
+            published_at: body.published_at,
+            author: body.author.map(Into::into),
+            user_id,
+        })
         .await
     {
-        Ok(data) => Ok(OkResponse(data.into())),
+        Ok(data) => Ok(OkResponse(CreatedResource { id: data.id })),
         Err(e) => match e {
-            bookmark::Error::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
+            CreateBookmarkError::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
@@ -59,21 +69,9 @@ pub(super) struct BookmarkCreate {
     author: Option<NonEmptyString>,
 }
 
-impl From<BookmarkCreate> for bookmark::BookmarkCreate {
-    fn from(value: BookmarkCreate) -> Self {
-        Self {
-            url: value.url,
-            title: value.title.into(),
-            thumbnail_url: value.thumbnail_url,
-            published_at: value.published_at,
-            author: value.author.map(Into::into),
-        }
-    }
-}
-
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::CREATED, description = "Created bookmark")]
-pub(super) struct OkResponse(Bookmark);
+#[response(status = StatusCode::CREATED, description = "New bookmark ID")]
+pub(super) struct OkResponse(CreatedResource);
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {

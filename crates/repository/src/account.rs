@@ -1,5 +1,8 @@
-use colette_core::account::{
-    AccountBySubAndProvider, AccountInsertParams, AccountRepository, AccountUpdateParams, Error,
+use colette_core::{
+    RepositoryError,
+    account::{
+        AccountBySubAndProvider, AccountInsertParams, AccountRepository, AccountUpdateParams,
+    },
 };
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -21,7 +24,7 @@ impl AccountRepository for PostgresAccountRepository {
         &self,
         sub: String,
         provider: String,
-    ) -> Result<Option<AccountBySubAndProvider>, Error> {
+    ) -> Result<Option<AccountBySubAndProvider>, RepositoryError> {
         let account = sqlx::query_file_as!(
             AccountBySubAndProviderRow,
             "queries/accounts/find_by_sub_and_provider.sql",
@@ -35,7 +38,7 @@ impl AccountRepository for PostgresAccountRepository {
         Ok(account)
     }
 
-    async fn insert(&self, params: AccountInsertParams) -> Result<Uuid, Error> {
+    async fn insert(&self, params: AccountInsertParams) -> Result<Uuid, RepositoryError> {
         let id = sqlx::query_file_scalar!(
             "queries/accounts/insert.sql",
             params.sub,
@@ -49,7 +52,7 @@ impl AccountRepository for PostgresAccountRepository {
         Ok(id)
     }
 
-    async fn update(&self, params: AccountUpdateParams) -> Result<(), Error> {
+    async fn update(&self, params: AccountUpdateParams) -> Result<(), RepositoryError> {
         let (has_password_hash, password_hash) = if let Some(password_hash) = params.password_hash {
             (true, password_hash)
         } else {

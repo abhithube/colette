@@ -44,8 +44,6 @@ pub(crate) struct Feed {
     /// Timestamp at which the feed was refreshed
     #[schema(required)]
     refreshed_at: Option<DateTime<Utc>>,
-    /// Whether the feed was scraped from a custom plugin
-    is_custom: bool,
 }
 
 impl From<colette_core::Feed> for Feed {
@@ -57,7 +55,6 @@ impl From<colette_core::Feed> for Feed {
             title: value.title,
             description: value.description,
             refreshed_at: value.refreshed_at,
-            is_custom: value.is_custom,
         }
     }
 }

@@ -4,7 +4,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::api_key::{self, ApiKeyCursor};
+use colette_core::{
+    Handler as _,
+    api_key::{ApiKeyCursor, ListApiKeysError, ListApiKeysQuery},
+};
 
 use super::{API_KEYS_TAG, ApiKey};
 use crate::{
@@ -28,9 +31,19 @@ pub(super) async fn handler(
     Query(query): Query<ApiKeyListQuery>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
+    let cursor = query
+        .cursor
+        .map(|e| decode_cursor::<ApiKeyCursor>(&e))
+        .transpose()
+        .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
+
     match state
-        .api_key_service
-        .list_api_keys(query.try_into()?, user_id)
+        .list_api_keys
+        .handle(ListApiKeysQuery {
+            cursor,
+            limit: Some(PAGINATION_LIMIT),
+            user_id,
+        })
         .await
     {
         Ok(api_keys) => {
@@ -53,23 +66,6 @@ pub(super) struct ApiKeyListQuery {
     cursor: Option<String>,
 }
 
-impl TryFrom<ApiKeyListQuery> for api_key::ApiKeyListQuery {
-    type Error = ErrResponse;
-
-    fn try_from(value: ApiKeyListQuery) -> Result<Self, Self::Error> {
-        let cursor = value
-            .cursor
-            .map(|e| decode_cursor::<ApiKeyCursor>(&e))
-            .transpose()
-            .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
-
-        Ok(Self {
-            cursor,
-            limit: Some(PAGINATION_LIMIT),
-        })
-    }
-}
-
 #[derive(utoipa::IntoResponses)]
 #[response(status = StatusCode::OK, description = "Paginated list of API keys")]
 pub(super) struct OkResponse(Paginated<ApiKey>);
@@ -88,6 +84,12 @@ pub(super) enum ErrResponse {
 
     #[response(status = "default", description = "Unknown error")]
     InternalServerError(ApiError),
+}
+
+impl From<ListApiKeysError> for ErrResponse {
+    fn from(value: ListApiKeysError) -> Self {
+        ErrResponse::InternalServerError(value.into())
+    }
 }
 
 impl IntoResponse for ErrResponse {

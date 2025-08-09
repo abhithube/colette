@@ -3,13 +3,16 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::collection;
+use colette_core::{
+    Handler as _,
+    collection::{CreateCollectionCommand, CreateCollectionError},
+};
 
-use super::{COLLECTIONS_TAG, Collection};
+use super::COLLECTIONS_TAG;
 use crate::{
     ApiState,
     bookmark::BookmarkFilter,
-    common::{ApiError, Auth, Json, NonEmptyString},
+    common::{ApiError, Auth, CreatedResource, Json, NonEmptyString},
 };
 
 #[utoipa::path(
@@ -28,13 +31,17 @@ pub(super) async fn handler(
     Json(body): Json<CollectionCreate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .collection_service
-        .create_collection(body.into(), user_id)
+        .create_collection
+        .handle(CreateCollectionCommand {
+            title: body.title.into(),
+            filter: body.filter.into(),
+            user_id,
+        })
         .await
     {
-        Ok(data) => Ok(OkResponse(data.into())),
+        Ok(data) => Ok(OkResponse(CreatedResource { id: data.id })),
         Err(e) => match e {
-            collection::Error::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
+            CreateCollectionError::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
@@ -48,18 +55,9 @@ pub(super) struct CollectionCreate {
     filter: BookmarkFilter,
 }
 
-impl From<CollectionCreate> for collection::CollectionCreate {
-    fn from(value: CollectionCreate) -> Self {
-        Self {
-            title: value.title.into(),
-            filter: value.filter.into(),
-        }
-    }
-}
-
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::CREATED, description = "Created collection")]
-pub(super) struct OkResponse(Collection);
+#[response(status = StatusCode::CREATED, description = "New collection ID")]
+pub(super) struct OkResponse(CreatedResource);
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {

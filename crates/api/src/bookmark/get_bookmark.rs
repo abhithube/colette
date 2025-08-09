@@ -4,7 +4,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::bookmark;
+use colette_core::{
+    Handler as _,
+    bookmark::{GetBookmarkError, GetBookmarkQuery},
+};
 
 use super::{BOOKMARKS_TAG, BookmarkDetails};
 use crate::{
@@ -29,20 +32,18 @@ pub(super) async fn handler(
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .bookmark_service
-        .get_bookmark(
-            bookmark::BookmarkGetQuery {
-                id,
-                with_tags: query.with_tags,
-            },
+        .get_bookmark
+        .handle(GetBookmarkQuery {
+            id,
+            with_tags: query.with_tags,
             user_id,
-        )
+        })
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            bookmark::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            bookmark::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            GetBookmarkError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            GetBookmarkError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

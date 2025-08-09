@@ -1,4 +1,6 @@
 #![feature(bufreader_peek)]
+pub use std::error::Error as StdError;
+
 pub use account::Account;
 pub use api_key::ApiKey;
 pub use backup::Backup;
@@ -26,3 +28,23 @@ pub mod subscription;
 pub mod subscription_entry;
 pub mod tag;
 pub mod user;
+
+#[async_trait::async_trait]
+pub trait Handler<C> {
+    type Response;
+    type Error: StdError;
+
+    async fn handle(&self, cmd: C) -> Result<Self::Response, Self::Error>;
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum RepositoryError {
+    #[error("Resource not found")]
+    NotFound,
+
+    #[error("Duplicate resource")]
+    Duplicate,
+
+    #[error(transparent)]
+    Unknown(#[from] sqlx::Error),
+}

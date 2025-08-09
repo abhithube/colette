@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bytes::Bytes;
+use colette_core::{Handler as _, subscription::ImportSubscriptionsCommand};
 
 use super::SUBSCRIPTIONS_TAG;
 use crate::{
@@ -24,11 +25,11 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Auth { user_id }: Auth,
-    bytes: Bytes,
+    raw: Bytes,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .subscription_service
-        .import_subscriptions(bytes, user_id)
+        .import_subscriptions
+        .handle(ImportSubscriptionsCommand { raw, user_id })
         .await
     {
         Ok(_) => Ok(OkResponse),

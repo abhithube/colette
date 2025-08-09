@@ -3,7 +3,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::subscription;
+use colette_core::{
+    Handler as _,
+    subscription::{DeleteSubscriptionCommand, DeleteSubscriptionError},
+};
 
 use super::SUBSCRIPTIONS_TAG;
 use crate::{
@@ -27,14 +30,14 @@ pub(super) async fn handler(
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .subscription_service
-        .delete_subscription(id, user_id)
+        .delete_subscription
+        .handle(DeleteSubscriptionCommand { id, user_id })
         .await
     {
         Ok(()) => Ok(OkResponse),
         Err(e) => match e {
-            subscription::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            subscription::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            DeleteSubscriptionError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            DeleteSubscriptionError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

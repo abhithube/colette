@@ -3,9 +3,12 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::subscription;
+use colette_core::{
+    Handler as _,
+    subscription::{UpdateSubscriptionCommand, UpdateSubscriptionError},
+};
 
-use super::{SUBSCRIPTIONS_TAG, Subscription};
+use super::SUBSCRIPTIONS_TAG;
 use crate::{
     ApiState,
     common::{ApiError, Auth, Id, Json, NonEmptyString, Path},
@@ -29,14 +32,19 @@ pub(super) async fn handler(
     Json(body): Json<SubscriptionUpdate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .subscription_service
-        .update_subscription(id, body.into(), user_id)
+        .update_subscription
+        .handle(UpdateSubscriptionCommand {
+            id,
+            title: body.title.map(Into::into),
+            description: body.description.map(|e| e.map(Into::into)),
+            user_id,
+        })
         .await
     {
-        Ok(data) => Ok(OkResponse(data.into())),
+        Ok(_) => Ok(OkResponse),
         Err(e) => match e {
-            subscription::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            subscription::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            UpdateSubscriptionError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            UpdateSubscriptionError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
@@ -55,22 +63,13 @@ pub(super) struct SubscriptionUpdate {
     description: Option<Option<NonEmptyString>>,
 }
 
-impl From<SubscriptionUpdate> for subscription::SubscriptionUpdate {
-    fn from(value: SubscriptionUpdate) -> Self {
-        Self {
-            title: value.title.map(Into::into),
-            description: value.description.map(|e| e.map(Into::into)),
-        }
-    }
-}
-
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::OK, description = "Updated subscription")]
-pub(super) struct OkResponse(Subscription);
+#[response(status = StatusCode::NO_CONTENT, description = "Successfully updated subscription")]
+pub(super) struct OkResponse;
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {
-        (StatusCode::OK, axum::Json(self.0)).into_response()
+        StatusCode::NO_CONTENT.into_response()
     }
 }
 

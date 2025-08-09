@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    FeedEntry, SubscriptionEntry,
+    FeedEntry, RepositoryError, SubscriptionEntry,
     subscription_entry::{
-        Error, SubscriptionEntryBooleanField, SubscriptionEntryById, SubscriptionEntryDateField,
+        SubscriptionEntryBooleanField, SubscriptionEntryById, SubscriptionEntryDateField,
         SubscriptionEntryFilter, SubscriptionEntryFindParams, SubscriptionEntryRepository,
         SubscriptionEntryTextField,
     },
@@ -45,7 +45,7 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
     async fn find(
         &self,
         params: SubscriptionEntryFindParams,
-    ) -> Result<Vec<SubscriptionEntry>, Error> {
+    ) -> Result<Vec<SubscriptionEntry>, RepositoryError> {
         let (cursor_published_at, cursor_id) = if let Some((published_at, id)) = params.cursor {
             (Some(published_at), Some(id))
         } else {
@@ -77,7 +77,7 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<SubscriptionEntryById>, Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<SubscriptionEntryById>, RepositoryError> {
         let subscription_entry = sqlx::query_file_as!(
             SubscriptionEntryByIdRow,
             "queries/subscriptions/find_by_id.sql",
@@ -90,7 +90,7 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
         Ok(subscription_entry)
     }
 
-    async fn mark_as_read(&self, id: Uuid) -> Result<(), Error> {
+    async fn mark_as_read(&self, id: Uuid) -> Result<(), RepositoryError> {
         sqlx::query_file!("queries/subscription_entries/mark_as_read.sql", id)
             .execute(&self.pool)
             .await?;
@@ -98,7 +98,7 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
         Ok(())
     }
 
-    async fn mark_as_unread(&self, id: Uuid) -> Result<(), Error> {
+    async fn mark_as_unread(&self, id: Uuid) -> Result<(), RepositoryError> {
         sqlx::query_file!("queries/subscription_entries/mark_as_unread.sql", id)
             .execute(&self.pool)
             .await?;

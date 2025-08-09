@@ -4,7 +4,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::feed_entry;
+use colette_core::{
+    Handler as _,
+    feed_entry::{GetFeedEntryError, GetFeedEntryQuery},
+};
 
 use super::{FEED_ENTRIES_TAG, FeedEntry};
 use crate::{
@@ -26,11 +29,10 @@ pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.feed_entry_service.get_feed_entry(id).await {
+    match state.get_feed_entry.handle(GetFeedEntryQuery { id }).await {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            feed_entry::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            feed_entry::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            GetFeedEntryError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

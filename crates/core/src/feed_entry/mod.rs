@@ -1,13 +1,15 @@
 use chrono::{DateTime, Utc};
 pub use feed_entry_repository::*;
-pub use feed_entry_service::*;
+pub use get_feed_entry_handler::*;
+pub use list_feed_entries_handler::*;
 use url::Url;
 use uuid::Uuid;
 
 use crate::pagination::Cursor;
 
 mod feed_entry_repository;
-mod feed_entry_service;
+mod get_feed_entry_handler;
+mod list_feed_entries_handler;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FeedEntry {
@@ -36,16 +38,4 @@ impl Cursor for FeedEntry {
             id: self.id,
         }
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("feed entry not found with ID: {0}")]
-    NotFound(Uuid),
-
-    #[error("not authorized to access feed entry with ID: {0}")]
-    Forbidden(Uuid),
-
-    #[error(transparent)]
-    Sqlx(#[from] sqlx::Error),
 }
