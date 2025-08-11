@@ -1,8 +1,9 @@
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     collection::{
         Collection, CollectionError, CollectionFindParams, CollectionId, CollectionRepository,
     },
+    common::RepositoryError,
     user::UserId,
 };
 

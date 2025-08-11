@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    Feed, RepositoryError,
+    Feed,
+    common::RepositoryError,
     feed::{
         FeedFindOutdatedParams, FeedFindParams, FeedId, FeedRepository, FeedStatus,
         FeedUpsertParams,

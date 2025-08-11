@@ -2,8 +2,9 @@ use colette_util::argon2_hash;
 use url::Url;
 
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     auth::LOCAL_PROVIDER,
+    common::RepositoryError,
     user::{UserInsertParams, UserRepository},
 };
 

@@ -4,11 +4,12 @@ use tokio::sync::Mutex;
 use url::Url;
 
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     bookmark::{
         ArchiveThumbnailJobData, BookmarkId, BookmarkInsertParams, BookmarkRepository,
         ThumbnailOperation,
     },
+    common::RepositoryError,
     job::{JobInsertParams, JobRepository},
     user::UserId,
 };

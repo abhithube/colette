@@ -3,7 +3,7 @@ use colette_scraper::feed::ProcessedFeedEntry;
 use url::Url;
 
 use crate::{
-    RepositoryError,
+    common::RepositoryError,
     feed::{Feed, FeedId},
 };
 

@@ -8,9 +8,10 @@ use jsonwebtoken::{DecodingKey, Header, Validation};
 use url::Url;
 
 use crate::{
-    Handler, RepositoryError, User,
+    Handler, User,
     account::{AccountInsertParams, AccountRepository},
     auth::{AuthConfig, OIDC_PROVIDER, TokenData, TokenType},
+    common::RepositoryError,
     user::{UserId, UserInsertParams, UserRepository},
 };
 

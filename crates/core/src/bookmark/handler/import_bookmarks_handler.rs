@@ -8,8 +8,9 @@ use tokio::sync::Mutex;
 use url::Url;
 
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     bookmark::{BookmarkBatchItem, BookmarkRepository, ImportBookmarksParams},
+    common::RepositoryError,
     job::{JobInsertParams, JobRepository},
     user::UserId,
 };

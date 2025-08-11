@@ -1,5 +1,6 @@
 use crate::{
-    Handler, RepositoryError,
+    Handler,
+    common::RepositoryError,
     pagination::{Paginated, paginate},
     subscription::{
         Subscription, SubscriptionCursor, SubscriptionFindParams, SubscriptionRepository,

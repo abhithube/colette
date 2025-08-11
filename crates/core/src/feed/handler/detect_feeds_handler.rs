@@ -5,7 +5,7 @@ use colette_http::HttpClient;
 use colette_scraper::feed::FeedScraper;
 use url::Url;
 
-use crate::{Handler, RepositoryError, feed::FeedDetected};
+use crate::{Handler, common::RepositoryError, feed::FeedDetected};
 
 #[derive(Debug, Clone)]
 pub struct DetectFeedsCommand {

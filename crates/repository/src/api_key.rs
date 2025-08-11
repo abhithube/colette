@@ -1,9 +1,10 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    ApiKey, RepositoryError,
+    ApiKey,
     api_key::{
         ApiKeyFindParams, ApiKeyId, ApiKeyInsertParams, ApiKeyRepository, ApiKeyUpdateParams,
     },
+    common::RepositoryError,
 };
 use sqlx::PgPool;
 use uuid::Uuid;

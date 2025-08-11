@@ -1,11 +1,12 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    Bookmark, RepositoryError, Tag,
+    Bookmark, Tag,
     bookmark::{
         BookmarkDateField, BookmarkFilter, BookmarkFindParams, BookmarkId, BookmarkInsertParams,
         BookmarkLinkTagParams, BookmarkRepository, BookmarkTextField, BookmarkUpdateParams,
         ImportBookmarksParams,
     },
+    common::RepositoryError,
 };
 use sqlx::{PgPool, QueryBuilder, types::Json};
 use uuid::Uuid;

@@ -1,6 +1,7 @@
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     api_key::{ApiKey, ApiKeyCursor, ApiKeyFindParams, ApiKeyRepository},
+    common::RepositoryError,
     pagination::{Paginated, paginate},
     user::UserId,
 };

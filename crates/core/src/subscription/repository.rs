@@ -1,7 +1,7 @@
 use url::Url;
 
 use crate::{
-    RepositoryError,
+    common::RepositoryError,
     feed::FeedId,
     subscription::{Subscription, SubscriptionId},
     tag::TagId,

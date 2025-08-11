@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::{RepositoryError, user::UserId};
+use crate::{common::RepositoryError, user::UserId};
 
 #[async_trait::async_trait]
 pub trait AccountRepository: Send + Sync + 'static {

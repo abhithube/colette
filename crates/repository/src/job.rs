@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    RepositoryError,
+    common::RepositoryError,
     job::{
         Job, JobById, JobFindParams, JobId, JobInsertParams, JobRepository, JobStatus,
         JobUpdateParams,

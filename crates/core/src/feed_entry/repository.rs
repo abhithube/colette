@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 
 use crate::{
-    RepositoryError,
+    common::RepositoryError,
     feed::FeedId,
     feed_entry::{FeedEntry, FeedEntryId},
 };

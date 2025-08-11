@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    FeedEntry, RepositoryError,
+    FeedEntry,
+    common::RepositoryError,
     feed_entry::{FeedEntryFindParams, FeedEntryRepository},
 };
 use sqlx::PgPool;

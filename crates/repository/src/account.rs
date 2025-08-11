@@ -1,8 +1,8 @@
 use colette_core::{
-    RepositoryError,
     account::{
         AccountBySubAndProvider, AccountInsertParams, AccountRepository, AccountUpdateParams,
     },
+    common::RepositoryError,
 };
 use sqlx::PgPool;
 use uuid::Uuid;

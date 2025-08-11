@@ -2,8 +2,9 @@ use chrono::Utc;
 use jsonwebtoken::{Header, Validation};
 
 use crate::{
-    Handler, RepositoryError, User,
+    Handler, User,
     auth::{AuthConfig, Claims, TokenData, TokenType},
+    common::RepositoryError,
     user::UserRepository,
 };
 

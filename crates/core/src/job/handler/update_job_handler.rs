@@ -1,7 +1,8 @@
 use serde_json::Value;
 
 use crate::{
-    Handler, RepositoryError,
+    Handler,
+    common::RepositoryError,
     job::{JobId, JobRepository, JobStatus, JobUpdateParams},
 };
 

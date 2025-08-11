@@ -5,7 +5,8 @@ use colette_opml::Outline;
 use url::Url;
 
 use crate::{
-    Handler, RepositoryError,
+    Handler,
+    common::RepositoryError,
     subscription::{ImportSubscriptionsParams, SubscriptionBatchItem, SubscriptionRepository},
     user::UserId,
 };

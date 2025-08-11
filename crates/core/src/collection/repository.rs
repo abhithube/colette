@@ -1,7 +1,7 @@
 use crate::{
-    RepositoryError,
     bookmark::BookmarkFilter,
     collection::{Collection, CollectionId},
+    common::RepositoryError,
     user::UserId,
 };
 

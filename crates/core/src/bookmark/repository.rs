@@ -2,8 +2,8 @@ use chrono::{DateTime, Utc};
 use url::Url;
 
 use crate::{
-    RepositoryError,
     bookmark::{Bookmark, BookmarkFilter, BookmarkId},
+    common::RepositoryError,
     tag::TagId,
     user::UserId,
 };

@@ -1,6 +1,7 @@
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     api_key::{ApiKey, ApiKeyError, ApiKeyId, ApiKeyRepository},
+    common::RepositoryError,
     user::UserId,
 };
 

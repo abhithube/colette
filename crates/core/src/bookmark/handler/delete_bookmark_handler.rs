@@ -2,10 +2,11 @@ use colette_queue::JobProducer;
 use tokio::sync::Mutex;
 
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     bookmark::{
         ArchiveThumbnailJobData, BookmarkError, BookmarkId, BookmarkRepository, ThumbnailOperation,
     },
+    common::RepositoryError,
     job::{JobInsertParams, JobRepository},
     user::UserId,
 };

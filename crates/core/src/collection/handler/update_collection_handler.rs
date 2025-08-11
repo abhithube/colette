@@ -1,7 +1,8 @@
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     bookmark::BookmarkFilter,
     collection::{CollectionError, CollectionId, CollectionRepository, CollectionUpdateParams},
+    common::RepositoryError,
     user::UserId,
 };
 

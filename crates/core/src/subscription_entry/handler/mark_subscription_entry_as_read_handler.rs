@@ -1,5 +1,6 @@
 use crate::{
-    Handler, RepositoryError,
+    Handler,
+    common::RepositoryError,
     subscription_entry::{
         SubscriptionEntryError, SubscriptionEntryId, SubscriptionEntryRepository,
     },

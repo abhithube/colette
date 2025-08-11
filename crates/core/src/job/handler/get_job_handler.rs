@@ -1,5 +1,6 @@
 use crate::{
-    Handler, RepositoryError,
+    Handler,
+    common::RepositoryError,
     job::{Job, JobFindParams, JobId, JobRepository},
 };
 

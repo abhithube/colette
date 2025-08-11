@@ -4,8 +4,9 @@ use colette_storage::StorageClient;
 use colette_util::{hex_encode, sha256_hash};
 
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     bookmark::{BookmarkId, BookmarkRepository, ThumbnailOperation},
+    common::RepositoryError,
 };
 
 const THUMBNAILS_DIR: &str = "thumbnails";

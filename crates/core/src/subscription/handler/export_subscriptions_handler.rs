@@ -4,7 +4,8 @@ use bytes::Bytes;
 use colette_opml::{Body, Opml, Outline, OutlineType};
 
 use crate::{
-    Handler, RepositoryError,
+    Handler,
+    common::RepositoryError,
     subscription::{SubscriptionFindParams, SubscriptionRepository},
     tag::TagId,
     user::UserId,

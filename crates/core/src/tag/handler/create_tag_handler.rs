@@ -1,5 +1,6 @@
 use crate::{
-    Handler, RepositoryError,
+    Handler,
+    common::RepositoryError,
     tag::{TagId, TagInsertParams, TagRepository},
     user::UserId,
 };

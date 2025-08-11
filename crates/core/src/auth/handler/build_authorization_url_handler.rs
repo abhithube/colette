@@ -1,7 +1,7 @@
 use colette_util::{base64_url_encode, random_generate, sha256_hash};
 use url::Url;
 
-use crate::{Handler, RepositoryError, auth::AuthConfig};
+use crate::{Handler, auth::AuthConfig, common::RepositoryError};
 
 #[derive(Debug, Clone)]
 pub struct BuildAuthorizationUrlQuery {}

@@ -1,6 +1,7 @@
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     bookmark::{BookmarkError, BookmarkId, BookmarkLinkTagParams, BookmarkRepository},
+    common::RepositoryError,
     tag::TagId,
     user::UserId,
 };

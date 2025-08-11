@@ -4,8 +4,9 @@ use bytes::Bytes;
 use colette_netscape::{Item, Netscape};
 
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     bookmark::{BookmarkFindParams, BookmarkRepository},
+    common::RepositoryError,
     tag::TagId,
     user::UserId,
 };

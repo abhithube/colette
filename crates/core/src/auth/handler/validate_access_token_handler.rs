@@ -1,8 +1,9 @@
 use jsonwebtoken::Validation;
 
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     auth::{AuthConfig, Claims},
+    common::RepositoryError,
 };
 
 #[derive(Debug, Clone)]

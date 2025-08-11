@@ -4,7 +4,8 @@ use colette_scraper::feed::{FeedScraper, ProcessedFeed};
 use url::Url;
 
 use crate::{
-    Handler, RepositoryError,
+    Handler,
+    common::RepositoryError,
     feed::{Feed, FeedFindParams, FeedId, FeedRepository, FeedUpsertParams},
     feed_entry::{FeedEntryFindParams, FeedEntryRepository},
 };

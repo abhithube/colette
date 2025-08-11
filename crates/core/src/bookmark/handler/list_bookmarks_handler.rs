@@ -1,7 +1,8 @@
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     bookmark::{Bookmark, BookmarkCursor, BookmarkFilter, BookmarkFindParams, BookmarkRepository},
     collection::{CollectionFindParams, CollectionId, CollectionRepository},
+    common::RepositoryError,
     pagination::{Paginated, paginate},
     tag::TagId,
     user::UserId,

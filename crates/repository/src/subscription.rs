@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    Feed, RepositoryError, Subscription, Tag,
+    Feed, Subscription, Tag,
+    common::RepositoryError,
     feed::DEFAULT_INTERVAL,
     subscription::{
         ImportSubscriptionsParams, SubscriptionFindParams, SubscriptionId,

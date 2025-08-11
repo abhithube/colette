@@ -4,8 +4,9 @@ use colette_scraper::bookmark::{BookmarkError, BookmarkScraper};
 use url::Url;
 
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     bookmark::{BookmarkInsertParams, BookmarkRepository},
+    common::RepositoryError,
     user::UserId,
 };
 

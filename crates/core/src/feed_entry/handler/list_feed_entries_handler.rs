@@ -1,5 +1,6 @@
 use crate::{
-    Handler, RepositoryError,
+    Handler,
+    common::RepositoryError,
     feed::FeedId,
     feed_entry::{FeedEntry, FeedEntryCursor, FeedEntryFindParams, FeedEntryRepository},
     pagination::{Paginated, paginate},

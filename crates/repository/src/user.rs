@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    RepositoryError, User,
+    User,
+    common::RepositoryError,
     user::{UserId, UserInsertParams, UserRepository, UserUpdateParams},
 };
 use sqlx::PgPool;

@@ -4,8 +4,9 @@ use colette_util::{
 };
 
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     api_key::{ApiKeyId, ApiKeyInsertParams, ApiKeyRepository},
+    common::RepositoryError,
     user::UserId,
 };
 

@@ -1,6 +1,7 @@
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     collection::{CollectionFindParams, CollectionId, CollectionRepository},
+    common::RepositoryError,
     pagination::{Paginated, paginate},
     subscription::SubscriptionId,
     subscription_entry::{

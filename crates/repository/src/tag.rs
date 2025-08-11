@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    RepositoryError, Tag,
+    Tag,
+    common::RepositoryError,
     tag::{TagFindParams, TagId, TagInsertParams, TagRepository, TagUpdateParams},
 };
 use sqlx::PgPool;

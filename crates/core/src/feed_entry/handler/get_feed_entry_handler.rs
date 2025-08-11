@@ -1,5 +1,6 @@
 use crate::{
-    Handler, RepositoryError,
+    Handler,
+    common::RepositoryError,
     feed_entry::{FeedEntry, FeedEntryFindParams, FeedEntryId, FeedEntryRepository},
 };
 

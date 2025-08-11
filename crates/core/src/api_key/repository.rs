@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 
-use crate::{ApiKey, RepositoryError, api_key::ApiKeyId, user::UserId};
+use crate::{ApiKey, api_key::ApiKeyId, common::RepositoryError, user::UserId};
 
 #[async_trait::async_trait]
 pub trait ApiKeyRepository: Send + Sync + 'static {

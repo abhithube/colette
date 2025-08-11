@@ -3,9 +3,10 @@ use colette_util::argon2_verify;
 use jsonwebtoken::Header;
 
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     account::AccountRepository,
     auth::{AuthConfig, Claims, LOCAL_PROVIDER, TokenData, TokenType},
+    common::RepositoryError,
     user::{User, UserRepository},
 };
 

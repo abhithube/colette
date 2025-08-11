@@ -19,6 +19,7 @@ pub mod auth;
 pub mod backup;
 pub mod bookmark;
 pub mod collection;
+pub mod common;
 pub mod feed;
 pub mod feed_entry;
 pub mod filter;
@@ -35,16 +36,4 @@ pub trait Handler<C> {
     type Error: StdError;
 
     async fn handle(&self, cmd: C) -> Result<Self::Response, Self::Error>;
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum RepositoryError {
-    #[error("Resource not found")]
-    NotFound,
-
-    #[error("Duplicate resource")]
-    Duplicate,
-
-    #[error(transparent)]
-    Unknown(#[from] sqlx::Error),
 }

@@ -1,6 +1,6 @@
 use colette_util::{CryptoError, argon2_verify, hex_encode, sha256_hash};
 
-use crate::{ApiKey, Handler, RepositoryError, api_key::ApiKeyRepository};
+use crate::{ApiKey, Handler, api_key::ApiKeyRepository, common::RepositoryError};
 
 #[derive(Debug, Clone)]
 pub struct ValidateApiKeyQuery {

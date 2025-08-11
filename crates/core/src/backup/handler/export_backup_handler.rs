@@ -1,9 +1,10 @@
 use bytes::Bytes;
 
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     backup::Backup,
     bookmark::{BookmarkFindParams, BookmarkRepository},
+    common::RepositoryError,
     subscription::{SubscriptionFindParams, SubscriptionRepository},
     tag::{TagFindParams, TagRepository},
     user::UserId,

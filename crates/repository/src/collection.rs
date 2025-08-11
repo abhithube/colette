@@ -1,11 +1,12 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    Collection, RepositoryError,
+    Collection,
     bookmark::BookmarkFilter,
     collection::{
         CollectionFindParams, CollectionId, CollectionInsertParams, CollectionRepository,
         CollectionUpdateParams,
     },
+    common::RepositoryError,
 };
 use sqlx::{PgPool, types::Json};
 use uuid::Uuid;

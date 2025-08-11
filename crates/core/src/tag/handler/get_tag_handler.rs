@@ -1,5 +1,6 @@
 use crate::{
-    Handler, RepositoryError,
+    Handler,
+    common::RepositoryError,
     tag::{Tag, TagError, TagFindParams, TagId, TagRepository},
     user::UserId,
 };

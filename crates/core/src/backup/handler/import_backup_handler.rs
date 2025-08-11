@@ -1,8 +1,9 @@
 use bytes::Bytes;
 
 use crate::{
-    Handler, RepositoryError,
+    Handler,
     backup::{Backup, BackupRepository, ImportBackupParams},
+    common::RepositoryError,
     user::UserId,
 };
 

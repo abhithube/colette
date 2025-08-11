@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    FeedEntry, RepositoryError, SubscriptionEntry,
+    FeedEntry, SubscriptionEntry,
+    common::RepositoryError,
     subscription_entry::{
         SubscriptionEntryBooleanField, SubscriptionEntryDateField, SubscriptionEntryFilter,
         SubscriptionEntryFindParams, SubscriptionEntryId, SubscriptionEntryRepository,
