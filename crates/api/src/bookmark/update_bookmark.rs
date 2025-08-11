@@ -6,13 +6,13 @@ use axum::{
 use chrono::{DateTime, Utc};
 use colette_core::{
     Handler as _,
-    bookmark::{UpdateBookmarkCommand, UpdateBookmarkError},
+    bookmark::{BookmarkError, UpdateBookmarkCommand, UpdateBookmarkError},
 };
 use url::Url;
 
-use super::BOOKMARKS_TAG;
 use crate::{
     ApiState,
+    bookmark::BOOKMARKS_TAG,
     common::{ApiError, Auth, Id, Json, NonEmptyString, Path},
 };
 
@@ -36,7 +36,7 @@ pub(super) async fn handler(
     match state
         .update_bookmark
         .handle(UpdateBookmarkCommand {
-            id,
+            id: id.into(),
             title: body.title.map(Into::into),
             thumbnail_url: body.thumbnail_url,
             published_at: body.published_at,
@@ -47,7 +47,9 @@ pub(super) async fn handler(
     {
         Ok(_) => Ok(OkResponse),
         Err(e) => match e {
-            UpdateBookmarkError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            UpdateBookmarkError::Core(BookmarkError::Forbidden(_)) => {
+                Err(ErrResponse::Forbidden(e.into()))
+            }
             UpdateBookmarkError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },

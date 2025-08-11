@@ -8,10 +8,10 @@ use colette_core::{
     tag::{CreateTagCommand, CreateTagError},
 };
 
-use super::TAGS_TAG;
 use crate::{
     ApiState,
     common::{ApiError, Auth, CreatedResource, Json, NonEmptyString},
+    tag::TAGS_TAG,
 };
 
 #[utoipa::path(
@@ -37,7 +37,9 @@ pub(super) async fn handler(
         })
         .await
     {
-        Ok(data) => Ok(OkResponse(CreatedResource { id: data.id })),
+        Ok(data) => Ok(OkResponse(CreatedResource {
+            id: data.id.as_inner(),
+        })),
         Err(e) => match e {
             CreateTagError::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),

@@ -9,10 +9,10 @@ use colette_core::{
 };
 use url::Url;
 
-use super::FEEDS_TAG;
 use crate::{
     ApiState,
     common::{ApiError, Json},
+    feed::FEEDS_TAG,
 };
 
 #[utoipa::path(

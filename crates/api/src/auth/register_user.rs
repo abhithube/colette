@@ -7,9 +7,9 @@ use colette_core::{Handler as _, auth::RegisterUserCommand};
 use email_address::EmailAddress;
 use url::Url;
 
-use super::AUTH_TAG;
 use crate::{
     ApiState,
+    auth::AUTH_TAG,
     common::{ApiError, Json, NonEmptyString},
 };
 

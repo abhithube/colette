@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     RepositoryError, User,
-    user::{UserInsertParams, UserRepository, UserUpdateParams},
+    user::{UserId, UserInsertParams, UserRepository, UserUpdateParams},
 };
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -21,8 +21,8 @@ impl PostgresUserRepository {
 
 #[async_trait::async_trait]
 impl UserRepository for PostgresUserRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, RepositoryError> {
-        let user = sqlx::query_file_as!(UserRow, "queries/users/find_by_id.sql", id)
+    async fn find_by_id(&self, id: UserId) -> Result<Option<User>, RepositoryError> {
+        let user = sqlx::query_file_as!(UserRow, "queries/users/find_by_id.sql", id.as_inner())
             .map(Into::into)
             .fetch_optional(&self.pool)
             .await?;
@@ -39,7 +39,7 @@ impl UserRepository for PostgresUserRepository {
         Ok(user)
     }
 
-    async fn insert(&self, params: UserInsertParams) -> Result<Uuid, RepositoryError> {
+    async fn insert(&self, params: UserInsertParams) -> Result<UserId, RepositoryError> {
         let mut tx = self.pool.begin().await?;
 
         let id = sqlx::query_file_scalar!(
@@ -63,7 +63,7 @@ impl UserRepository for PostgresUserRepository {
 
         tx.commit().await?;
 
-        Ok(id)
+        Ok(id.into())
     }
 
     async fn update(&self, params: UserUpdateParams) -> Result<(), RepositoryError> {
@@ -80,7 +80,7 @@ impl UserRepository for PostgresUserRepository {
 
         sqlx::query_file!(
             "queries/users/update.sql",
-            params.id,
+            params.id.as_inner(),
             has_display_name,
             display_name,
             has_image_url,
@@ -105,8 +105,8 @@ struct UserRow {
 impl From<UserRow> for User {
     fn from(value: UserRow) -> Self {
         Self {
-            id: value.id,
-            email: value.email,
+            id: value.id.into(),
+            email: value.email.parse().unwrap(),
             display_name: value.display_name,
             image_url: value.image_url.map(Into::into),
             created_at: value.created_at,

@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n  api_keys (\n    lookup_hash,\n    verification_hash,\n    title,\n    preview,\n    user_id\n  )\nVALUES\n  ($1, $2, $3, $4, $5)\nRETURNING\n  id,\n  lookup_hash,\n  verification_hash,\n  title,\n  preview,\n  user_id,\n  created_at,\n  updated_at\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "lookup_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "verification_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "preview",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "54432f041ff3280a0f082f45031947295e6f70128c600e534bcce2b64a67aa18"
+}

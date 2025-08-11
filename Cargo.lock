@@ -418,6 +418,7 @@ dependencies = [
  "colette-scraper",
  "colette-storage",
  "colette-util",
+ "email_address",
  "http",
  "http-body-util",
  "image",

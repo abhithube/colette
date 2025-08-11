@@ -6,9 +6,9 @@ use axum::{
 use axum_extra::extract::CookieJar;
 use colette_core::{Handler as _, auth::RefreshAccessTokenCommand};
 
-use super::{AUTH_TAG, REFRESH_COOKIE, TokenData};
 use crate::{
     ApiState,
+    auth::{AUTH_TAG, REFRESH_COOKIE, TokenData},
     common::{ApiError, build_cookie},
 };
 

@@ -49,7 +49,7 @@ pub(crate) struct Feed {
 impl From<colette_core::Feed> for Feed {
     fn from(value: colette_core::Feed) -> Self {
         Self {
-            id: value.id,
+            id: value.id.as_inner(),
             source_url: value.source_url,
             link: value.link,
             title: value.title,

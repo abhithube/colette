@@ -10,10 +10,10 @@ use colette_core::{
 };
 use uuid::Uuid;
 
-use super::{FEED_ENTRIES_TAG, FeedEntry};
 use crate::{
     ApiState,
     common::{ApiError, Query},
+    feed_entry::{FEED_ENTRIES_TAG, FeedEntry},
     pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
 };
 
@@ -40,7 +40,7 @@ pub(super) async fn handler(
     match state
         .list_feed_entries
         .handle(ListFeedEntriesQuery {
-            feed_id: query.feed_id,
+            feed_id: query.feed_id.map(Into::into),
             cursor,
             limit: Some(PAGINATION_LIMIT),
         })

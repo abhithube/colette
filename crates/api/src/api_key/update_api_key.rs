@@ -5,12 +5,12 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    api_key::{UpdateApiKeyCommand, UpdateApiKeyError},
+    api_key::{ApiKeyError, UpdateApiKeyCommand, UpdateApiKeyError},
 };
 
-use super::API_KEYS_TAG;
 use crate::{
     ApiState,
+    api_key::API_KEYS_TAG,
     common::{ApiError, Auth, Id, Json, NonEmptyString, Path},
 };
 
@@ -34,7 +34,7 @@ pub(super) async fn handler(
     match state
         .update_api_key
         .handle(UpdateApiKeyCommand {
-            id,
+            id: id.into(),
             title: body.title.map(Into::into),
             user_id,
         })
@@ -42,7 +42,9 @@ pub(super) async fn handler(
     {
         Ok(_) => Ok(OkResponse),
         Err(e) => match e {
-            UpdateApiKeyError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            UpdateApiKeyError::Core(ApiKeyError::Forbidden(_)) => {
+                Err(ErrResponse::Forbidden(e.into()))
+            }
             UpdateApiKeyError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },

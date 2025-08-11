@@ -64,7 +64,7 @@ struct TagDetails {
 impl From<colette_core::Tag> for Tag {
     fn from(value: colette_core::Tag) -> Self {
         Self {
-            id: value.id,
+            id: value.id.as_inner(),
             title: value.title,
             created_at: value.created_at,
             updated_at: value.updated_at,

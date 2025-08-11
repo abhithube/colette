@@ -44,7 +44,7 @@ struct Collection {
 impl From<colette_core::Collection> for Collection {
     fn from(value: colette_core::Collection) -> Self {
         Self {
-            id: value.id,
+            id: value.id.as_inner(),
             title: value.title,
             filter: value.filter.into(),
             created_at: value.created_at,

@@ -3,7 +3,7 @@ use colette_core::{
     Feed, RepositoryError, Subscription, Tag,
     feed::DEFAULT_INTERVAL,
     subscription::{
-        ImportSubscriptionsParams, SubscriptionById, SubscriptionFindParams,
+        ImportSubscriptionsParams, SubscriptionFindParams, SubscriptionId,
         SubscriptionInsertParams, SubscriptionLinkTagParams, SubscriptionRepository,
         SubscriptionUpdateParams,
     },
@@ -31,17 +31,20 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         params: SubscriptionFindParams,
     ) -> Result<Vec<Subscription>, RepositoryError> {
         let (cursor_title, cursor_id) = if let Some((title, id)) = params.cursor {
-            (Some(title), Some(id))
+            (Some(title), Some(id.as_inner()))
         } else {
             (None, None)
         };
+        let tags = params
+            .tags
+            .map(|e| e.iter().map(|e| e.as_inner()).collect::<Vec<_>>());
 
         let subscriptions = sqlx::query_file_as!(
             SubscriptionRow,
             "queries/subscriptions/find.sql",
-            params.id,
-            params.user_id,
-            params.tags.as_deref(),
+            params.id.map(|e| e.as_inner()),
+            params.user_id.map(|e| e.as_inner()),
+            tags.as_deref(),
             cursor_title,
             cursor_id,
             params.limit.map(|e| e as i64),
@@ -55,26 +58,16 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         Ok(subscriptions)
     }
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<SubscriptionById>, RepositoryError> {
-        let subscription = sqlx::query_file_as!(
-            SubscriptionByIdRow,
-            "queries/subscriptions/find_by_id.sql",
-            id
-        )
-        .map(Into::into)
-        .fetch_optional(&self.pool)
-        .await?;
-
-        Ok(subscription)
-    }
-
-    async fn insert(&self, params: SubscriptionInsertParams) -> Result<Uuid, RepositoryError> {
+    async fn insert(
+        &self,
+        params: SubscriptionInsertParams,
+    ) -> Result<SubscriptionId, RepositoryError> {
         let id = sqlx::query_file_scalar!(
             "queries/subscriptions/insert.sql",
             params.title,
             params.description,
-            params.feed_id,
-            params.user_id
+            params.feed_id.as_inner(),
+            params.user_id.as_inner()
         )
         .fetch_one(&self.pool)
         .await
@@ -83,7 +76,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             _ => RepositoryError::Unknown(e),
         })?;
 
-        Ok(id)
+        Ok(id.into())
     }
 
     async fn update(&self, params: SubscriptionUpdateParams) -> Result<(), RepositoryError> {
@@ -95,7 +88,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
 
         sqlx::query_file!(
             "queries/subscriptions/update.sql",
-            params.id,
+            params.id.as_inner(),
             params.title,
             has_description,
             description,
@@ -106,8 +99,8 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         Ok(())
     }
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError> {
-        sqlx::query_file!("queries/subscriptions/delete_by_id.sql", id)
+    async fn delete_by_id(&self, id: SubscriptionId) -> Result<(), RepositoryError> {
+        sqlx::query_file!("queries/subscriptions/delete_by_id.sql", id.as_inner())
             .execute(&self.pool)
             .await?;
 
@@ -117,8 +110,12 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
     async fn link_tags(&self, params: SubscriptionLinkTagParams) -> Result<(), RepositoryError> {
         sqlx::query_file!(
             "queries/subscription_tags/update.sql",
-            params.subscription_id,
-            &params.tag_ids
+            params.subscription_id.as_inner(),
+            &params
+                .tag_ids
+                .iter()
+                .map(|e| e.as_inner())
+                .collect::<Vec<_>>()
         )
         .execute(&self.pool)
         .await?;
@@ -155,7 +152,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
 
         sqlx::query_file!(
             "queries/subscriptions/import.sql",
-            params.user_id,
+            params.user_id.as_inner(),
             &feed_source_urls as &[DbUrl],
             &feed_links as &[DbUrl],
             &feed_titles,
@@ -194,15 +191,15 @@ struct SubscriptionRow {
 impl From<SubscriptionRow> for Subscription {
     fn from(value: SubscriptionRow) -> Self {
         Self {
-            id: value.id,
+            id: value.id.into(),
             title: value.title,
             description: value.description,
-            feed_id: value.feed_id,
-            user_id: value.user_id,
+            feed_id: value.feed_id.into(),
+            user_id: value.user_id.into(),
             created_at: value.created_at,
             updated_at: value.updated_at,
             feed: Feed {
-                id: value.feed_id,
+                id: value.feed_id.into(),
                 source_url: value.source_url.into(),
                 link: value.link.into(),
                 title: value.feed_title,
@@ -214,20 +211,6 @@ impl From<SubscriptionRow> for Subscription {
             },
             tags: value.tags.map(|e| e.0),
             unread_count: value.unread_count,
-        }
-    }
-}
-
-struct SubscriptionByIdRow {
-    id: Uuid,
-    user_id: Uuid,
-}
-
-impl From<SubscriptionByIdRow> for SubscriptionById {
-    fn from(value: SubscriptionByIdRow) -> Self {
-        Self {
-            id: value.id,
-            user_id: value.user_id,
         }
     }
 }

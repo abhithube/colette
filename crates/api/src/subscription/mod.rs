@@ -80,10 +80,10 @@ struct SubscriptionDetails {
 impl From<colette_core::Subscription> for Subscription {
     fn from(value: colette_core::Subscription) -> Self {
         Self {
-            id: value.id,
+            id: value.id.as_inner(),
             title: value.title,
             description: value.description,
-            feed_id: value.feed_id,
+            feed_id: value.feed_id.as_inner(),
             created_at: value.created_at,
             updated_at: value.updated_at,
         }

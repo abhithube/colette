@@ -10,6 +10,8 @@ VALUES
   ($1, $2, $3, $4, $5)
 RETURNING
   id,
+  lookup_hash,
+  verification_hash,
   title,
   preview,
   user_id,

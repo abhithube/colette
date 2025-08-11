@@ -9,10 +9,10 @@ use colette_core::{
     feed_entry::{GetFeedEntryError, GetFeedEntryQuery},
 };
 
-use super::{FEED_ENTRIES_TAG, FeedEntry};
 use crate::{
     ApiState,
     common::{ApiError, Id, Path},
+    feed_entry::{FEED_ENTRIES_TAG, FeedEntry},
 };
 
 #[utoipa::path(
@@ -29,7 +29,11 @@ pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.get_feed_entry.handle(GetFeedEntryQuery { id }).await {
+    match state
+        .get_feed_entry
+        .handle(GetFeedEntryQuery { id: id.into() })
+        .await
+    {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
             GetFeedEntryError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),

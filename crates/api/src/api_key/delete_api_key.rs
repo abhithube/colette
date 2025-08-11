@@ -5,12 +5,12 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    api_key::{DeleteApiKeyCommand, DeleteApiKeyError},
+    api_key::{ApiKeyError, DeleteApiKeyCommand, DeleteApiKeyError},
 };
 
-use super::API_KEYS_TAG;
 use crate::{
     ApiState,
+    api_key::API_KEYS_TAG,
     common::{ApiError, Auth, Id, Path},
 };
 
@@ -31,12 +31,17 @@ pub(super) async fn handler(
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .delete_api_key
-        .handle(DeleteApiKeyCommand { id, user_id })
+        .handle(DeleteApiKeyCommand {
+            id: id.into(),
+            user_id,
+        })
         .await
     {
         Ok(()) => Ok(OkResponse),
         Err(e) => match e {
-            DeleteApiKeyError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            DeleteApiKeyError::Core(ApiKeyError::Forbidden(_)) => {
+                Err(ErrResponse::Forbidden(e.into()))
+            }
             DeleteApiKeyError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },

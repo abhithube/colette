@@ -87,7 +87,7 @@ impl BackupRepository for PostgresBackupRepository {
 
         sqlx::query_file!(
             "queries/backups/import.sql",
-            params.user_id,
+            params.user_id.as_inner(),
             &feed_source_urls as &[DbUrl],
             &subscription_titles,
             &subscription_descriptions as &[Option<String>],

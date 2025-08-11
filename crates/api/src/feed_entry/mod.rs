@@ -54,14 +54,14 @@ pub(crate) struct FeedEntry {
 impl From<colette_core::FeedEntry> for FeedEntry {
     fn from(value: colette_core::FeedEntry) -> Self {
         Self {
-            id: value.id,
+            id: value.id.as_inner(),
             link: value.link,
             title: value.title,
             published_at: value.published_at,
             description: value.description,
             author: value.author,
             thumbnail_url: value.thumbnail_url,
-            feed_id: value.feed_id,
+            feed_id: value.feed_id.as_inner(),
         }
     }
 }

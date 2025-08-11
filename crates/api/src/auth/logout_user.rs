@@ -4,8 +4,10 @@ use axum::{
 };
 use axum_extra::extract::CookieJar;
 
-use super::{AUTH_TAG, REFRESH_COOKIE};
-use crate::common::ApiError;
+use crate::{
+    auth::{AUTH_TAG, REFRESH_COOKIE},
+    common::ApiError,
+};
 
 #[utoipa::path(
   post,

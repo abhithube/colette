@@ -39,6 +39,7 @@ use colette_core::{
     },
     subscription_entry::{GetSubscriptionEntryHandler, ListSubscriptionEntriesHandler},
     tag::{CreateTagHandler, DeleteTagHandler, GetTagHandler, ListTagsHandler, UpdateTagHandler},
+    user::UserId,
 };
 use url::Url;
 use uuid::Uuid;
@@ -265,7 +266,7 @@ pub(crate) async fn verify_auth_extension(
 
 #[derive(Debug, Clone)]
 pub(crate) struct Auth {
-    pub(crate) user_id: Uuid,
+    pub(crate) user_id: UserId,
 }
 
 impl<S: Send + Sync> FromRequestParts<S> for Auth {

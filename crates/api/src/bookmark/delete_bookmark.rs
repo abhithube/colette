@@ -5,12 +5,12 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    bookmark::{DeleteBookmarkCommand, DeleteBookmarkError},
+    bookmark::{BookmarkError, DeleteBookmarkCommand, DeleteBookmarkError},
 };
 
-use super::BOOKMARKS_TAG;
 use crate::{
     ApiState,
+    bookmark::BOOKMARKS_TAG,
     common::{ApiError, Auth, Id, Path},
 };
 
@@ -31,12 +31,17 @@ pub(super) async fn handler(
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .delete_bookmark
-        .handle(DeleteBookmarkCommand { id, user_id })
+        .handle(DeleteBookmarkCommand {
+            id: id.into(),
+            user_id,
+        })
         .await
     {
         Ok(()) => Ok(OkResponse),
         Err(e) => match e {
-            DeleteBookmarkError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            DeleteBookmarkError::Core(BookmarkError::Forbidden(_)) => {
+                Err(ErrResponse::Forbidden(e.into()))
+            }
             DeleteBookmarkError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },

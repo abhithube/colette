@@ -9,10 +9,10 @@ use colette_core::{
 };
 use uuid::Uuid;
 
-use super::SUBSCRIPTIONS_TAG;
 use crate::{
     ApiState,
     common::{ApiError, Auth, CreatedResource, Json, NonEmptyString},
+    subscription::SUBSCRIPTIONS_TAG,
 };
 
 #[utoipa::path(
@@ -35,12 +35,14 @@ pub(super) async fn handler(
         .handle(CreateSubscriptionCommand {
             title: body.title.into(),
             description: body.description.map(Into::into),
-            feed_id: body.feed_id,
+            feed_id: body.feed_id.into(),
             user_id,
         })
         .await
     {
-        Ok(data) => Ok(OkResponse(CreatedResource { id: data.id })),
+        Ok(data) => Ok(OkResponse(CreatedResource {
+            id: data.id.as_inner(),
+        })),
         Err(e) => match e {
             CreateSubscriptionError::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),

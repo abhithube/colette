@@ -5,13 +5,13 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    subscription::{DeleteSubscriptionCommand, DeleteSubscriptionError},
+    subscription::{DeleteSubscriptionCommand, DeleteSubscriptionError, SubscriptionError},
 };
 
-use super::SUBSCRIPTIONS_TAG;
 use crate::{
     ApiState,
     common::{ApiError, Auth, Id, Path},
+    subscription::SUBSCRIPTIONS_TAG,
 };
 
 #[utoipa::path(
@@ -31,12 +31,17 @@ pub(super) async fn handler(
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .delete_subscription
-        .handle(DeleteSubscriptionCommand { id, user_id })
+        .handle(DeleteSubscriptionCommand {
+            id: id.into(),
+            user_id,
+        })
         .await
     {
         Ok(()) => Ok(OkResponse),
         Err(e) => match e {
-            DeleteSubscriptionError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            DeleteSubscriptionError::Core(SubscriptionError::Forbidden(_)) => {
+                Err(ErrResponse::Forbidden(e.into()))
+            }
             DeleteSubscriptionError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },

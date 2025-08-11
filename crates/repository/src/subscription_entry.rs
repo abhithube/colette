@@ -2,8 +2,8 @@ use chrono::{DateTime, Utc};
 use colette_core::{
     FeedEntry, RepositoryError, SubscriptionEntry,
     subscription_entry::{
-        SubscriptionEntryBooleanField, SubscriptionEntryById, SubscriptionEntryDateField,
-        SubscriptionEntryFilter, SubscriptionEntryFindParams, SubscriptionEntryRepository,
+        SubscriptionEntryBooleanField, SubscriptionEntryDateField, SubscriptionEntryFilter,
+        SubscriptionEntryFindParams, SubscriptionEntryId, SubscriptionEntryRepository,
         SubscriptionEntryTextField,
     },
 };
@@ -47,7 +47,7 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
         params: SubscriptionEntryFindParams,
     ) -> Result<Vec<SubscriptionEntry>, RepositoryError> {
         let (cursor_published_at, cursor_id) = if let Some((published_at, id)) = params.cursor {
-            (Some(published_at), Some(id))
+            (Some(published_at), Some(id.as_inner()))
         } else {
             (None, None)
         };
@@ -62,11 +62,15 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
 
         let rows = qb
             .build_query_as::<SubscriptionEntryRow>()
-            .bind(params.id)
-            .bind(params.user_id)
-            .bind(params.subscription_id)
+            .bind(params.id.map(|e| e.as_inner()))
+            .bind(params.user_id.map(|e| e.as_inner()))
+            .bind(params.subscription_id.map(|e| e.as_inner()))
             .bind(params.has_read)
-            .bind(&params.tags)
+            .bind(
+                params
+                    .tags
+                    .map(|e| e.iter().map(|e| e.as_inner()).collect::<Vec<_>>()),
+            )
             .bind(cursor_published_at)
             .bind(cursor_id)
             .bind(params.limit.map(|e| e as i64))
@@ -77,31 +81,24 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<SubscriptionEntryById>, RepositoryError> {
-        let subscription_entry = sqlx::query_file_as!(
-            SubscriptionEntryByIdRow,
-            "queries/subscriptions/find_by_id.sql",
-            id
+    async fn mark_as_read(&self, id: SubscriptionEntryId) -> Result<(), RepositoryError> {
+        sqlx::query_file!(
+            "queries/subscription_entries/mark_as_read.sql",
+            id.as_inner()
         )
-        .map(Into::into)
-        .fetch_optional(&self.pool)
+        .execute(&self.pool)
         .await?;
-
-        Ok(subscription_entry)
-    }
-
-    async fn mark_as_read(&self, id: Uuid) -> Result<(), RepositoryError> {
-        sqlx::query_file!("queries/subscription_entries/mark_as_read.sql", id)
-            .execute(&self.pool)
-            .await?;
 
         Ok(())
     }
 
-    async fn mark_as_unread(&self, id: Uuid) -> Result<(), RepositoryError> {
-        sqlx::query_file!("queries/subscription_entries/mark_as_unread.sql", id)
-            .execute(&self.pool)
-            .await?;
+    async fn mark_as_unread(&self, id: SubscriptionEntryId) -> Result<(), RepositoryError> {
+        sqlx::query_file!(
+            "queries/subscription_entries/mark_as_unread.sql",
+            id.as_inner()
+        )
+        .execute(&self.pool)
+        .await?;
 
         Ok(())
     }
@@ -127,36 +124,22 @@ struct SubscriptionEntryRow {
 impl From<SubscriptionEntryRow> for SubscriptionEntry {
     fn from(value: SubscriptionEntryRow) -> Self {
         Self {
-            id: value.id,
+            id: value.id.into(),
             has_read: value.has_read,
             read_at: value.read_at,
-            subscription_id: value.subscription_id,
-            feed_entry_id: value.id,
-            user_id: value.user_id,
+            subscription_id: value.subscription_id.into(),
+            feed_entry_id: value.id.into(),
+            user_id: value.user_id.into(),
             feed_entry: FeedEntry {
-                id: value.feed_entry_id,
+                id: value.feed_entry_id.into(),
                 link: value.link.into(),
                 title: value.title,
                 published_at: value.published_at,
                 description: value.description,
                 thumbnail_url: value.thumbnail_url.map(Into::into),
                 author: value.author,
-                feed_id: value.feed_id,
+                feed_id: value.feed_id.into(),
             },
-        }
-    }
-}
-
-struct SubscriptionEntryByIdRow {
-    id: Uuid,
-    user_id: Uuid,
-}
-
-impl From<SubscriptionEntryByIdRow> for SubscriptionEntryById {
-    fn from(value: SubscriptionEntryByIdRow) -> Self {
-        Self {
-            id: value.id,
-            user_id: value.user_id,
         }
     }
 }

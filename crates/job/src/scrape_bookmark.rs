@@ -12,7 +12,7 @@ use colette_core::{
 use futures::FutureExt;
 use tower::Service;
 
-use super::Error;
+use crate::Error;
 
 pub struct ScrapeBookmarkJobHandler {
     bookmark_service: Arc<RefreshBookmarkHandler>,

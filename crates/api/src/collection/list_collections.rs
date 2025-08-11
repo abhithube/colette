@@ -9,9 +9,9 @@ use colette_core::{
     collection::{CollectionCursor, ListCollectionsQuery},
 };
 
-use super::{COLLECTIONS_TAG, Collection};
 use crate::{
     ApiState,
+    collection::{COLLECTIONS_TAG, Collection},
     common::{ApiError, Auth, Query},
     pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
 };

@@ -8,10 +8,10 @@ use colette_core::{
     collection::{CreateCollectionCommand, CreateCollectionError},
 };
 
-use super::COLLECTIONS_TAG;
 use crate::{
     ApiState,
     bookmark::BookmarkFilter,
+    collection::COLLECTIONS_TAG,
     common::{ApiError, Auth, CreatedResource, Json, NonEmptyString},
 };
 
@@ -39,7 +39,9 @@ pub(super) async fn handler(
         })
         .await
     {
-        Ok(data) => Ok(OkResponse(CreatedResource { id: data.id })),
+        Ok(data) => Ok(OkResponse(CreatedResource {
+            id: data.id.as_inner(),
+        })),
         Err(e) => match e {
             CreateCollectionError::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),

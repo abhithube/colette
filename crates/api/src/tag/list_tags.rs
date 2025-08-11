@@ -4,13 +4,16 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{Handler as _, tag::TagCursor};
+use colette_core::{
+    Handler as _,
+    tag::{ListTagsQuery, TagCursor},
+};
 
-use super::{TAGS_TAG, TagDetails};
 use crate::{
     ApiState,
     common::{ApiError, Auth, Query},
     pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
+    tag::{TAGS_TAG, TagDetails},
 };
 
 #[utoipa::path(
@@ -36,7 +39,7 @@ pub(super) async fn handler(
 
     match state
         .list_tags
-        .handle(colette_core::tag::ListTagsQuery {
+        .handle(ListTagsQuery {
             cursor,
             limit: Some(PAGINATION_LIMIT),
             user_id,

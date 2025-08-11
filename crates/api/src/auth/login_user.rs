@@ -10,9 +10,9 @@ use colette_core::{
 };
 use email_address::EmailAddress;
 
-use super::{AUTH_TAG, REFRESH_COOKIE, TokenData};
 use crate::{
     ApiState,
+    auth::{AUTH_TAG, REFRESH_COOKIE, TokenData},
     common::{ApiError, Json, NonEmptyString, build_cookie},
 };
 

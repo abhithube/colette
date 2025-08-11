@@ -4,7 +4,7 @@
     {
       "label": "Setup",
       "dependsOrder": "parallel",
-      "dependsOn": ["Backend", "Frontend"]
+      "dependsOn": ["Backend", "Frontend", "Claude"]
     },
     {
       "label": "Backend",
@@ -18,6 +18,14 @@
       "label": "Frontend",
       "type": "shell",
       "command": "npm run dev",
+      "presentation": {
+        "clear": true
+      }
+    },
+    {
+      "label": "Claude",
+      "type": "shell",
+      "command": "claude",
       "presentation": {
         "clear": true
       }

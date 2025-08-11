@@ -16,8 +16,7 @@ use futures::FutureExt;
 use tokio::sync::Mutex;
 use tower::Service;
 
-use super::Error;
-use crate::JobError;
+use crate::{Error, JobError};
 
 pub struct ImportBookmarksJobHandler {
     list_bookmarks: Arc<ListBookmarksHandler>,
@@ -80,14 +79,14 @@ impl Service<Job> for ImportBookmarksJobHandler {
                     .handle(CreateJobCommand {
                         data,
                         job_type: "scrape_bookmark".into(),
-                        group_identifier: Some(job.id.into()),
+                        group_identifier: Some(job.id.as_inner().into()),
                     })
                     .await
                     .map_err(JobError::CreateJob)?;
 
                 let mut scrape_bookmark_producer = scrape_bookmark_producer.lock().await;
 
-                scrape_bookmark_producer.push(job_id).await?;
+                scrape_bookmark_producer.push(job_id.as_inner()).await?;
             }
 
             Ok(())

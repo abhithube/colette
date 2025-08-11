@@ -5,14 +5,17 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    subscription_entry::{MarkSubscriptionEntryAsReadCommand, MarkSubscriptionEntryAsReadError},
+    subscription_entry::{
+        MarkSubscriptionEntryAsReadCommand, MarkSubscriptionEntryAsReadError,
+        SubscriptionEntryError,
+    },
 };
 use uuid::Uuid;
 
-use super::SUBSCRIPTION_ENTRIES_TAG;
 use crate::{
     ApiState,
     common::{ApiError, Auth, Id, Path},
+    subscription_entry::SUBSCRIPTION_ENTRIES_TAG,
 };
 
 #[utoipa::path(
@@ -32,12 +35,17 @@ pub(super) async fn handler(
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .mark_subscription_entry_as_read
-        .handle(MarkSubscriptionEntryAsReadCommand { id, user_id })
+        .handle(MarkSubscriptionEntryAsReadCommand {
+            id: id.into(),
+            user_id,
+        })
         .await
     {
         Ok(()) => Ok(OkResponse),
         Err(e) => match e {
-            MarkSubscriptionEntryAsReadError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            MarkSubscriptionEntryAsReadError::Core(SubscriptionEntryError::Forbidden(_)) => {
+                Err(ErrResponse::Forbidden(e.into()))
+            }
             MarkSubscriptionEntryAsReadError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },

@@ -6,9 +6,9 @@ use axum::{
 };
 use colette_core::{Handler as _, auth::GetUserQuery};
 
-use super::{AUTH_TAG, User};
 use crate::{
     ApiState,
+    auth::{AUTH_TAG, User},
     common::{ApiError, Auth},
 };
 

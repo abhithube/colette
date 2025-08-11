@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use colette_core::{
     Bookmark, RepositoryError, Tag,
     bookmark::{
-        BookmarkById, BookmarkDateField, BookmarkFilter, BookmarkFindParams, BookmarkInsertParams,
+        BookmarkDateField, BookmarkFilter, BookmarkFindParams, BookmarkId, BookmarkInsertParams,
         BookmarkLinkTagParams, BookmarkRepository, BookmarkTextField, BookmarkUpdateParams,
         ImportBookmarksParams,
     },
@@ -50,9 +50,13 @@ impl BookmarkRepository for PostgresBookmarkRepository {
 
         let rows = qb
             .build_query_as::<BookmarkRow>()
-            .bind(params.id)
-            .bind(params.user_id)
-            .bind(&params.tags)
+            .bind(params.id.map(|e| e.as_inner()))
+            .bind(params.user_id.map(|e| e.as_inner()))
+            .bind(
+                params
+                    .tags
+                    .map(|e| e.iter().map(|e| e.as_inner()).collect::<Vec<_>>()),
+            )
             .bind(params.cursor)
             .bind(params.limit.map(|e| e as i64))
             .bind(params.with_tags)
@@ -62,17 +66,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<BookmarkById>, RepositoryError> {
-        let bookmark =
-            sqlx::query_file_as!(BookmarkByIdRow, "queries/bookmarks/find_by_id.sql", id)
-                .map(Into::into)
-                .fetch_optional(&self.pool)
-                .await?;
-
-        Ok(bookmark)
-    }
-
-    async fn insert(&self, params: BookmarkInsertParams) -> Result<Uuid, RepositoryError> {
+    async fn insert(&self, params: BookmarkInsertParams) -> Result<BookmarkId, RepositoryError> {
         if params.upsert {
             let id = sqlx::query_file_scalar!(
                 "queries/bookmarks/upsert.sql",
@@ -81,12 +75,12 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                 params.thumbnail_url.map(Into::into) as Option<DbUrl>,
                 params.published_at,
                 params.author,
-                params.user_id
+                params.user_id.as_inner()
             )
             .fetch_one(&self.pool)
             .await?;
 
-            Ok(id)
+            Ok(id.into())
         } else {
             let id = sqlx::query_file_scalar!(
                 "queries/bookmarks/insert.sql",
@@ -95,7 +89,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                 params.thumbnail_url.map(Into::into) as Option<DbUrl>,
                 params.published_at,
                 params.author,
-                params.user_id
+                params.user_id.as_inner()
             )
             .fetch_one(&self.pool)
             .await
@@ -104,7 +98,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                 _ => RepositoryError::Unknown(e),
             })?;
 
-            Ok(id)
+            Ok(id.into())
         }
     }
 
@@ -127,7 +121,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
 
         sqlx::query_file!(
             "queries/bookmarks/update.sql",
-            params.id,
+            params.id.as_inner(),
             params.title,
             has_thumbnail_url,
             thumbnail_url.map(Into::into) as Option<DbUrl>,
@@ -142,8 +136,8 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         Ok(())
     }
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError> {
-        sqlx::query_file!("queries/bookmarks/delete_by_id.sql", id)
+    async fn delete_by_id(&self, id: BookmarkId) -> Result<(), RepositoryError> {
+        sqlx::query_file!("queries/bookmarks/delete_by_id.sql", id.as_inner())
             .execute(&self.pool)
             .await?;
 
@@ -152,12 +146,12 @@ impl BookmarkRepository for PostgresBookmarkRepository {
 
     async fn set_archived_path(
         &self,
-        bookmark_id: Uuid,
+        bookmark_id: BookmarkId,
         archived_path: Option<String>,
     ) -> Result<(), RepositoryError> {
         sqlx::query_file!(
             "queries/bookmarks/update_archived_path.sql",
-            bookmark_id,
+            bookmark_id.as_inner(),
             archived_path
         )
         .execute(&self.pool)
@@ -169,8 +163,12 @@ impl BookmarkRepository for PostgresBookmarkRepository {
     async fn link_tags(&self, params: BookmarkLinkTagParams) -> Result<(), RepositoryError> {
         sqlx::query_file!(
             "queries/bookmark_tags/update.sql",
-            params.bookmark_id,
-            &params.tag_ids
+            params.bookmark_id.as_inner(),
+            &params
+                .tag_ids
+                .iter()
+                .map(|e| e.as_inner())
+                .collect::<Vec<_>>()
         )
         .execute(&self.pool)
         .await?;
@@ -215,7 +213,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
 
         sqlx::query_file!(
             "queries/bookmarks/import.sql",
-            params.user_id,
+            params.user_id.as_inner(),
             &bookmark_links as &[DbUrl],
             &bookmark_titles,
             &bookmark_thumbnail_urls as &[Option<DbUrl>],
@@ -253,35 +251,17 @@ struct BookmarkRow {
 impl From<BookmarkRow> for Bookmark {
     fn from(value: BookmarkRow) -> Self {
         Self {
-            id: value.id,
+            id: value.id.into(),
             link: value.link.0,
             title: value.title,
             thumbnail_url: value.thumbnail_url.map(|e| e.0),
             published_at: value.published_at,
             author: value.author,
             archived_path: value.archived_path,
-            user_id: value.user_id,
+            user_id: value.user_id.into(),
             created_at: value.created_at,
             updated_at: value.updated_at,
             tags: value.tags.map(|e| e.0),
-        }
-    }
-}
-
-struct BookmarkByIdRow {
-    id: Uuid,
-    thumbnail_url: Option<DbUrl>,
-    archived_path: Option<String>,
-    user_id: Uuid,
-}
-
-impl From<BookmarkByIdRow> for BookmarkById {
-    fn from(value: BookmarkByIdRow) -> Self {
-        Self {
-            id: value.id,
-            thumbnail_url: value.thumbnail_url.map(Into::into),
-            archived_path: value.archived_path,
-            user_id: value.user_id,
         }
     }
 }

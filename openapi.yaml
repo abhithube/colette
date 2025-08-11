@@ -3243,11 +3243,13 @@ components:
           type:
           - string
           - 'null'
+          description: Profile display name of the user
         imageUrl:
           type:
           - string
           - 'null'
           format: uri
+          description: Profile image URL of the user
         createdAt:
           type: string
           format: date-time

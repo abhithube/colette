@@ -15,9 +15,7 @@ bytes.workspace = true
 chrono.workspace = true
 colette-core.workspace = true
 colette-util.workspace = true
-email_address = { version = "0.2.9", default-features = false, features = [
-  "serde_support",
-] }
+email_address.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_with = { version = "3.12.0", default-features = false }

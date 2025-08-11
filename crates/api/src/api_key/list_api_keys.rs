@@ -9,9 +9,9 @@ use colette_core::{
     api_key::{ApiKeyCursor, ListApiKeysError, ListApiKeysQuery},
 };
 
-use super::{API_KEYS_TAG, ApiKey};
 use crate::{
     ApiState,
+    api_key::{API_KEYS_TAG, ApiKey},
     common::{ApiError, Auth, Query},
     pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
 };

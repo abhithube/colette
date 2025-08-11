@@ -10,9 +10,9 @@ use colette_core::{
 };
 use uuid::Uuid;
 
-use super::{BOOKMARKS_TAG, BookmarkDetails};
 use crate::{
     ApiState,
+    bookmark::{BOOKMARKS_TAG, BookmarkDetails},
     common::{ApiError, Auth, Query},
     pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
 };
@@ -41,9 +41,9 @@ pub(super) async fn handler(
     match state
         .list_bookmarks
         .handle(ListBookmarksQuery {
-            collection_id: query.collection_id,
+            collection_id: query.collection_id.map(Into::into),
             tags: if query.filter_by_tags.unwrap_or(query.tags.is_some()) {
-                query.tags
+                query.tags.map(|e| e.into_iter().map(Into::into).collect())
             } else {
                 None
             },

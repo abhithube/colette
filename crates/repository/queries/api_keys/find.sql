@@ -1,5 +1,7 @@
 SELECT
   id,
+  lookup_hash,
+  verification_hash,
   title,
   preview,
   user_id,
@@ -13,14 +15,18 @@ WHERE
     OR id = $1
   )
   AND (
-    $2::UUID IS NULL
-    OR user_id = $2
+    $2::TEXT IS NULL
+    OR lookup_hash = $2
   )
   AND (
-    $3::TIMESTAMPTZ IS NULL
-    OR created_at > $3
+    $3::UUID IS NULL
+    OR user_id = $3
+  )
+  AND (
+    $4::TIMESTAMPTZ IS NULL
+    OR created_at > $4
   )
 ORDER BY
   created_at ASC
 LIMIT
-  $4
+  $5

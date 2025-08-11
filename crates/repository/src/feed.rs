@@ -1,7 +1,10 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     Feed, RepositoryError,
-    feed::{FeedFindOutdatedParams, FeedFindParams, FeedRepository, FeedStatus, FeedUpsertParams},
+    feed::{
+        FeedFindOutdatedParams, FeedFindParams, FeedId, FeedRepository, FeedStatus,
+        FeedUpsertParams,
+    },
 };
 use sqlx::{
     Decode, Encode, PgPool, Postgres, Type,
@@ -31,7 +34,7 @@ impl FeedRepository for PostgresFeedRepository {
         let feeds = sqlx::query_file_as!(
             FeedRow,
             "queries/feeds/find.sql",
-            params.id,
+            params.id.map(|e| e.as_inner()),
             params.cursor.map(DbUrl) as Option<DbUrl>,
             params.limit.map(|e| e as i64)
         )
@@ -71,7 +74,7 @@ impl FeedRepository for PostgresFeedRepository {
         Ok(feeds)
     }
 
-    async fn upsert(&self, params: FeedUpsertParams) -> Result<Uuid, RepositoryError> {
+    async fn upsert(&self, params: FeedUpsertParams) -> Result<FeedId, RepositoryError> {
         let mut fe_links = Vec::<DbUrl>::new();
         let mut fe_titles = Vec::<String>::new();
         let mut fe_published_ats = Vec::<DateTime<Utc>>::new();
@@ -106,7 +109,7 @@ impl FeedRepository for PostgresFeedRepository {
         .fetch_one(&self.pool)
         .await?;
 
-        Ok(id)
+        Ok(id.into())
     }
 
     async fn mark_as_failed(&self, source_url: Url) -> Result<(), RepositoryError> {
@@ -137,7 +140,7 @@ pub(crate) struct FeedRow {
 impl From<FeedRow> for Feed {
     fn from(value: FeedRow) -> Self {
         Self {
-            id: value.id,
+            id: value.id.into(),
             source_url: value.source_url.into(),
             link: value.link.0,
             title: value.title,

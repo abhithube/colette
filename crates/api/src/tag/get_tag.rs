@@ -4,12 +4,15 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::Handler as _;
+use colette_core::{
+    Handler as _,
+    tag::{GetTagError, GetTagQuery, TagError},
+};
 
-use super::{TAGS_TAG, TagDetails};
 use crate::{
     ApiState,
     common::{ApiError, Auth, Id, Path},
+    tag::{TAGS_TAG, TagDetails},
 };
 
 #[utoipa::path(
@@ -29,13 +32,16 @@ pub(super) async fn handler(
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .get_tag
-        .handle(colette_core::tag::GetTagQuery { id, user_id })
+        .handle(GetTagQuery {
+            id: id.into(),
+            user_id,
+        })
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            colette_core::tag::GetTagError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
-            colette_core::tag::GetTagError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            GetTagError::Core(TagError::Forbidden(_)) => Err(ErrResponse::Forbidden(e.into())),
+            GetTagError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

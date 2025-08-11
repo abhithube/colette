@@ -1,16 +1,5 @@
-use chrono::{DateTime, Utc};
-use url::Url;
-pub use user_repository::*;
-use uuid::Uuid;
+pub use model::*;
+pub use repository::*;
 
-mod user_repository;
-
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct User {
-    pub id: Uuid,
-    pub email: String,
-    pub display_name: Option<String>,
-    pub image_url: Option<Url>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
+mod model;
+mod repository;

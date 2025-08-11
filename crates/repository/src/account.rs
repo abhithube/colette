@@ -44,7 +44,7 @@ impl AccountRepository for PostgresAccountRepository {
             params.sub,
             params.provider,
             params.password_hash,
-            params.user_id
+            params.user_id.as_inner()
         )
         .fetch_one(&self.pool)
         .await?;
@@ -61,7 +61,7 @@ impl AccountRepository for PostgresAccountRepository {
 
         sqlx::query_file!(
             "queries/accounts/update.sql",
-            params.id,
+            params.id.as_inner(),
             has_password_hash,
             password_hash
         )
@@ -83,7 +83,7 @@ impl From<AccountBySubAndProviderRow> for AccountBySubAndProvider {
         Self {
             id: value.id,
             password_hash: value.password_hash,
-            user_id: value.user_id,
+            user_id: value.user_id.into(),
         }
     }
 }

@@ -3,12 +3,15 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::Handler as _;
+use colette_core::{
+    Handler as _,
+    tag::{TagError, UpdateTagCommand, UpdateTagError},
+};
 
-use super::TAGS_TAG;
 use crate::{
     ApiState,
     common::{ApiError, Auth, Id, Json, NonEmptyString, Path},
+    tag::TAGS_TAG,
 };
 
 #[utoipa::path(
@@ -30,8 +33,8 @@ pub(super) async fn handler(
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .update_tag
-        .handle(colette_core::tag::UpdateTagCommand {
-            id,
+        .handle(UpdateTagCommand {
+            id: id.into(),
             title: body.title.map(Into::into),
             user_id,
         })
@@ -39,10 +42,8 @@ pub(super) async fn handler(
     {
         Ok(_) => Ok(OkResponse),
         Err(e) => match e {
-            colette_core::tag::UpdateTagError::Forbidden(_) => {
-                Err(ErrResponse::Forbidden(e.into()))
-            }
-            colette_core::tag::UpdateTagError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            UpdateTagError::Core(TagError::Forbidden(_)) => Err(ErrResponse::Forbidden(e.into())),
+            UpdateTagError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

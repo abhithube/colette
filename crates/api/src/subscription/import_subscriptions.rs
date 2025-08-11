@@ -6,10 +6,10 @@ use axum::{
 use bytes::Bytes;
 use colette_core::{Handler as _, subscription::ImportSubscriptionsCommand};
 
-use super::SUBSCRIPTIONS_TAG;
 use crate::{
     ApiState,
     common::{ApiError, Auth},
+    subscription::SUBSCRIPTIONS_TAG,
 };
 
 #[utoipa::path(

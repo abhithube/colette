@@ -6,9 +6,9 @@ use axum::{
 use axum_extra::extract::CookieJar;
 use colette_core::{Handler as _, auth::BuildAuthorizationUrlQuery};
 
-use super::{AUTH_TAG, CODE_VERIFIER_COOKIE, STATE_COOKIE};
 use crate::{
     ApiState,
+    auth::{AUTH_TAG, CODE_VERIFIER_COOKIE, STATE_COOKIE},
     common::{ApiError, build_cookie},
 };
 

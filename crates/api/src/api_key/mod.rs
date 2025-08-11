@@ -50,7 +50,7 @@ struct ApiKey {
 impl From<colette_core::ApiKey> for ApiKey {
     fn from(value: colette_core::ApiKey) -> Self {
         Self {
-            id: value.id,
+            id: value.id.as_inner(),
             title: value.title,
             preview: value.preview,
             created_at: value.created_at,

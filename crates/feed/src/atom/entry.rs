@@ -2,9 +2,9 @@ use std::{collections::HashMap, io::BufRead};
 
 use quick_xml::{Reader, events::Event};
 
-use super::{AtomLink, AtomPerson, AtomText, handle_link, handle_text, person};
 use crate::{
     Error,
+    atom::{AtomLink, AtomPerson, AtomText, handle_link, handle_text, person},
     extension::{
         Extension,
         media::{self, MediaGroup, handle_media_thumbnail},

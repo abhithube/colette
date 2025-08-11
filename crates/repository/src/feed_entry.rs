@@ -23,7 +23,7 @@ impl PostgresFeedEntryRepository {
 impl FeedEntryRepository for PostgresFeedEntryRepository {
     async fn find(&self, params: FeedEntryFindParams) -> Result<Vec<FeedEntry>, RepositoryError> {
         let (cursor_published_at, cursor_id) = if let Some((published_at, id)) = params.cursor {
-            (Some(published_at), Some(id))
+            (Some(published_at), Some(id.as_inner()))
         } else {
             (None, None)
         };
@@ -31,8 +31,8 @@ impl FeedEntryRepository for PostgresFeedEntryRepository {
         let feed_entries = sqlx::query_file_as!(
             FeedEntryRow,
             "queries/feed_entries/find.sql",
-            params.id,
-            params.feed_id,
+            params.id.map(|e| e.as_inner()),
+            params.feed_id.map(|e| e.as_inner()),
             cursor_published_at,
             cursor_id,
             params.limit.map(|e| e as i64)
@@ -59,14 +59,14 @@ struct FeedEntryRow {
 impl From<FeedEntryRow> for FeedEntry {
     fn from(value: FeedEntryRow) -> Self {
         Self {
-            id: value.id,
+            id: value.id.into(),
             link: value.link.0,
             title: value.title,
             published_at: value.published_at,
             description: value.description,
             author: value.author,
             thumbnail_url: value.thumbnail_url.map(|e| e.0),
-            feed_id: value.feed_id,
+            feed_id: value.feed_id.into(),
         }
     }
 }

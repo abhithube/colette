@@ -3,12 +3,15 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::Handler as _;
+use colette_core::{
+    Handler as _,
+    tag::{DeleteTagCommand, DeleteTagError, TagError},
+};
 
-use super::TAGS_TAG;
 use crate::{
     ApiState,
     common::{ApiError, Auth, Id, Path},
+    tag::TAGS_TAG,
 };
 
 #[utoipa::path(
@@ -28,15 +31,16 @@ pub(super) async fn handler(
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .delete_tag
-        .handle(colette_core::tag::DeleteTagCommand { id, user_id })
+        .handle(DeleteTagCommand {
+            id: id.into(),
+            user_id,
+        })
         .await
     {
         Ok(()) => Ok(OkResponse),
         Err(e) => match e {
-            colette_core::tag::DeleteTagError::Forbidden(_) => {
-                Err(ErrResponse::Forbidden(e.into()))
-            }
-            colette_core::tag::DeleteTagError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            DeleteTagError::Core(TagError::Forbidden(_)) => Err(ErrResponse::Forbidden(e.into())),
+            DeleteTagError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

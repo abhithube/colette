@@ -1,0 +1,23 @@
+pub use archive_thumbnail_handler::*;
+pub use create_bookmark_handler::*;
+pub use delete_bookmark_handler::*;
+pub use export_bookmarks_handler::*;
+pub use get_bookmark_handler::*;
+pub use import_bookmarks_handler::*;
+pub use link_bookmark_tags_handler::*;
+pub use list_bookmarks_handler::*;
+pub use refresh_bookmark_handler::*;
+pub use scrape_bookmark_handler::*;
+pub use update_bookmark_handler::*;
+
+mod archive_thumbnail_handler;
+mod create_bookmark_handler;
+mod delete_bookmark_handler;
+mod export_bookmarks_handler;
+mod get_bookmark_handler;
+mod import_bookmarks_handler;
+mod link_bookmark_tags_handler;
+mod list_bookmarks_handler;
+mod refresh_bookmark_handler;
+mod scrape_bookmark_handler;
+mod update_bookmark_handler;

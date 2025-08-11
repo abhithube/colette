@@ -10,11 +10,11 @@ use colette_core::{
 };
 use uuid::Uuid;
 
-use super::{SUBSCRIPTIONS_TAG, SubscriptionDetails};
 use crate::{
     ApiState,
     common::{ApiError, Auth, Query},
     pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
+    subscription::{SUBSCRIPTIONS_TAG, SubscriptionDetails},
 };
 
 #[utoipa::path(
@@ -42,7 +42,7 @@ pub(super) async fn handler(
         .list_subscriptions
         .handle(ListSubscriptionsQuery {
             tags: if query.filter_by_tags.unwrap_or(query.tags.is_some()) {
-                query.tags
+                query.tags.map(|e| e.into_iter().map(Into::into).collect())
             } else {
                 None
             },

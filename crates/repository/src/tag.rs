@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     RepositoryError, Tag,
-    tag::{TagById, TagFindParams, TagInsertParams, TagRepository, TagUpdateParams},
+    tag::{TagFindParams, TagId, TagInsertParams, TagRepository, TagUpdateParams},
 };
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -23,8 +23,8 @@ impl TagRepository for PostgresTagRepository {
         let tags = sqlx::query_file_as!(
             TagRow,
             "queries/tags/find.sql",
-            params.id,
-            params.user_id,
+            params.id.map(|e| e.as_inner()),
+            params.user_id.map(|e| e.as_inner()),
             params.cursor,
             params.limit.map(|e| e as i64)
         )
@@ -35,37 +35,36 @@ impl TagRepository for PostgresTagRepository {
         Ok(tags)
     }
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<TagById>, RepositoryError> {
-        let tag = sqlx::query_file_as!(TagByIdRow, "queries/tags/find_by_id.sql", id)
-            .map(Into::into)
-            .fetch_optional(&self.pool)
-            .await?;
+    async fn insert(&self, params: TagInsertParams) -> Result<TagId, RepositoryError> {
+        let id = sqlx::query_file_scalar!(
+            "queries/tags/insert.sql",
+            params.title,
+            params.user_id.as_inner()
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::Database(e) if e.is_unique_violation() => RepositoryError::Duplicate,
+            _ => RepositoryError::Unknown(e),
+        })?;
 
-        Ok(tag)
-    }
-
-    async fn insert(&self, params: TagInsertParams) -> Result<Uuid, RepositoryError> {
-        let id = sqlx::query_file_scalar!("queries/tags/insert.sql", params.title, params.user_id)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => RepositoryError::Duplicate,
-                _ => RepositoryError::Unknown(e),
-            })?;
-
-        Ok(id)
+        Ok(id.into())
     }
 
     async fn update(&self, params: TagUpdateParams) -> Result<(), RepositoryError> {
-        sqlx::query_file!("queries/tags/update.sql", params.id, params.title)
-            .execute(&self.pool)
-            .await?;
+        sqlx::query_file!(
+            "queries/tags/update.sql",
+            params.id.as_inner(),
+            params.title
+        )
+        .execute(&self.pool)
+        .await?;
 
         Ok(())
     }
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError> {
-        sqlx::query_file!("queries/tags/delete_by_id.sql", id)
+    async fn delete_by_id(&self, id: TagId) -> Result<(), RepositoryError> {
+        sqlx::query_file!("queries/tags/delete_by_id.sql", id.as_inner())
             .execute(&self.pool)
             .await?;
 
@@ -84,25 +83,11 @@ pub(crate) struct TagRow {
 impl From<TagRow> for Tag {
     fn from(value: TagRow) -> Self {
         Self {
-            id: value.id,
+            id: value.id.into(),
             title: value.title,
-            user_id: value.user_id,
+            user_id: value.user_id.into(),
             created_at: value.created_at,
             updated_at: value.updated_at,
-        }
-    }
-}
-
-struct TagByIdRow {
-    id: Uuid,
-    user_id: Uuid,
-}
-
-impl From<TagByIdRow> for TagById {
-    fn from(value: TagByIdRow) -> Self {
-        Self {
-            id: value.id,
-            user_id: value.user_id,
         }
     }
 }

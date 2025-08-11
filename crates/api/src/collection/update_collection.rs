@@ -5,13 +5,13 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    collection::{UpdateCollectionCommand, UpdateCollectionError},
+    collection::{CollectionError, UpdateCollectionCommand, UpdateCollectionError},
 };
 
-use super::COLLECTIONS_TAG;
 use crate::{
     ApiState,
     bookmark::BookmarkFilter,
+    collection::COLLECTIONS_TAG,
     common::{ApiError, Auth, Id, Json, NonEmptyString, Path},
 };
 
@@ -35,7 +35,7 @@ pub(super) async fn handler(
     match state
         .update_collection
         .handle(UpdateCollectionCommand {
-            id,
+            id: id.into(),
             title: body.title.map(Into::into),
             filter: body.filter.map(Into::into),
             user_id,
@@ -44,7 +44,9 @@ pub(super) async fn handler(
     {
         Ok(_) => Ok(OkResponse),
         Err(e) => match e {
-            UpdateCollectionError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            UpdateCollectionError::Core(CollectionError::Forbidden(_)) => {
+                Err(ErrResponse::Forbidden(e.into()))
+            }
             UpdateCollectionError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },

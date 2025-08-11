@@ -3,7 +3,7 @@ use colette_core::{
     Collection, RepositoryError,
     bookmark::BookmarkFilter,
     collection::{
-        CollectionById, CollectionFindParams, CollectionInsertParams, CollectionRepository,
+        CollectionFindParams, CollectionId, CollectionInsertParams, CollectionRepository,
         CollectionUpdateParams,
     },
 };
@@ -27,8 +27,8 @@ impl CollectionRepository for PostgresCollectionRepository {
         let collections = sqlx::query_file_as!(
             CollectionRow,
             "queries/collections/find.sql",
-            params.id,
-            params.user_id,
+            params.id.map(|e| e.as_inner()),
+            params.user_id.map(|e| e.as_inner()),
             params.cursor,
             params.limit.map(|e| e as i64)
         )
@@ -39,22 +39,15 @@ impl CollectionRepository for PostgresCollectionRepository {
         Ok(collections)
     }
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<CollectionById>, RepositoryError> {
-        let collection =
-            sqlx::query_file_as!(CollectionByIdRow, "queries/collections/find_by_id.sql", id)
-                .map(Into::into)
-                .fetch_optional(&self.pool)
-                .await?;
-
-        Ok(collection)
-    }
-
-    async fn insert(&self, params: CollectionInsertParams) -> Result<Uuid, RepositoryError> {
+    async fn insert(
+        &self,
+        params: CollectionInsertParams,
+    ) -> Result<CollectionId, RepositoryError> {
         let id = sqlx::query_file_scalar!(
             "queries/collections/insert.sql",
             params.title,
             Json(params.filter) as Json<BookmarkFilter>,
-            params.user_id
+            params.user_id.as_inner()
         )
         .fetch_one(&self.pool)
         .await
@@ -63,13 +56,13 @@ impl CollectionRepository for PostgresCollectionRepository {
             _ => RepositoryError::Unknown(e),
         })?;
 
-        Ok(id)
+        Ok(id.into())
     }
 
     async fn update(&self, params: CollectionUpdateParams) -> Result<(), RepositoryError> {
         sqlx::query_file!(
             "queries/collections/update.sql",
-            params.id,
+            params.id.as_inner(),
             params.title,
             params.filter.map(Json) as Option<Json<BookmarkFilter>>
         )
@@ -79,8 +72,8 @@ impl CollectionRepository for PostgresCollectionRepository {
         Ok(())
     }
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError> {
-        sqlx::query_file!("queries/collections/delete_by_id.sql", id)
+    async fn delete_by_id(&self, id: CollectionId) -> Result<(), RepositoryError> {
+        sqlx::query_file!("queries/collections/delete_by_id.sql", id.as_inner())
             .execute(&self.pool)
             .await?;
 
@@ -100,26 +93,12 @@ struct CollectionRow {
 impl From<CollectionRow> for Collection {
     fn from(value: CollectionRow) -> Self {
         Self {
-            id: value.id,
+            id: value.id.into(),
             title: value.title,
             filter: value.filter_json.0,
-            user_id: value.user_id,
+            user_id: value.user_id.into(),
             created_at: value.created_at,
             updated_at: value.updated_at,
-        }
-    }
-}
-
-struct CollectionByIdRow {
-    id: Uuid,
-    user_id: Uuid,
-}
-
-impl From<CollectionByIdRow> for CollectionById {
-    fn from(value: CollectionByIdRow) -> Self {
-        Self {
-            id: value.id,
-            user_id: value.user_id,
         }
     }
 }

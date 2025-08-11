@@ -14,8 +14,7 @@ use futures::FutureExt;
 use tokio::sync::Mutex;
 use tower::Service;
 
-use super::Error;
-use crate::JobError;
+use crate::{Error, JobError};
 
 pub struct RefreshFeedsJobHandler {
     list_feeds: Arc<ListFeedsHandler>,
@@ -72,7 +71,7 @@ impl Service<Job> for RefreshFeedsJobHandler {
                     .handle(CreateJobCommand {
                         data,
                         job_type: "scrape_feed".into(),
-                        group_identifier: Some(job.id.into()),
+                        group_identifier: Some(job.id.as_inner().into()),
                     })
                     .await
                     .map_err(JobError::CreateJob)?;
@@ -80,7 +79,7 @@ impl Service<Job> for RefreshFeedsJobHandler {
                 let mut scrape_feed_producer = scrape_feed_producer.lock().await;
 
                 scrape_feed_producer
-                    .push(job_id)
+                    .push(job_id.as_inner())
                     .await
                     .map_err(|e| Error::Service(e.to_string()))?;
             }

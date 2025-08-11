@@ -6,12 +6,12 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    collection::{GetCollectionError, GetCollectionQuery},
+    collection::{CollectionError, GetCollectionError, GetCollectionQuery},
 };
 
-use super::{COLLECTIONS_TAG, Collection};
 use crate::{
     ApiState,
+    collection::{COLLECTIONS_TAG, Collection},
     common::{ApiError, Auth, Id, Path},
 };
 
@@ -32,12 +32,17 @@ pub(super) async fn handler(
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .get_collection
-        .handle(GetCollectionQuery { id, user_id })
+        .handle(GetCollectionQuery {
+            id: id.into(),
+            user_id,
+        })
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            GetCollectionError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            GetCollectionError::Core(CollectionError::Forbidden(_)) => {
+                Err(ErrResponse::Forbidden(e.into()))
+            }
             GetCollectionError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },

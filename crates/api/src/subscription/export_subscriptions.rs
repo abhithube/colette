@@ -5,10 +5,10 @@ use axum::{
 };
 use colette_core::{Handler as _, subscription::ExportSubscriptionsQuery};
 
-use super::SUBSCRIPTIONS_TAG;
 use crate::{
     ApiState,
     common::{ApiError, Auth},
+    subscription::SUBSCRIPTIONS_TAG,
 };
 
 #[utoipa::path(

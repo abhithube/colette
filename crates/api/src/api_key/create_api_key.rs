@@ -10,9 +10,9 @@ use colette_core::{
 };
 use uuid::Uuid;
 
-use super::API_KEYS_TAG;
 use crate::{
     ApiState,
+    api_key::API_KEYS_TAG,
     common::{ApiError, Auth, Json, NonEmptyString},
 };
 
@@ -70,7 +70,7 @@ pub(super) struct ApiKeyCreated {
 impl From<api_key::ApiKeyCreated> for ApiKeyCreated {
     fn from(value: api_key::ApiKeyCreated) -> Self {
         Self {
-            id: value.id,
+            id: value.id.as_inner(),
             value: value.value,
             title: value.title,
             created_at: value.created_at,

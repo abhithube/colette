@@ -6,13 +6,13 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    subscription::{GetSubscriptionError, GetSubscriptionQuery},
+    subscription::{GetSubscriptionError, GetSubscriptionQuery, SubscriptionError},
 };
 
-use super::{SUBSCRIPTIONS_TAG, SubscriptionDetails};
 use crate::{
     ApiState,
     common::{ApiError, Auth, Id, Path, Query},
+    subscription::{SUBSCRIPTIONS_TAG, SubscriptionDetails},
 };
 
 #[utoipa::path(
@@ -34,7 +34,7 @@ pub(super) async fn handler(
     match state
         .get_subscription
         .handle(GetSubscriptionQuery {
-            id,
+            id: id.into(),
             with_unread_count: query.with_unread_count,
             with_tags: query.with_tags,
             user_id,
@@ -43,7 +43,9 @@ pub(super) async fn handler(
     {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            GetSubscriptionError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            GetSubscriptionError::Core(SubscriptionError::Forbidden(_)) => {
+                Err(ErrResponse::Forbidden(e.into()))
+            }
             GetSubscriptionError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },

@@ -1,6 +1,7 @@
 use axum::{Router, routing};
 use chrono::{DateTime, Utc};
 use colette_core::auth;
+use email_address::EmailAddress;
 use url::Url;
 use utoipa::OpenApi;
 use uuid::Uuid;
@@ -65,10 +66,12 @@ struct User {
     /// Unique identifier of the user
     id: Uuid,
     /// Email address of the user
-    #[schema(format = "email")]
-    email: String,
+    #[schema(value_type = String, format = "email")]
+    email: EmailAddress,
+    /// Profile display name of the user
     #[schema(required)]
     display_name: Option<String>,
+    /// Profile image URL of the user
     #[schema(required)]
     image_url: Option<Url>,
     /// Timestamp at which the user was created
@@ -80,7 +83,7 @@ struct User {
 impl From<colette_core::User> for User {
     fn from(value: colette_core::User) -> Self {
         Self {
-            id: value.id,
+            id: value.id.as_inner(),
             email: value.email,
             display_name: value.display_name,
             image_url: value.image_url,

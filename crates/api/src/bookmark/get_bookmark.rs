@@ -6,12 +6,12 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    bookmark::{GetBookmarkError, GetBookmarkQuery},
+    bookmark::{BookmarkError, GetBookmarkError, GetBookmarkQuery},
 };
 
-use super::{BOOKMARKS_TAG, BookmarkDetails};
 use crate::{
     ApiState,
+    bookmark::{BOOKMARKS_TAG, BookmarkDetails},
     common::{ApiError, Auth, Id, Path, Query},
 };
 
@@ -34,7 +34,7 @@ pub(super) async fn handler(
     match state
         .get_bookmark
         .handle(GetBookmarkQuery {
-            id,
+            id: id.into(),
             with_tags: query.with_tags,
             user_id,
         })
@@ -42,7 +42,9 @@ pub(super) async fn handler(
     {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            GetBookmarkError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            GetBookmarkError::Core(BookmarkError::Forbidden(_)) => {
+                Err(ErrResponse::Forbidden(e.into()))
+            }
             GetBookmarkError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },

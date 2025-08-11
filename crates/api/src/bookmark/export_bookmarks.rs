@@ -5,9 +5,9 @@ use axum::{
 };
 use colette_core::{Handler, bookmark::ExportBookmarksQuery};
 
-use super::BOOKMARKS_TAG;
 use crate::{
     ApiState,
+    bookmark::BOOKMARKS_TAG,
     common::{ApiError, Auth},
 };
 

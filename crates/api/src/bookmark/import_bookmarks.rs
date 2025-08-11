@@ -6,9 +6,9 @@ use axum::{
 use bytes::Bytes;
 use colette_core::{Handler, bookmark::ImportBookmarksCommand};
 
-use super::BOOKMARKS_TAG;
 use crate::{
     ApiState,
+    bookmark::BOOKMARKS_TAG,
     common::{ApiError, Auth},
 };
 

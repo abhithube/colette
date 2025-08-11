@@ -10,9 +10,9 @@ use colette_core::{
 };
 use url::Url;
 
-use super::BOOKMARKS_TAG;
 use crate::{
     ApiState,
+    bookmark::BOOKMARKS_TAG,
     common::{ApiError, Auth, CreatedResource, Json, NonEmptyString},
 };
 
@@ -43,7 +43,9 @@ pub(super) async fn handler(
         })
         .await
     {
-        Ok(data) => Ok(OkResponse(CreatedResource { id: data.id })),
+        Ok(data) => Ok(OkResponse(CreatedResource {
+            id: data.id.as_inner(),
+        })),
         Err(e) => match e {
             CreateBookmarkError::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),

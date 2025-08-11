@@ -2,7 +2,8 @@ use chrono::{DateTime, Utc};
 use colette_core::{
     RepositoryError,
     job::{
-        Job, JobById, JobFindParams, JobInsertParams, JobRepository, JobStatus, JobUpdateParams,
+        Job, JobById, JobFindParams, JobId, JobInsertParams, JobRepository, JobStatus,
+        JobUpdateParams,
     },
 };
 use serde_json::Value;
@@ -32,7 +33,7 @@ impl JobRepository for PostgresJobRepository {
         let jobs = sqlx::query_file_as!(
             JobRow,
             "queries/jobs/find.sql",
-            params.id,
+            params.id.map(|e| e.as_inner()),
             params.group_identifier,
         )
         .map(Into::into)
@@ -42,8 +43,8 @@ impl JobRepository for PostgresJobRepository {
         Ok(jobs)
     }
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<JobById>, RepositoryError> {
-        let job = sqlx::query_file_as!(JobByIdRow, "queries/jobs/find_by_id.sql", id)
+    async fn find_by_id(&self, id: JobId) -> Result<Option<JobById>, RepositoryError> {
+        let job = sqlx::query_file_as!(JobByIdRow, "queries/jobs/find_by_id.sql", id.as_inner())
             .map(Into::into)
             .fetch_optional(&self.pool)
             .await?;
@@ -51,7 +52,7 @@ impl JobRepository for PostgresJobRepository {
         Ok(job)
     }
 
-    async fn insert(&self, params: JobInsertParams) -> Result<Uuid, RepositoryError> {
+    async fn insert(&self, params: JobInsertParams) -> Result<JobId, RepositoryError> {
         let id = sqlx::query_file_scalar!(
             "queries/jobs/insert.sql",
             params.job_type,
@@ -61,7 +62,7 @@ impl JobRepository for PostgresJobRepository {
         .fetch_one(&self.pool)
         .await?;
 
-        Ok(id)
+        Ok(id.into())
     }
 
     async fn update(&self, params: JobUpdateParams) -> Result<(), RepositoryError> {
@@ -73,7 +74,7 @@ impl JobRepository for PostgresJobRepository {
 
         sqlx::query_file_scalar!(
             "queries/jobs/update.sql",
-            params.id,
+            params.id.as_inner(),
             params.status.map(DbJobStatus) as Option<DbJobStatus>,
             has_message,
             message
@@ -84,8 +85,8 @@ impl JobRepository for PostgresJobRepository {
         Ok(())
     }
 
-    async fn delete_by_id(&self, id: Uuid) -> Result<(), RepositoryError> {
-        sqlx::query_file!("queries/jobs/delete_by_id.sql", id)
+    async fn delete_by_id(&self, id: JobId) -> Result<(), RepositoryError> {
+        sqlx::query_file!("queries/jobs/delete_by_id.sql", id.as_inner())
             .execute(&self.pool)
             .await?;
 
@@ -107,7 +108,7 @@ struct JobRow {
 impl From<JobRow> for Job {
     fn from(value: JobRow) -> Self {
         Self {
-            id: value.id,
+            id: value.id.into(),
             job_type: value.job_type,
             data: value.data_json.0,
             status: value.status.into(),
@@ -127,7 +128,7 @@ struct JobByIdRow {
 impl From<JobByIdRow> for JobById {
     fn from(value: JobByIdRow) -> Self {
         Self {
-            id: value.id,
+            id: value.id.into(),
             status: value.status.into(),
         }
     }

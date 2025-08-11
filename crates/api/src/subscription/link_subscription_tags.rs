@@ -5,14 +5,14 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    subscription::{LinkSubscriptionTagsCommand, LinkSubscriptionTagsError},
+    subscription::{LinkSubscriptionTagsCommand, LinkSubscriptionTagsError, SubscriptionError},
 };
 use uuid::Uuid;
 
-use super::SUBSCRIPTIONS_TAG;
 use crate::{
     ApiState,
     common::{ApiError, Auth, Id, Json, Path},
+    subscription::SUBSCRIPTIONS_TAG,
 };
 
 #[utoipa::path(
@@ -35,15 +35,17 @@ pub(super) async fn handler(
     match state
         .link_subscription_tags
         .handle(LinkSubscriptionTagsCommand {
-            id,
-            tag_ids: body.tag_ids,
+            id: id.into(),
+            tag_ids: body.tag_ids.into_iter().map(Into::into).collect(),
             user_id,
         })
         .await
     {
         Ok(_) => Ok(OkResponse),
         Err(e) => match e {
-            LinkSubscriptionTagsError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            LinkSubscriptionTagsError::Core(SubscriptionError::Forbidden(_)) => {
+                Err(ErrResponse::Forbidden(e.into()))
+            }
             LinkSubscriptionTagsError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },

@@ -5,12 +5,12 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    collection::{DeleteCollectionCommand, DeleteCollectionError},
+    collection::{CollectionError, DeleteCollectionCommand, DeleteCollectionError},
 };
 
-use super::COLLECTIONS_TAG;
 use crate::{
     ApiState,
+    collection::COLLECTIONS_TAG,
     common::{ApiError, Auth, Id, Path},
 };
 
@@ -31,12 +31,17 @@ pub(super) async fn handler(
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .delete_collection
-        .handle(DeleteCollectionCommand { id, user_id })
+        .handle(DeleteCollectionCommand {
+            id: id.into(),
+            user_id,
+        })
         .await
     {
         Ok(()) => Ok(OkResponse),
         Err(e) => match e {
-            DeleteCollectionError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            DeleteCollectionError::Core(CollectionError::Forbidden(_)) => {
+                Err(ErrResponse::Forbidden(e.into()))
+            }
             DeleteCollectionError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },

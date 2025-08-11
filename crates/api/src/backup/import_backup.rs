@@ -6,9 +6,9 @@ use axum::{
 use bytes::Bytes;
 use colette_core::{Handler as _, backup::ImportBackupCommand};
 
-use super::BACKUPS_TAG;
 use crate::{
     ApiState,
+    backup::BACKUPS_TAG,
     common::{ApiError, Auth},
 };
 

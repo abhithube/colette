@@ -10,9 +10,9 @@ use colette_core::{
 };
 use url::Url;
 
-use super::BOOKMARKS_TAG;
 use crate::{
     ApiState,
+    bookmark::BOOKMARKS_TAG,
     common::{ApiError, Json},
 };
 

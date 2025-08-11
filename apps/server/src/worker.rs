@@ -41,13 +41,14 @@ impl JobWorker {
             let job = match self
                 .update_job
                 .handle(UpdateJobCommand {
-                    id: job_id,
+                    id: job_id.into(),
+                    data: None,
                     status: Some(JobStatus::Running),
-                    ..Default::default()
+                    message: None,
                 })
                 .await
             {
-                Ok(_) => match self.get_job.handle(GetJobQuery { id: job_id }).await {
+                Ok(_) => match self.get_job.handle(GetJobQuery { id: job_id.into() }).await {
                     Ok(job) => job,
                     Err(e) => return Err(Error::Job(JobError::GetJob(e))),
                 },
@@ -61,19 +62,20 @@ impl JobWorker {
                 Ok(_) => self
                     .update_job
                     .handle(UpdateJobCommand {
-                        id: job_id,
+                        id: job_id.into(),
+                        data: None,
                         status: Some(JobStatus::Completed),
-                        ..Default::default()
+                        message: None,
                     })
                     .await
                     .map_err(JobError::UpdateJob)?,
                 Err(e) => self
                     .update_job
                     .handle(UpdateJobCommand {
-                        id: job_id,
+                        id: job_id.into(),
+                        data: None,
                         status: Some(JobStatus::Failed),
                         message: Some(Some(e.to_string())),
-                        ..Default::default()
                     })
                     .await
                     .map_err(JobError::UpdateJob)?,
@@ -150,8 +152,9 @@ impl CronWorker {
                         .update_job
                         .handle(UpdateJobCommand {
                             id: job_id,
+                            data: None,
                             status: Some(JobStatus::Completed),
-                            ..Default::default()
+                            message: None,
                         })
                         .await
                     {
@@ -163,9 +166,9 @@ impl CronWorker {
                         .update_job
                         .handle(UpdateJobCommand {
                             id: job_id,
+                            data: None,
                             status: Some(JobStatus::Failed),
                             message: Some(Some(e.to_string())),
-                            ..Default::default()
                         })
                         .await
                     {

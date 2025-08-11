@@ -88,7 +88,7 @@ struct BookmarkDetails {
 impl From<colette_core::Bookmark> for Bookmark {
     fn from(value: colette_core::Bookmark) -> Self {
         Self {
-            id: value.id,
+            id: value.id.as_inner(),
             link: value.link,
             title: value.title,
             thumbnail_url: value.thumbnail_url,

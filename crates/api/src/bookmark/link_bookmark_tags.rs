@@ -5,13 +5,13 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    bookmark::{LinkBookmarkTagsCommand, LinkBookmarkTagsError},
+    bookmark::{BookmarkError, LinkBookmarkTagsCommand, LinkBookmarkTagsError},
 };
 use uuid::Uuid;
 
-use super::BOOKMARKS_TAG;
 use crate::{
     ApiState,
+    bookmark::BOOKMARKS_TAG,
     common::{ApiError, Auth, Id, Json, Path},
 };
 
@@ -35,15 +35,17 @@ pub(super) async fn handler(
     match state
         .link_bookmark_tags
         .handle(LinkBookmarkTagsCommand {
-            id,
-            tag_ids: body.tag_ids,
+            id: id.into(),
+            tag_ids: body.tag_ids.into_iter().map(Into::into).collect(),
             user_id,
         })
         .await
     {
         Ok(_) => Ok(OkResponse),
         Err(e) => match e {
-            LinkBookmarkTagsError::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            LinkBookmarkTagsError::Core(BookmarkError::Forbidden(_)) => {
+                Err(ErrResponse::Forbidden(e.into()))
+            }
             LinkBookmarkTagsError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
