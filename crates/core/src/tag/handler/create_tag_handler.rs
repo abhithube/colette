@@ -1,8 +1,8 @@
 use crate::{
     Handler,
+    auth::UserId,
     common::RepositoryError,
     tag::{TagId, TagInsertParams, TagRepository},
-    user::UserId,
 };
 
 #[derive(Debug, Clone)]

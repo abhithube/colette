@@ -3,7 +3,7 @@ use crate::{
     collection::{Collection, CollectionCursor, CollectionFindParams, CollectionRepository},
     common::RepositoryError,
     pagination::{Paginated, paginate},
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

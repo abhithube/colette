@@ -3,7 +3,7 @@ use std::fmt;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::{pagination::Cursor, user::UserId};
+use crate::{auth::UserId, pagination::Cursor};
 
 #[derive(Debug, Clone)]
 pub struct ApiKey {

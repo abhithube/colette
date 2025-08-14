@@ -9,7 +9,7 @@ use crate::{
         SubscriptionEntryFindParams, SubscriptionEntryRepository,
     },
     tag::TagId,
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

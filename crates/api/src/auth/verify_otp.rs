@@ -6,36 +6,35 @@ use axum::{
 use axum_extra::extract::CookieJar;
 use colette_core::{
     Handler as _,
-    auth::{LoginUserCommand, LoginUserError},
+    auth::{LoginUserError, VerifyOtpCommand},
 };
-use email_address::EmailAddress;
 
 use crate::{
     ApiState,
     auth::{AUTH_TAG, REFRESH_COOKIE, TokenData},
-    common::{ApiError, Json, NonEmptyString, build_cookie},
+    common::{ApiError, Json, build_cookie},
 };
 
 #[utoipa::path(
   post,
-  path = "/login",
-  request_body = LoginPayload,
+  path = "/verify-otp",
+  request_body = VerifyOtpPayload,
   responses(OkResponse, ErrResponse),
-  operation_id = "loginUser",
-  description = "Login to a user account",
+  operation_id = "verifyOtp",
+  description = "Verify an OTP code and log in a user",
   tag = AUTH_TAG
 )]
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
     jar: CookieJar,
-    Json(body): Json<LoginPayload>,
+    Json(body): Json<VerifyOtpPayload>,
 ) -> Result<impl IntoResponse, ErrResponse> {
     match state
-        .login_user
-        .handle(LoginUserCommand {
-            email: body.email.to_string(),
-            password: body.password.into(),
+        .verify_otp
+        .handle(VerifyOtpCommand {
+            email: body.email,
+            code: body.code,
         })
         .await
     {
@@ -56,11 +55,11 @@ pub(super) async fn handler(
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub(super) struct LoginPayload {
-    #[schema(value_type = String, format = "email")]
-    email: EmailAddress,
-    #[schema(value_type = String, min_length = 1)]
-    password: NonEmptyString,
+pub(super) struct VerifyOtpPayload {
+    #[schema(format = "email")]
+    email: String,
+    #[schema(min_length = 6, max_length = 6)]
+    code: String,
 }
 
 #[derive(utoipa::IntoResponses)]

@@ -2,7 +2,7 @@ use crate::{
     Handler,
     common::RepositoryError,
     tag::{TagError, TagId, TagRepository, TagUpdateParams},
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

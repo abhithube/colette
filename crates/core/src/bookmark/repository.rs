@@ -5,7 +5,7 @@ use crate::{
     bookmark::{Bookmark, BookmarkFilter, BookmarkId},
     common::RepositoryError,
     tag::TagId,
-    user::UserId,
+    auth::UserId,
 };
 
 #[async_trait::async_trait]

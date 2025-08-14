@@ -12,7 +12,7 @@ use crate::{
     bookmark::{BookmarkBatchItem, BookmarkRepository, ImportBookmarksParams},
     common::RepositoryError,
     job::{JobInsertParams, JobRepository},
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

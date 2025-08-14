@@ -3,7 +3,7 @@ use std::fmt;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::{bookmark::BookmarkFilter, pagination::Cursor, user::UserId};
+use crate::{bookmark::BookmarkFilter, pagination::Cursor, auth::UserId};
 
 #[derive(Debug, Clone)]
 pub struct Collection {

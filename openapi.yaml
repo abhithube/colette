@@ -213,27 +213,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
-  /auth/register:
+  /auth/send-otp:
     post:
       tags:
       - Auth
-      description: Register a new user account
-      operationId: registerUser
+      description: Send an OTP code to an email
+      operationId: sendOtp
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RegisterPayload'
+              $ref: '#/components/schemas/SendOtpPayload'
         required: true
       responses:
         '204':
-          description: Successfully created user
-        '409':
-          description: Email already registered
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
+          description: Successfully sent OTP code
         '422':
           description: Invalid input
           content:
@@ -246,17 +240,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
-  /auth/login:
+  /auth/verify-otp:
     post:
       tags:
       - Auth
-      description: Login to a user account
-      operationId: loginUser
+      description: Verify an OTP code and log in a user
+      operationId: verifyOtp
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginPayload'
+              $ref: '#/components/schemas/VerifyOtpPayload'
         required: true
       responses:
         '200':
@@ -2587,18 +2581,6 @@ components:
             type: string
             format: uuid
           description: Unique identifiers of the tags to link to the subscription
-    LoginPayload:
-      type: object
-      required:
-      - email
-      - password
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-          minLength: 1
     OidcConfig:
       type: object
       description: API OIDC config
@@ -2856,28 +2838,14 @@ components:
         cursor:
           type: string
           description: Pagination cursor, only present if more results are available
-    RegisterPayload:
+    SendOtpPayload:
       type: object
       required:
       - email
-      - password
       properties:
         email:
           type: string
           format: email
-        password:
-          type: string
-          minLength: 1
-        displayName:
-          type:
-          - string
-          - 'null'
-          minLength: 1
-        imageUrl:
-          type:
-          - string
-          - 'null'
-          format: uri
     ServerConfig:
       type: object
       description: API server config
@@ -3226,6 +3194,7 @@ components:
       required:
       - id
       - email
+      - verified
       - displayName
       - imageUrl
       - createdAt
@@ -3239,6 +3208,9 @@ components:
           type: string
           format: email
           description: Email address of the user
+        verified:
+          type: boolean
+          description: Whether the user's email has been verified
         displayName:
           type:
           - string
@@ -3258,6 +3230,19 @@ components:
           type: string
           format: date-time
           description: Timestamp at which the user was last modified
+    VerifyOtpPayload:
+      type: object
+      required:
+      - email
+      - code
+      properties:
+        email:
+          type: string
+          format: email
+        code:
+          type: string
+          maxLength: 6
+          minLength: 6
   securitySchemes:
     apiKey:
       type: apiKey

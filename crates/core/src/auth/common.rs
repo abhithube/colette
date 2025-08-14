@@ -1,35 +1,29 @@
 use chrono::Duration;
-use jsonwebtoken::{DecodingKey, EncodingKey, jwk::JwkSet};
+
+use crate::auth::Provider;
 
 pub const LOCAL_PROVIDER: &str = "local";
 pub const OIDC_PROVIDER: &str = "oidc";
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct AuthConfig {
     pub jwt: JwtConfig,
     pub oidc: Option<OidcConfig>,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct JwtConfig {
-    pub issuer: String,
-    pub audience: Vec<String>,
-    pub encoding_key: EncodingKey,
-    pub decoding_key: DecodingKey,
+    pub secret: Vec<u8>,
     pub access_duration: Duration,
     pub refresh_duration: Duration,
 }
 
 #[derive(Debug, Clone)]
 pub struct OidcConfig {
+    pub issuer_url: String,
     pub client_id: String,
-    pub issuer: String,
     pub redirect_uri: String,
-    pub authorization_endpoint: String,
-    pub token_endpoint: String,
-    pub userinfo_endpoint: String,
-    pub jwk_set: JwkSet,
-    pub scope: String,
+    pub scopes: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -45,4 +39,25 @@ pub struct TokenData {
 pub enum TokenType {
     #[default]
     Bearer,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum UserError {
+    #[error(transparent)]
+    InvalidEmail(#[from] email_address::Error),
+
+    #[error(transparent)]
+    InvalidImageUrl(#[from] url::ParseError),
+
+    #[error("Already connected to provider {0} with sub {1}")]
+    DuplicateAccount(Provider, String),
+
+    #[error("Duplicate OTP code")]
+    DuplicateOtpCode,
+
+    #[error("Invalid OTP code")]
+    InvalidOtpCode,
+
+    #[error("Already used OTP code")]
+    AlreadyUsedOtpCode,
 }

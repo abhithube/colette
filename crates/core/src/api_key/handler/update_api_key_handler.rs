@@ -2,7 +2,7 @@ use crate::{
     Handler,
     api_key::{ApiKeyError, ApiKeyId, ApiKeyRepository, ApiKeyUpdateParams},
     common::RepositoryError,
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

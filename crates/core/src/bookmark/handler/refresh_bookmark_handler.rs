@@ -7,7 +7,7 @@ use crate::{
     Handler,
     bookmark::{BookmarkInsertParams, BookmarkRepository},
     common::RepositoryError,
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

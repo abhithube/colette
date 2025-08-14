@@ -41,8 +41,6 @@ pub async fn from_env() -> Result<AppConfig, Box<dyn std::error::Error>> {
 
     let jwt = JwtConfig {
         secret: raw.jwt.secret,
-        issuer: raw.server.base_url.to_string(),
-        audience: vec![APP_NAME.to_lowercase()],
     };
 
     let cors = raw.cors.enabled.then(|| {
@@ -126,11 +124,9 @@ pub async fn from_env() -> Result<AppConfig, Box<dyn std::error::Error>> {
 
         Some(OidcConfig {
             client_id: oidc.client_id.expect("'OIDC__CLIENT_ID' not set"),
-            discovery_endpoint: oidc
-                .discovery_endpoint
-                .expect("'OIDC__DISCOVERY_ENDPOINT' not set"),
+            issuer_url: oidc.issuer_url.expect("'OIDC__ISSUER_URL' not set"),
             redirect_uri: redirect_uri.into(),
-            scope: oidc.scope,
+            scopes: oidc.scopes,
             sign_in_text: oidc.sign_in_text,
         })
     } else {
@@ -176,8 +172,6 @@ pub struct DatabaseConfig {
 #[derive(Debug, Clone)]
 pub struct JwtConfig {
     pub secret: String,
-    pub issuer: String,
-    pub audience: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -215,9 +209,9 @@ pub struct S3Config {
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct OidcConfig {
     pub client_id: String,
-    pub discovery_endpoint: Url,
+    pub issuer_url: String,
     pub redirect_uri: String,
-    pub scope: String,
+    pub scopes: Vec<String>,
     pub sign_in_text: String,
 }
 
@@ -277,7 +271,7 @@ struct RawS3Config {
 struct RawOidcConfig {
     enabled: bool,
     client_id: Option<String>,
-    discovery_endpoint: Option<Url>,
-    scope: String,
+    issuer_url: Option<String>,
+    scopes: Vec<String>,
     sign_in_text: String,
 }

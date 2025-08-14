@@ -19,8 +19,8 @@ use colette_core::{
     },
     auth::{
         BuildAuthorizationUrlHandler, ExchangeCodeHandler, GetUserHandler, GetUserQuery,
-        LoginUserHandler, RefreshAccessTokenHandler, RegisterUserHandler,
-        ValidateAccessTokenHandler, ValidateAccessTokenQuery,
+        RefreshAccessTokenHandler, SendOtpHandler, UserId, ValidateAccessTokenHandler,
+        ValidateAccessTokenQuery, VerifyOtpHandler,
     },
     backup::{ExportBackupHandler, ImportBackupHandler},
     bookmark::{
@@ -39,7 +39,6 @@ use colette_core::{
     },
     subscription_entry::{GetSubscriptionEntryHandler, ListSubscriptionEntriesHandler},
     tag::{CreateTagHandler, DeleteTagHandler, GetTagHandler, ListTagsHandler, UpdateTagHandler},
-    user::UserId,
 };
 use url::Url;
 use uuid::Uuid;
@@ -93,12 +92,12 @@ pub struct ApiState {
     pub validate_api_key: Arc<ValidateApiKeyHandler>,
 
     // Auth
-    pub build_authorization_url: Arc<BuildAuthorizationUrlHandler>,
-    pub exchange_code: Arc<ExchangeCodeHandler>,
+    pub send_otp: Arc<SendOtpHandler>,
+    pub verify_otp: Arc<VerifyOtpHandler>,
+    pub build_authorization_url: Option<Arc<BuildAuthorizationUrlHandler>>,
+    pub exchange_code: Option<Arc<ExchangeCodeHandler>>,
     pub get_user: Arc<GetUserHandler>,
-    pub login_user: Arc<LoginUserHandler>,
     pub refresh_access_token: Arc<RefreshAccessTokenHandler>,
-    pub register_user: Arc<RegisterUserHandler>,
     pub validate_access_token: Arc<ValidateAccessTokenHandler>,
 
     // Backup
@@ -231,7 +230,7 @@ pub(crate) async fn verify_auth_extension(
             .map_err(|_| ApiError::not_authenticated())?;
 
         req.extensions_mut().insert(Auth {
-            user_id: claims.sub,
+            user_id: claims.sub().parse::<Uuid>().unwrap().into(),
         });
     } else if let Some(header) = req.headers().get("X-Api-Key").and_then(|e| e.to_str().ok()) {
         let Ok(api_key) = state
@@ -258,7 +257,7 @@ pub(crate) async fn verify_auth_extension(
             return Err(ApiError::not_authenticated());
         };
 
-        req.extensions_mut().insert(Auth { user_id: user.id });
+        req.extensions_mut().insert(Auth { user_id: user.id() });
     }
 
     Ok(next.run(req).await)

@@ -3,7 +3,7 @@ use std::fmt;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::{pagination::Cursor, user::UserId};
+use crate::{pagination::Cursor, auth::UserId};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Tag {

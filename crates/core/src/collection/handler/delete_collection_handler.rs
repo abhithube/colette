@@ -2,7 +2,7 @@ use crate::{
     Handler,
     collection::{CollectionError, CollectionId, CollectionRepository},
     common::RepositoryError,
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

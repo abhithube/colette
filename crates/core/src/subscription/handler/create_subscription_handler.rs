@@ -3,7 +3,7 @@ use crate::{
     common::RepositoryError,
     feed::FeedId,
     subscription::{SubscriptionId, SubscriptionInsertParams, SubscriptionRepository},
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

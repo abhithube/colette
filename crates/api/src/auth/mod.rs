@@ -10,29 +10,30 @@ use crate::ApiState;
 
 mod exchange_code;
 mod get_active_user;
-mod login_user;
 mod logout_user;
 mod redirect_oidc;
 mod refresh_token;
-mod register_user;
+mod send_otp;
+mod verify_otp;
 
 const AUTH_TAG: &str = "Auth";
 const REFRESH_COOKIE: &str = "colette_refresh";
 const CODE_VERIFIER_COOKIE: &str = "colette_code_verifier";
 const STATE_COOKIE: &str = "colette_state";
+const NONCE_COOKIE: &str = "colette_nonce";
 
 #[derive(OpenApi)]
 #[openapi(
     components(schemas(
         User,
         TokenData,
-        register_user::RegisterPayload,
-        login_user::LoginPayload,
+        send_otp::SendOtpPayload,
+        verify_otp::VerifyOtpPayload,
         exchange_code::CodePayload
     )),
     paths(
-        register_user::handler,
-        login_user::handler,
+        send_otp::handler,
+        verify_otp::handler,
         get_active_user::handler,
         refresh_token::handler,
         logout_user::handler,
@@ -45,8 +46,8 @@ pub(crate) struct AuthApi;
 impl AuthApi {
     pub(crate) fn public() -> Router<ApiState> {
         Router::new()
-            .route("/register", routing::post(register_user::handler))
-            .route("/login", routing::post(login_user::handler))
+            .route("/send-otp", routing::post(send_otp::handler))
+            .route("/verify-otp", routing::post(verify_otp::handler))
             .route("/token", routing::post(refresh_token::handler))
             .route("/oidc/redirect", routing::get(redirect_oidc::handler))
             .route("/oidc/code", routing::post(exchange_code::handler))
@@ -68,6 +69,8 @@ struct User {
     /// Email address of the user
     #[schema(value_type = String, format = "email")]
     email: EmailAddress,
+    /// Whether the user's email has been verified
+    verified: bool,
     /// Profile display name of the user
     #[schema(required)]
     display_name: Option<String>,
@@ -83,12 +86,13 @@ struct User {
 impl From<colette_core::User> for User {
     fn from(value: colette_core::User) -> Self {
         Self {
-            id: value.id.as_inner(),
-            email: value.email,
-            display_name: value.display_name,
-            image_url: value.image_url,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
+            id: value.id().as_inner(),
+            email: value.email().to_owned(),
+            verified: value.verified(),
+            display_name: value.display_name().map(Into::into),
+            image_url: value.image_url().cloned(),
+            created_at: value.created_at(),
+            updated_at: value.updated_at(),
         }
     }
 }

@@ -1,7 +1,7 @@
 use crate::{
     Handler, User,
+    auth::{UserId, UserRepository},
     common::RepositoryError,
-    user::{UserId, UserRepository},
 };
 
 #[derive(Debug, Clone)]

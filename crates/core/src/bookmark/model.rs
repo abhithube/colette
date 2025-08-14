@@ -8,7 +8,7 @@ use crate::{
     Tag,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
     pagination::Cursor,
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

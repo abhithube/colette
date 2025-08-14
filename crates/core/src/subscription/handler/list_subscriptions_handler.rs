@@ -6,7 +6,7 @@ use crate::{
         Subscription, SubscriptionCursor, SubscriptionFindParams, SubscriptionRepository,
     },
     tag::TagId,
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

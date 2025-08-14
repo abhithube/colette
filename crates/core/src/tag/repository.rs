@@ -1,7 +1,7 @@
 use crate::{
     common::RepositoryError,
     tag::{Tag, TagId},
-    user::UserId,
+    auth::UserId,
 };
 
 #[async_trait::async_trait]

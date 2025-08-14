@@ -1,4 +1,4 @@
-use crate::{backup::Backup, common::RepositoryError, user::UserId};
+use crate::{backup::Backup, common::RepositoryError, auth::UserId};
 
 #[async_trait::async_trait]
 pub trait BackupRepository: Send + Sync + 'static {

@@ -9,7 +9,7 @@ use crate::{
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
     pagination::Cursor,
     subscription::SubscriptionId,
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

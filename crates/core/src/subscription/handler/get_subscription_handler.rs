@@ -5,7 +5,7 @@ use crate::{
         Subscription, SubscriptionError, SubscriptionFindParams, SubscriptionId,
         SubscriptionRepository,
     },
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

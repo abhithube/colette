@@ -2,7 +2,7 @@ use crate::{
     Handler,
     common::RepositoryError,
     subscription::{SubscriptionError, SubscriptionId, SubscriptionRepository},
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

@@ -8,7 +8,7 @@ use colette_core::{Handler as _, auth::ExchangeCodeCommand};
 
 use crate::{
     ApiState,
-    auth::{AUTH_TAG, CODE_VERIFIER_COOKIE, REFRESH_COOKIE, STATE_COOKIE, TokenData},
+    auth::{AUTH_TAG, CODE_VERIFIER_COOKIE, NONCE_COOKIE, REFRESH_COOKIE, STATE_COOKIE, TokenData},
     common::{ApiError, ApiErrorCode, Json, build_cookie},
 };
 
@@ -50,11 +50,21 @@ pub(super) async fn handler(
         }));
     }
 
+    let Some(mut nonce_cookie) = jar.get(NONCE_COOKIE).cloned() else {
+        return Err(ErrResponse::Conflict(ApiError {
+            code: ApiErrorCode::Conflict,
+            message: "Missing nonce cookie".into(),
+        }));
+    };
+    nonce_cookie.set_path("/");
+
     match state
         .exchange_code
+        .unwrap()
         .handle(ExchangeCodeCommand {
             code: body.code,
             code_verifier: code_verifier_cookie.value().into(),
+            nonce: nonce_cookie.value().into(),
         })
         .await
     {

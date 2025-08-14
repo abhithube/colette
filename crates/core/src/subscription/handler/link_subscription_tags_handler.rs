@@ -5,7 +5,7 @@ use crate::{
         SubscriptionError, SubscriptionId, SubscriptionLinkTagParams, SubscriptionRepository,
     },
     tag::TagId,
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

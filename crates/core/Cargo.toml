@@ -8,8 +8,10 @@ async-trait.workspace = true
 bytes.workspace = true
 chrono.workspace = true
 colette-http.workspace = true
+colette-jwt.workspace = true
 colette-meta.workspace = true
 colette-netscape.workspace = true
+colette-oidc.workspace = true
 colette-opml.workspace = true
 colette-queue.workspace = true
 colette-scraper.workspace = true
@@ -19,7 +21,9 @@ email_address.workspace = true
 http.workspace = true
 http-body-util.workspace = true
 image = { version = "0.25.5", default-features = false }
-jsonwebtoken.workspace = true
+rand = { version = "0.9.0", default-features = false, features = [
+  "thread_rng",
+] }
 serde.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true

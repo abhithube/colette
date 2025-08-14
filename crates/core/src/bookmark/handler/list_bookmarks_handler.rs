@@ -5,7 +5,7 @@ use crate::{
     common::RepositoryError,
     pagination::{Paginated, paginate},
     tag::TagId,
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

@@ -1,10 +1,11 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     User,
+    auth::{OtpCode, SocialAccount, UserId, UserRepository},
     common::RepositoryError,
-    user::{UserId, UserInsertParams, UserRepository, UserUpdateParams},
 };
-use sqlx::PgPool;
+use email_address::EmailAddress;
+use sqlx::{PgPool, types::Json};
 use uuid::Uuid;
 
 use crate::DbUrl;
@@ -23,69 +24,102 @@ impl PostgresUserRepository {
 #[async_trait::async_trait]
 impl UserRepository for PostgresUserRepository {
     async fn find_by_id(&self, id: UserId) -> Result<Option<User>, RepositoryError> {
-        let user = sqlx::query_file_as!(UserRow, "queries/users/find_by_id.sql", id.as_inner())
-            .map(Into::into)
-            .fetch_optional(&self.pool)
-            .await?;
+        let user = sqlx::query_file_as!(
+            UserRow,
+            "queries/users/find_by_unique.sql",
+            id.as_inner(),
+            Option::<String>::None,
+            Option::<String>::None,
+            Option::<String>::None,
+        )
+        .map(Into::into)
+        .fetch_optional(&self.pool)
+        .await?;
 
         Ok(user)
     }
 
-    async fn find_by_email(&self, email: String) -> Result<Option<User>, RepositoryError> {
-        let user = sqlx::query_file_as!(UserRow, "queries/users/find_by_email.sql", email)
-            .map(Into::into)
-            .fetch_optional(&self.pool)
-            .await?;
+    async fn find_by_email(&self, email: EmailAddress) -> Result<Option<User>, RepositoryError> {
+        let user = sqlx::query_file_as!(
+            UserRow,
+            "queries/users/find_by_unique.sql",
+            Option::<Uuid>::None,
+            email.as_str(),
+            Option::<String>::None,
+            Option::<String>::None,
+        )
+        .map(Into::into)
+        .fetch_optional(&self.pool)
+        .await?;
 
         Ok(user)
     }
 
-    async fn insert(&self, params: UserInsertParams) -> Result<UserId, RepositoryError> {
-        let mut tx = self.pool.begin().await?;
-
-        let id = sqlx::query_file_scalar!(
-            "queries/users/insert.sql",
-            params.email,
-            params.display_name,
-            params.image_url.map(Into::into) as Option<DbUrl>
+    async fn find_by_provider_and_sub(
+        &self,
+        provider: String,
+        sub: String,
+    ) -> Result<Option<User>, RepositoryError> {
+        let user = sqlx::query_file_as!(
+            UserRow,
+            "queries/users/find_by_unique.sql",
+            Option::<Uuid>::None,
+            Option::<String>::None,
+            provider,
+            sub
         )
-        .fetch_one(&mut *tx)
+        .map(Into::into)
+        .fetch_optional(&self.pool)
         .await?;
 
-        sqlx::query_file_scalar!(
-            "queries/accounts/insert.sql",
-            params.sub,
-            params.provider,
-            params.password_hash,
-            id
-        )
-        .fetch_one(&mut *tx)
-        .await?;
-
-        tx.commit().await?;
-
-        Ok(id.into())
+        Ok(user)
     }
 
-    async fn update(&self, params: UserUpdateParams) -> Result<(), RepositoryError> {
-        let (has_display_name, display_name) = if let Some(display_name) = params.display_name {
-            (true, display_name)
-        } else {
-            (false, None)
-        };
-        let (has_image_url, image_url) = if let Some(image_url) = params.image_url {
-            (true, image_url)
-        } else {
-            (false, None)
-        };
+    async fn save(&self, data: &User) -> Result<(), RepositoryError> {
+        let mut sa_providers = Vec::<String>::new();
+        let mut sa_subs = Vec::<String>::new();
+        let mut sa_created_ats = Vec::<DateTime<Utc>>::new();
+        let mut sa_updated_ats = Vec::<DateTime<Utc>>::new();
+
+        for sa in data.social_accounts() {
+            sa_providers.push(sa.provider().to_string());
+            sa_subs.push(sa.sub().to_owned());
+            sa_created_ats.push(sa.created_at());
+            sa_updated_ats.push(sa.updated_at());
+        }
+
+        let mut oc_codes = Vec::<String>::new();
+        let mut oc_expired_ats = Vec::<DateTime<Utc>>::new();
+        let mut oc_used_ats = Vec::<Option<DateTime<Utc>>>::new();
+        let mut oc_created_ats = Vec::<DateTime<Utc>>::new();
+        let mut oc_updated_ats = Vec::<DateTime<Utc>>::new();
+
+        for oc in data.otp_codes() {
+            oc_codes.push(oc.code().to_owned());
+            oc_expired_ats.push(oc.expires_at());
+            oc_used_ats.push(oc.used_at());
+            oc_created_ats.push(oc.created_at());
+            oc_updated_ats.push(oc.updated_at());
+        }
 
         sqlx::query_file!(
-            "queries/users/update.sql",
-            params.id.as_inner(),
-            has_display_name,
-            display_name,
-            has_image_url,
-            image_url.map(Into::into) as Option<DbUrl>
+            "queries/users/upsert.sql",
+            data.id().as_inner(),
+            data.email().as_str(),
+            data.verified(),
+            data.display_name(),
+            data.image_url().cloned().map(Into::into) as Option<DbUrl>,
+            data.created_at(),
+            data.updated_at(),
+            &sa_providers,
+            &sa_subs,
+            &sa_created_ats,
+            &sa_updated_ats,
+            &oc_codes,
+            &oc_expired_ats,
+            &oc_used_ats as &[Option<DateTime<Utc>>],
+            &oc_created_ats,
+            &oc_updated_ats
         )
         .execute(&self.pool)
         .await?;
@@ -97,21 +131,72 @@ impl UserRepository for PostgresUserRepository {
 struct UserRow {
     id: Uuid,
     email: String,
+    verified: bool,
     display_name: Option<String>,
     image_url: Option<DbUrl>,
+    social_accounts: Json<Vec<SocialAccountRow>>,
+    otp_codes: Json<Vec<OtpCodeRow>>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
 
 impl From<UserRow> for User {
     fn from(value: UserRow) -> Self {
-        Self {
-            id: value.id.into(),
-            email: value.email.parse().unwrap(),
-            display_name: value.display_name,
-            image_url: value.image_url.map(Into::into),
-            created_at: value.created_at,
-            updated_at: value.updated_at,
-        }
+        Self::from_values(
+            value.id.into(),
+            value.email.parse().unwrap(),
+            value.verified,
+            value.display_name,
+            value.image_url.map(Into::into),
+            value
+                .social_accounts
+                .0
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            value.otp_codes.0.into_iter().map(Into::into).collect(),
+            value.created_at,
+            value.updated_at,
+        )
+    }
+}
+
+#[derive(serde::Deserialize)]
+struct SocialAccountRow {
+    provider: String,
+    sub: String,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl From<SocialAccountRow> for SocialAccount {
+    fn from(value: SocialAccountRow) -> Self {
+        Self::from_values(
+            value.provider.parse().unwrap(),
+            value.sub,
+            value.created_at,
+            value.updated_at,
+        )
+    }
+}
+
+#[derive(serde::Deserialize)]
+struct OtpCodeRow {
+    code: String,
+    expires_at: DateTime<Utc>,
+    used_at: Option<DateTime<Utc>>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl From<OtpCodeRow> for OtpCode {
+    fn from(value: OtpCodeRow) -> Self {
+        Self::from_values(
+            value.code,
+            value.expires_at,
+            value.used_at,
+            value.created_at,
+            value.updated_at,
+        )
     }
 }

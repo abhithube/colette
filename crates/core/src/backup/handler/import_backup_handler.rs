@@ -4,7 +4,7 @@ use crate::{
     Handler,
     backup::{Backup, BackupRepository, ImportBackupParams},
     common::RepositoryError,
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

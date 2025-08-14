@@ -3,7 +3,7 @@ use crate::{
     common::RepositoryError,
     pagination::{Paginated, paginate},
     tag::{Tag, TagCursor, TagFindParams, TagRepository},
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

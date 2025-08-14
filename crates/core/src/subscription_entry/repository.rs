@@ -6,7 +6,7 @@ use crate::{
     subscription::SubscriptionId,
     subscription_entry::{SubscriptionEntry, SubscriptionEntryFilter, SubscriptionEntryId},
     tag::TagId,
-    user::UserId,
+    auth::UserId,
 };
 
 #[async_trait::async_trait]

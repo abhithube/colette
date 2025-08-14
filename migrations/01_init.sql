@@ -6,32 +6,34 @@ END;
 $$ language 'plpgsql';
 
 CREATE TABLE users (
-  id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7 (),
+  id UUID NOT NULL PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
+  verified BOOL NOT NULL DEFAULT FALSE,
   display_name TEXT,
   image_url TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
 );
 
-CREATE TRIGGER users_updated_at BEFORE
-UPDATE ON users FOR EACH ROW
-EXECUTE PROCEDURE set_updated_at ();
-
-CREATE TABLE accounts (
-  id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7 (),
-  sub TEXT NOT NULL,
-  provider TEXT NOT NULL,
-  password_hash TEXT,
+CREATE TABLE otp_codes (
+  code TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ,
   user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (provider, sub)
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (user_id, code)
 );
 
-CREATE TRIGGER accounts_updated_at BEFORE
-UPDATE ON accounts FOR EACH ROW
-EXECUTE PROCEDURE set_updated_at ();
+CREATE TABLE social_accounts (
+  provider TEXT NOT NULL,
+  sub TEXT NOT NULL,
+  user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY (provider, sub),
+  UNIQUE (user_id, provider)
+);
 
 CREATE TABLE api_keys (
   id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7 (),

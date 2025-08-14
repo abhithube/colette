@@ -8,7 +8,7 @@ use crate::{
     bookmark::{BookmarkFindParams, BookmarkRepository},
     common::RepositoryError,
     tag::TagId,
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

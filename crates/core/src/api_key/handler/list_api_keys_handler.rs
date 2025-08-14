@@ -3,7 +3,7 @@ use crate::{
     api_key::{ApiKey, ApiKeyCursor, ApiKeyFindParams, ApiKeyRepository},
     common::RepositoryError,
     pagination::{Paginated, paginate},
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

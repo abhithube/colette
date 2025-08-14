@@ -4,7 +4,7 @@ use crate::{
         Collection, CollectionError, CollectionFindParams, CollectionId, CollectionRepository,
     },
     common::RepositoryError,
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

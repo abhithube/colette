@@ -1,4 +1,3 @@
-pub use account::PostgresAccountRepository;
 pub use api_key::PostgresApiKeyRepository;
 pub use backup::PostgresBackupRepository;
 pub use bookmark::PostgresBookmarkRepository;
@@ -19,7 +18,6 @@ pub use tag::PostgresTagRepository;
 use url::Url;
 pub use user::PostgresUserRepository;
 
-mod account;
 mod api_key;
 mod backup;
 mod bookmark;

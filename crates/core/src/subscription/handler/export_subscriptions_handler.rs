@@ -8,7 +8,7 @@ use crate::{
     common::RepositoryError,
     subscription::{SubscriptionFindParams, SubscriptionRepository},
     tag::TagId,
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

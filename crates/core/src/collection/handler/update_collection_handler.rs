@@ -3,7 +3,7 @@ use crate::{
     bookmark::BookmarkFilter,
     collection::{CollectionError, CollectionId, CollectionRepository, CollectionUpdateParams},
     common::RepositoryError,
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

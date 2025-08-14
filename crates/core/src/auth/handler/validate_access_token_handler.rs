@@ -1,10 +1,6 @@
-use jsonwebtoken::Validation;
+use colette_jwt::{Claims, JwtManager};
 
-use crate::{
-    Handler,
-    auth::{AuthConfig, Claims},
-    common::RepositoryError,
-};
+use crate::Handler;
 
 #[derive(Debug, Clone)]
 pub struct ValidateAccessTokenQuery {
@@ -12,12 +8,14 @@ pub struct ValidateAccessTokenQuery {
 }
 
 pub struct ValidateAccessTokenHandler {
-    auth_config: AuthConfig,
+    jwt_manager: Box<dyn JwtManager>,
 }
 
 impl ValidateAccessTokenHandler {
-    pub fn new(auth_config: AuthConfig) -> Self {
-        Self { auth_config }
+    pub fn new(jwt_manager: impl JwtManager) -> Self {
+        Self {
+            jwt_manager: Box::new(jwt_manager),
+        }
     }
 }
 
@@ -27,28 +25,14 @@ impl Handler<ValidateAccessTokenQuery> for ValidateAccessTokenHandler {
     type Error = ValidateAccessTokenError;
 
     async fn handle(&self, query: ValidateAccessTokenQuery) -> Result<Self::Response, Self::Error> {
-        let mut validation = Validation::default();
-        validation.set_issuer(&[&self.auth_config.jwt.issuer]);
-        validation.set_audience(&self.auth_config.jwt.audience);
+        let claims = self.jwt_manager.verify(&query.access_token)?;
 
-        let token_data = jsonwebtoken::decode::<Claims>(
-            &query.access_token,
-            &self.auth_config.jwt.decoding_key,
-            &validation,
-        )?;
-
-        Ok(token_data.claims)
+        Ok(claims)
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum ValidateAccessTokenError {
-    #[error("user not authenticated")]
-    NotAuthenticated,
-
     #[error(transparent)]
-    Jwt(#[from] jsonwebtoken::errors::Error),
-
-    #[error(transparent)]
-    Repository(#[from] RepositoryError),
+    Jwt(#[from] colette_jwt::Error),
 }

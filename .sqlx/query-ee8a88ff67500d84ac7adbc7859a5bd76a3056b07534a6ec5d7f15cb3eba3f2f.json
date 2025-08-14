@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  input_sa AS (\n    SELECT\n      *,\n      $1::UUID AS user_id\n    FROM\n      unnest(\n        $8::TEXT[],\n        $9::TEXT[],\n        $10::TIMESTAMPTZ[],\n        $11::TIMESTAMPTZ[]\n      ) AS sa (provider, sub, created_at, updated_at)\n  ),\n  input_oc AS (\n    SELECT\n      *,\n      $1::UUID AS user_id\n    FROM\n      unnest(\n        $12::TEXT[],\n        $13::TIMESTAMPTZ[],\n        $14::TIMESTAMPTZ[],\n        $15::TIMESTAMPTZ[],\n        $16::TIMESTAMPTZ[]\n      ) AS oc (code, expires_at, used_at, created_at, updated_at)\n  ),\n  upserted_user AS (\n    INSERT INTO\n      users (\n        id,\n        email,\n        verified,\n        display_name,\n        image_url,\n        created_at,\n        updated_at\n      )\n    VALUES\n      ($1, $2, $3, $4, $5, $6, $7)\n    ON CONFLICT (id) DO UPDATE\n    SET\n      email = EXCLUDED.email,\n      verified = EXCLUDED.verified,\n      display_name = EXCLUDED.display_name,\n      image_url = EXCLUDED.image_url,\n      updated_at = EXCLUDED.updated_at\n    RETURNING\n      id\n  ),\n  inserted_sa AS (\n    INSERT INTO\n      social_accounts (provider, sub, user_id, created_at, updated_at)\n    SELECT\n      provider,\n      sub,\n      user_id,\n      created_at,\n      updated_at\n    FROM\n      input_sa\n    ON CONFLICT (provider, sub) DO NOTHING\n  ),\n  inserted_oc AS (\n    INSERT INTO\n      otp_codes (\n        code,\n        expires_at,\n        used_at,\n        user_id,\n        created_at,\n        updated_at\n      )\n    SELECT\n      code,\n      expires_at,\n      used_at,\n      user_id,\n      created_at,\n      updated_at\n    FROM\n      input_oc\n    ON CONFLICT (user_id, code) DO UPDATE\n    SET\n      expires_at = EXCLUDED.expires_at,\n      used_at = EXCLUDED.used_at,\n      updated_at = EXCLUDED.updated_at\n  )\nDELETE FROM social_accounts old USING input_sa sa\nWHERE\n  NOT old.provider = sa.provider\n  AND NOT old.sub = sa.sub\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Bool",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "TextArray",
+        "TextArray",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "TextArray",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "TimestamptzArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ee8a88ff67500d84ac7adbc7859a5bd76a3056b07534a6ec5d7f15cb3eba3f2f"
+}

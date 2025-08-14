@@ -9,9 +9,8 @@ use colette_core::{
         UpdateApiKeyHandler, ValidateApiKeyHandler,
     },
     auth::{
-        AuthConfig, BuildAuthorizationUrlHandler, ExchangeCodeHandler, GetUserHandler, JwtConfig,
-        LoginUserHandler, OidcConfig, RefreshAccessTokenHandler, RegisterUserHandler,
-        ValidateAccessTokenHandler,
+        BuildAuthorizationUrlHandler, ExchangeCodeHandler, GetUserHandler, JwtConfig, OidcConfig,
+        RefreshAccessTokenHandler, SendOtpHandler, ValidateAccessTokenHandler, VerifyOtpHandler,
     },
     backup::{ExportBackupHandler, ImportBackupHandler},
     bookmark::{
@@ -38,23 +37,24 @@ use colette_core::{
     },
     tag::{CreateTagHandler, DeleteTagHandler, GetTagHandler, ListTagsHandler, UpdateTagHandler},
 };
-use colette_http::{HttpClient, ReqwestClient};
+use colette_http::ReqwestClient;
 use colette_job::{
     archive_thumbnail::ArchiveThumbnailJobHandler, import_bookmarks::ImportBookmarksJobHandler,
     refresh_feeds::RefreshFeedsJobHandler, scrape_bookmark::ScrapeBookmarkJobHandler,
     scrape_feed::ScrapeFeedJobHandler,
 };
+use colette_jwt::JwtManagerImpl;
+use colette_oidc::OidcClientImpl;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::{JobConsumerAdapter, JobProducerAdapter, LocalQueue};
 use colette_repository::{
-    PostgresAccountRepository, PostgresApiKeyRepository, PostgresBackupRepository,
-    PostgresBookmarkRepository, PostgresCollectionRepository, PostgresFeedEntryRepository,
-    PostgresFeedRepository, PostgresJobRepository, PostgresSubscriptionEntryRepository,
-    PostgresSubscriptionRepository, PostgresTagRepository, PostgresUserRepository,
+    PostgresApiKeyRepository, PostgresBackupRepository, PostgresBookmarkRepository,
+    PostgresCollectionRepository, PostgresFeedEntryRepository, PostgresFeedRepository,
+    PostgresJobRepository, PostgresSubscriptionEntryRepository, PostgresSubscriptionRepository,
+    PostgresTagRepository, PostgresUserRepository,
 };
 use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
 use colette_storage::{FsStorageClient, S3StorageClient, StorageAdapter};
-use jsonwebtoken::{DecodingKey, EncodingKey, jwk::JwkSet};
 use s3::{Bucket, Region, creds::Credentials};
 use sqlx::PgPool;
 use tokio::{net::TcpListener, sync::Mutex};
@@ -71,15 +71,6 @@ mod worker;
 #[derive(Clone, rust_embed::Embed)]
 #[folder = "$CARGO_MANIFEST_DIR/../web/dist/"]
 struct Asset;
-
-#[derive(Debug, Clone, serde::Deserialize)]
-struct OidcProviderMetadata {
-    issuer: String,
-    authorization_endpoint: String,
-    token_endpoint: String,
-    userinfo_endpoint: String,
-    jwks_uri: String,
-}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -104,6 +95,48 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app_config = config::from_env().await?;
 
     let pool = PgPool::connect_lazy(&app_config.database.url)?;
+
+    let api_key_repository = PostgresApiKeyRepository::new(pool.clone());
+    let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
+    let collection_repository = PostgresCollectionRepository::new(pool.clone());
+    let feed_entry_repository = PostgresFeedEntryRepository::new(pool.clone());
+    let job_repository = PostgresJobRepository::new(pool.clone());
+    let subscription_repository = PostgresSubscriptionRepository::new(pool.clone());
+    let subscription_entry_repository = PostgresSubscriptionEntryRepository::new(pool.clone());
+    let tag_repository = PostgresTagRepository::new(pool.clone());
+
+    let reqwest_client = reqwest::Client::builder().build()?;
+    let http_client = ReqwestClient::new(reqwest_client.clone());
+
+    let jwt_config = JwtConfig {
+        secret: app_config.jwt.secret.into_bytes(),
+        access_duration: Duration::minutes(15),
+        refresh_duration: Duration::days(7),
+    };
+    let jwt_manager = JwtManagerImpl::new(&jwt_config.secret);
+
+    let mut oidc_config = Option::<OidcConfig>::None;
+    let mut oidc_client = Option::<OidcClientImpl>::None;
+    if let Some(config) = app_config.oidc.clone() {
+        oidc_config = Some(OidcConfig {
+            issuer_url: config.issuer_url.clone(),
+            client_id: config.client_id.clone(),
+            redirect_uri: config.redirect_uri.clone(),
+            scopes: config.scopes,
+        });
+
+        let client = OidcClientImpl::init(
+            colette_oidc::OidcConfig {
+                issuer_url: config.issuer_url,
+                client_id: config.client_id,
+                redirect_uri: config.redirect_uri,
+            },
+            reqwest_client.clone(),
+        )
+        .await?;
+
+        oidc_client = Some(client);
+    }
 
     let storage_adapter = match app_config.storage.backend {
         StorageBackend::Fs(ref config) => {
@@ -136,9 +169,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             StorageAdapter::S3(S3StorageClient::new(bucket))
         }
     };
-
-    let reqwest_client = reqwest::Client::builder().build()?;
-    let http_client = ReqwestClient::new(reqwest_client.clone());
 
     let (scrape_feed_producer, scrape_feed_consumer) = {
         let queue = LocalQueue::new().split();
@@ -173,16 +203,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )
     };
 
-    let account_repository = PostgresAccountRepository::new(pool.clone());
-    let api_key_repository = PostgresApiKeyRepository::new(pool.clone());
-    let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
-    let collection_repository = PostgresCollectionRepository::new(pool.clone());
-    let feed_entry_repository = PostgresFeedEntryRepository::new(pool.clone());
-    let job_repository = PostgresJobRepository::new(pool.clone());
-    let subscription_repository = PostgresSubscriptionRepository::new(pool.clone());
-    let subscription_entry_repository = PostgresSubscriptionEntryRepository::new(pool.clone());
-    let tag_repository = PostgresTagRepository::new(pool.clone());
-
     let bookmark_scraper = Arc::new(BookmarkScraper::new(
         http_client.clone(),
         register_bookmark_plugins(reqwest_client.clone()),
@@ -195,38 +215,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         http_client.clone(),
         register_feed_plugins(reqwest_client),
     ));
-
-    let mut oidc_config = None::<OidcConfig>;
-    if let Some(config) = app_config.oidc.clone() {
-        let data = http_client.get(&config.discovery_endpoint).await?;
-        let metadata = serde_json::from_slice::<OidcProviderMetadata>(&data)?;
-
-        let data = http_client.get(&metadata.jwks_uri.parse()?).await?;
-        let jwk_set = serde_json::from_slice::<JwkSet>(&data)?;
-
-        oidc_config = Some(OidcConfig {
-            client_id: config.client_id,
-            issuer: metadata.issuer,
-            authorization_endpoint: metadata.authorization_endpoint,
-            token_endpoint: metadata.token_endpoint,
-            userinfo_endpoint: metadata.userinfo_endpoint,
-            redirect_uri: config.redirect_uri,
-            jwk_set,
-            scope: config.scope,
-        })
-    }
-
-    let auth_config = AuthConfig {
-        jwt: JwtConfig {
-            issuer: app_config.jwt.issuer,
-            audience: app_config.jwt.audience,
-            encoding_key: EncodingKey::from_secret(app_config.jwt.secret.as_bytes()),
-            decoding_key: DecodingKey::from_secret(app_config.jwt.secret.as_bytes()),
-            access_duration: Duration::minutes(15),
-            refresh_duration: Duration::days(7),
-        },
-        oidc: oidc_config,
-    };
 
     let list_bookmarks_handler = Arc::new(ListBookmarksHandler::new(
         bookmark_repository.clone(),
@@ -251,7 +239,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let create_job_handler = Arc::new(CreateJobHandler::new(job_repository.clone()));
     let update_job_handler = Arc::new(UpdateJobHandler::new(job_repository.clone()));
 
-    let api_state = ApiState {
+    let mut api_state = ApiState {
         // API Keys
         list_api_keys: Arc::new(ListApiKeysHandler::new(api_key_repository.clone())),
         get_api_key: Arc::new(GetApiKeyHandler::new(api_key_repository.clone())),
@@ -261,25 +249,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
         validate_api_key: Arc::new(ValidateApiKeyHandler::new(api_key_repository)),
 
         // Auth
-        build_authorization_url: Arc::new(BuildAuthorizationUrlHandler::new(auth_config.clone())),
-        exchange_code: Arc::new(ExchangeCodeHandler::new(
+        send_otp: Arc::new(SendOtpHandler::new(user_repository.clone())),
+        verify_otp: Arc::new(VerifyOtpHandler::new(
             user_repository.clone(),
-            account_repository.clone(),
-            http_client.clone(),
-            auth_config.clone(),
+            jwt_manager.clone(),
+            jwt_config.clone(),
         )),
+        build_authorization_url: None,
+        exchange_code: None,
         get_user: Arc::new(GetUserHandler::new(user_repository.clone())),
-        login_user: Arc::new(LoginUserHandler::new(
-            account_repository,
-            user_repository.clone(),
-            auth_config.clone(),
-        )),
         refresh_access_token: Arc::new(RefreshAccessTokenHandler::new(
             user_repository.clone(),
-            auth_config.clone(),
+            jwt_manager.clone(),
+            jwt_config.clone(),
         )),
-        register_user: Arc::new(RegisterUserHandler::new(user_repository)),
-        validate_access_token: Arc::new(ValidateAccessTokenHandler::new(auth_config)),
+        validate_access_token: Arc::new(ValidateAccessTokenHandler::new(jwt_manager.clone())),
 
         // Backup
         import_backup: Arc::new(ImportBackupHandler::new(PostgresBackupRepository::new(
@@ -393,6 +377,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
             },
         },
     };
+
+    if let Some(client) = oidc_client
+        && let Some(config) = oidc_config
+    {
+        api_state.build_authorization_url = Some(Arc::new(BuildAuthorizationUrlHandler::new(
+            client.clone(),
+            config,
+        )));
+        api_state.exchange_code = Some(Arc::new(ExchangeCodeHandler::new(
+            user_repository,
+            client,
+            jwt_manager,
+            jwt_config,
+        )));
+    }
 
     let mut api = colette_api::create_router(api_state, app_config.cors.map(|e| e.origin_urls));
 

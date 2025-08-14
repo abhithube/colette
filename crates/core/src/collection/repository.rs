@@ -2,7 +2,7 @@ use crate::{
     bookmark::BookmarkFilter,
     collection::{Collection, CollectionId},
     common::RepositoryError,
-    user::UserId,
+    auth::UserId,
 };
 
 #[async_trait::async_trait]

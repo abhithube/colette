@@ -3,7 +3,7 @@ use std::fmt;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::{Feed, Tag, feed::FeedId, pagination::Cursor, user::UserId};
+use crate::{Feed, Tag, feed::FeedId, pagination::Cursor, auth::UserId};
 
 #[derive(Debug, Clone)]
 pub struct Subscription {

@@ -1,8 +1,8 @@
 #![feature(bufreader_peek)]
 pub use std::error::Error as StdError;
 
-pub use account::Account;
 pub use api_key::ApiKey;
+pub use auth::User;
 pub use backup::Backup;
 pub use bookmark::Bookmark;
 pub use collection::Collection;
@@ -11,9 +11,7 @@ pub use feed_entry::FeedEntry;
 pub use subscription::Subscription;
 pub use subscription_entry::SubscriptionEntry;
 pub use tag::Tag;
-pub use user::User;
 
-pub mod account;
 pub mod api_key;
 pub mod auth;
 pub mod backup;
@@ -28,7 +26,6 @@ pub mod pagination;
 pub mod subscription;
 pub mod subscription_entry;
 pub mod tag;
-pub mod user;
 
 #[async_trait::async_trait]
 pub trait Handler<C> {

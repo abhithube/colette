@@ -3,38 +3,31 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{Handler as _, auth::RegisterUserCommand};
-use email_address::EmailAddress;
-use url::Url;
+use colette_core::{Handler as _, auth::SendOtpCommand};
 
 use crate::{
     ApiState,
     auth::AUTH_TAG,
-    common::{ApiError, Json, NonEmptyString},
+    common::{ApiError, Json},
 };
 
 #[utoipa::path(
   post,
-  path = "/register",
-  request_body = RegisterPayload,
+  path = "/send-otp",
+  request_body = SendOtpPayload,
   responses(OkResponse, ErrResponse),
-  operation_id = "registerUser",
-  description = "Register a new user account",
+  operation_id = "sendOtp",
+  description = "Send an OTP code to an email",
   tag = AUTH_TAG
 )]
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
-    Json(body): Json<RegisterPayload>,
+    Json(body): Json<SendOtpPayload>,
 ) -> Result<impl IntoResponse, ErrResponse> {
     match state
-        .register_user
-        .handle(RegisterUserCommand {
-            email: body.email.to_string(),
-            password: body.password.into(),
-            display_name: body.display_name.map(Into::into),
-            image_url: body.image_url,
-        })
+        .send_otp
+        .handle(SendOtpCommand { email: body.email })
         .await
     {
         Ok(_) => Ok(OkResponse),
@@ -44,18 +37,13 @@ pub(super) async fn handler(
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub(super) struct RegisterPayload {
-    #[schema(value_type = String, format = "email")]
-    email: EmailAddress,
-    #[schema(value_type = String, min_length = 1)]
-    password: NonEmptyString,
-    #[schema(value_type = Option<String>, min_length = 1)]
-    display_name: Option<NonEmptyString>,
-    image_url: Option<Url>,
+pub(super) struct SendOtpPayload {
+    #[schema(format = "email")]
+    email: String,
 }
 
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::NO_CONTENT, description = "Successfully created user")]
+#[response(status = StatusCode::NO_CONTENT, description = "Successfully sent OTP code")]
 pub(super) struct OkResponse;
 
 impl IntoResponse for OkResponse {
@@ -67,9 +55,6 @@ impl IntoResponse for OkResponse {
 #[allow(dead_code)]
 #[derive(utoipa::IntoResponses)]
 pub(super) enum ErrResponse {
-    #[response(status = StatusCode::CONFLICT, description = "Email already registered")]
-    Conflict(ApiError),
-
     #[response(status = StatusCode::UNPROCESSABLE_ENTITY, description = "Invalid input")]
     UnprocessableEntity(ApiError),
 
@@ -80,7 +65,6 @@ pub(super) enum ErrResponse {
 impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
             Self::InternalServerError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
             }

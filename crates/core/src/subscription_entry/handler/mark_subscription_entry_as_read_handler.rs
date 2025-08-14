@@ -4,7 +4,7 @@ use crate::{
     subscription_entry::{
         SubscriptionEntryError, SubscriptionEntryId, SubscriptionEntryRepository,
     },
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

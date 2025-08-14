@@ -8,7 +8,7 @@ use crate::{
     Handler,
     common::RepositoryError,
     subscription::{ImportSubscriptionsParams, SubscriptionBatchItem, SubscriptionRepository},
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

@@ -6,8 +6,8 @@ use colette_util::{
 use crate::{
     Handler,
     api_key::{ApiKeyId, ApiKeyInsertParams, ApiKeyRepository},
+    auth::UserId,
     common::RepositoryError,
-    user::UserId,
 };
 
 #[derive(Debug, Clone)]

@@ -3,7 +3,7 @@ use crate::{
     bookmark::{BookmarkError, BookmarkId, BookmarkLinkTagParams, BookmarkRepository},
     common::RepositoryError,
     tag::TagId,
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

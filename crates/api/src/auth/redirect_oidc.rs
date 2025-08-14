@@ -8,7 +8,7 @@ use colette_core::{Handler as _, auth::BuildAuthorizationUrlQuery};
 
 use crate::{
     ApiState,
-    auth::{AUTH_TAG, CODE_VERIFIER_COOKIE, STATE_COOKIE},
+    auth::{AUTH_TAG, CODE_VERIFIER_COOKIE, NONCE_COOKIE, STATE_COOKIE},
     common::{ApiError, build_cookie},
 };
 
@@ -27,17 +27,21 @@ pub(super) async fn handler(
 ) -> Result<impl IntoResponse, ErrResponse> {
     match state
         .build_authorization_url
+        .unwrap()
         .handle(BuildAuthorizationUrlQuery {})
         .await
     {
         Ok(data) => {
             let code_verifier_cookie =
                 build_cookie((CODE_VERIFIER_COOKIE, data.code_verifier), None);
-            let state_cookie = build_cookie((STATE_COOKIE, data.state), None);
+            let state_cookie = build_cookie((STATE_COOKIE, data.csrf_token), None);
+            let nonce_cookie = build_cookie((NONCE_COOKIE, data.nonce), None);
 
             Ok((
-                jar.add(code_verifier_cookie).add(state_cookie),
-                Redirect::to(&data.url),
+                jar.add(code_verifier_cookie)
+                    .add(state_cookie)
+                    .add(nonce_cookie),
+                Redirect::to(data.auth_url.as_str()),
             ))
         }
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),

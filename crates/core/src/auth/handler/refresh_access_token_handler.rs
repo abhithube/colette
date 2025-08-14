@@ -1,11 +1,10 @@
-use chrono::Utc;
-use jsonwebtoken::{Header, Validation};
+use colette_jwt::{Claims, JwtManager};
+use uuid::Uuid;
 
 use crate::{
-    Handler, User,
-    auth::{AuthConfig, Claims, TokenData, TokenType},
+    Handler,
+    auth::{JwtConfig, TokenData, TokenType, UserRepository},
     common::RepositoryError,
-    user::UserRepository,
 };
 
 #[derive(Debug, Clone)]
@@ -15,59 +14,21 @@ pub struct RefreshAccessTokenCommand {
 
 pub struct RefreshAccessTokenHandler {
     user_repository: Box<dyn UserRepository>,
-    auth_config: AuthConfig,
+    jwt_manager: Box<dyn JwtManager>,
+    jwt_config: JwtConfig,
 }
 
 impl RefreshAccessTokenHandler {
-    pub fn new(user_repository: impl UserRepository, auth_config: AuthConfig) -> Self {
+    pub fn new(
+        user_repository: impl UserRepository,
+        jwt_manager: impl JwtManager,
+        jwt_config: JwtConfig,
+    ) -> Self {
         Self {
             user_repository: Box::new(user_repository),
-            auth_config,
+            jwt_manager: Box::new(jwt_manager),
+            jwt_config,
         }
-    }
-
-    fn generate_tokens(&self, user: User) -> Result<TokenData, RefreshAccessTokenError> {
-        let now = Utc::now();
-
-        let access_token = {
-            let access_claims = Claims {
-                iss: self.auth_config.jwt.issuer.clone(),
-                sub: user.id,
-                aud: self.auth_config.jwt.audience.clone(),
-                exp: (now + self.auth_config.jwt.access_duration).timestamp(),
-                iat: now.timestamp(),
-            };
-
-            jsonwebtoken::encode(
-                &Header::default(),
-                &access_claims,
-                &self.auth_config.jwt.encoding_key,
-            )?
-        };
-
-        let refresh_token = {
-            let refresh_claims = Claims {
-                iss: self.auth_config.jwt.issuer.clone(),
-                sub: user.id,
-                aud: self.auth_config.jwt.audience.clone(),
-                exp: (now + self.auth_config.jwt.refresh_duration).timestamp(),
-                iat: now.timestamp(),
-            };
-
-            jsonwebtoken::encode(
-                &Header::default(),
-                &refresh_claims,
-                &self.auth_config.jwt.encoding_key,
-            )?
-        };
-
-        Ok(TokenData {
-            access_token,
-            access_expires_in: self.auth_config.jwt.access_duration,
-            refresh_token,
-            refresh_expires_in: self.auth_config.jwt.refresh_duration,
-            token_type: TokenType::default(),
-        })
     }
 }
 
@@ -77,28 +38,33 @@ impl Handler<RefreshAccessTokenCommand> for RefreshAccessTokenHandler {
     type Error = RefreshAccessTokenError;
 
     async fn handle(&self, cmd: RefreshAccessTokenCommand) -> Result<Self::Response, Self::Error> {
-        let mut validation = Validation::default();
-        validation.set_issuer(&[&self.auth_config.jwt.issuer]);
-        validation.set_audience(&self.auth_config.jwt.audience);
-
-        let token_data = jsonwebtoken::decode::<Claims>(
-            &cmd.refresh_token,
-            &self.auth_config.jwt.decoding_key,
-            &validation,
-        )?;
+        let claims = self.jwt_manager.verify(&cmd.refresh_token)?;
 
         let user = match self
             .user_repository
-            .find_by_id(token_data.claims.sub)
+            .find_by_id(claims.sub().parse::<Uuid>().unwrap().into())
             .await?
         {
             Some(user) => Ok(user),
             None => Err(RefreshAccessTokenError::NotAuthenticated),
         }?;
 
-        let token_data = self.generate_tokens(user)?;
+        let access_token = self.jwt_manager.generate(Claims::new(
+            user.id().to_string(),
+            self.jwt_config.access_duration,
+        ))?;
+        let refresh_token = self.jwt_manager.generate(Claims::new(
+            user.id().to_string(),
+            self.jwt_config.refresh_duration,
+        ))?;
 
-        Ok(token_data)
+        Ok(TokenData {
+            access_token,
+            access_expires_in: self.jwt_config.access_duration,
+            refresh_token,
+            refresh_expires_in: self.jwt_config.refresh_duration,
+            token_type: TokenType::Bearer,
+        })
     }
 }
 
@@ -108,7 +74,7 @@ pub enum RefreshAccessTokenError {
     NotAuthenticated,
 
     #[error(transparent)]
-    Jwt(#[from] jsonwebtoken::errors::Error),
+    Jwt(#[from] colette_jwt::Error),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

@@ -8,7 +8,7 @@ use crate::{
     },
     common::RepositoryError,
     job::{JobInsertParams, JobRepository},
-    user::UserId,
+    auth::UserId,
 };
 
 #[derive(Debug, Clone)]

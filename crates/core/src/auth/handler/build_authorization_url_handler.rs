@@ -1,18 +1,21 @@
-use colette_util::{base64_url_encode, random_generate, sha256_hash};
-use url::Url;
+use colette_oidc::{AuthorizationUrlData, OidcClient};
 
-use crate::{Handler, auth::AuthConfig, common::RepositoryError};
+use crate::{Handler, auth::OidcConfig};
 
 #[derive(Debug, Clone)]
-pub struct BuildAuthorizationUrlQuery {}
+pub struct BuildAuthorizationUrlQuery;
 
 pub struct BuildAuthorizationUrlHandler {
-    auth_config: AuthConfig,
+    oidc_client: Box<dyn OidcClient>,
+    oidc_config: OidcConfig,
 }
 
 impl BuildAuthorizationUrlHandler {
-    pub fn new(auth_config: AuthConfig) -> Self {
-        Self { auth_config }
+    pub fn new(oidc_client: impl OidcClient, oidc_config: OidcConfig) -> Self {
+        Self {
+            oidc_client: Box::new(oidc_client),
+            oidc_config,
+        }
     }
 }
 
@@ -25,49 +28,13 @@ impl Handler<BuildAuthorizationUrlQuery> for BuildAuthorizationUrlHandler {
         &self,
         _query: BuildAuthorizationUrlQuery,
     ) -> Result<Self::Response, Self::Error> {
-        let oidc_config = self
-            .auth_config
-            .oidc
-            .as_ref()
-            .ok_or_else(|| BuildAuthorizationUrlError::NotAuthenticated)?;
+        let data = self
+            .oidc_client
+            .build_authorization_url(self.oidc_config.scopes.clone());
 
-        let code_verifier = base64_url_encode(&random_generate(43));
-        let code_challenge = base64_url_encode(&sha256_hash(&code_verifier));
-        let state = base64_url_encode(&random_generate(32));
-
-        let params = vec![
-            ("response_type", "code"),
-            ("client_id", &oidc_config.client_id),
-            ("redirect_uri", &oidc_config.redirect_uri),
-            ("scope", &oidc_config.scope),
-            ("code_challenge_method", "S256"),
-            ("code_challenge", &code_challenge),
-            ("state", &state),
-        ];
-
-        let authorization_url =
-            Url::parse_with_params(&oidc_config.authorization_endpoint, params).unwrap();
-
-        Ok(AuthorizationUrlData {
-            url: authorization_url.into(),
-            code_verifier,
-            state,
-        })
+        Ok(data)
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct AuthorizationUrlData {
-    pub url: String,
-    pub code_verifier: String,
-    pub state: String,
-}
-
 #[derive(Debug, thiserror::Error)]
-pub enum BuildAuthorizationUrlError {
-    #[error("user not authenticated")]
-    NotAuthenticated,
-
-    #[error(transparent)]
-    Repository(#[from] RepositoryError),
-}
+pub enum BuildAuthorizationUrlError {}

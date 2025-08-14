@@ -15,5 +15,5 @@ path_style_enabled = true
 
 [oidc]
 enabled = false
-scope = "openid email profile"
+scopes = ["email", "profile"]
 sign_in_text = "Sign in with OIDC"
