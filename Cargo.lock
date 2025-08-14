@@ -610,7 +610,6 @@ dependencies = [
  "colette-storage",
  "config",
  "cron",
- "dirs",
  "futures",
  "refinery",
  "reqwest",

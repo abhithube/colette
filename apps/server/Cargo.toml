@@ -20,7 +20,6 @@ colette-scraper.workspace = true
 colette-storage = { workspace = true, features = ["s3"] }
 config = { version = "0.15.11", default-features = false, features = ["toml"] }
 cron = { version = "0.15.0", default-features = false }
-dirs = { version = "6.0.0", default-features = false }
 futures.workspace = true
 refinery = { version = "0.8.16", default-features = false }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }

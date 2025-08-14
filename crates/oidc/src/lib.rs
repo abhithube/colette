@@ -115,7 +115,6 @@ impl OidcClient for OidcClientImpl {
 pub struct OidcConfig {
     pub issuer_url: String,
     pub client_id: String,
-    // pub client_secret: String,
     pub redirect_uri: String,
 }
 

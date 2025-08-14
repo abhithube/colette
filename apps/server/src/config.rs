@@ -1,12 +1,8 @@
-use std::{path::PathBuf, sync::LazyLock};
+use std::path::PathBuf;
 
 use config::{Config, Environment, FileFormat};
 use tokio::fs;
 use url::Url;
-
-const APP_NAME: &str = "Colette";
-static DATA_DIR: LazyLock<PathBuf> =
-    LazyLock::new(|| dirs::config_dir().unwrap().join(APP_NAME.to_lowercase()));
 
 const FS_PATH: &str = "fs";
 
@@ -19,7 +15,6 @@ pub async fn from_env() -> Result<AppConfig, Box<dyn std::error::Error>> {
     #[allow(unused_mut)]
     let mut builder = Config::builder()
         .add_source(config::File::from_str(DEFAULT_CONFIG, FileFormat::Toml))
-        .set_default("data_dir", DATA_DIR.to_string_lossy().into_owned())?
         .add_source(
             Environment::default()
                 .separator("__")
@@ -123,8 +118,8 @@ pub async fn from_env() -> Result<AppConfig, Box<dyn std::error::Error>> {
         redirect_uri.set_path("auth-callback");
 
         Some(OidcConfig {
-            client_id: oidc.client_id.expect("'OIDC__CLIENT_ID' not set"),
             issuer_url: oidc.issuer_url.expect("'OIDC__ISSUER_URL' not set"),
+            client_id: oidc.client_id.expect("'OIDC__CLIENT_ID' not set"),
             redirect_uri: redirect_uri.into(),
             scopes: oidc.scopes,
             sign_in_text: oidc.sign_in_text,
@@ -208,8 +203,8 @@ pub struct S3Config {
 
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct OidcConfig {
-    pub client_id: String,
     pub issuer_url: String,
+    pub client_id: String,
     pub redirect_uri: String,
     pub scopes: Vec<String>,
     pub sign_in_text: String,

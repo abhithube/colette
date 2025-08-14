@@ -1,5 +1,3 @@
-# data_dir =
-
 [server]
 # port = 8000
 # base_url = "http://localhost:8000"
@@ -17,9 +15,6 @@ secret =
 # enabled = false
 # origin_urls = []
 
-[cron]
-# enabled = true
-# schedule = "0 */15 * * * *"
 
 [storage]
 # backend = "fs" # possible values: "fs" or "s3"
@@ -35,7 +30,7 @@ secret =
 
 [oidc]
 # enabled = false
+# issuer_url =
 # client_id =
-# discovery_endpoint =
-# scope = "openid email profile"
+# scopes = ["email", "profile"]
 # sign_in_text = "Sign in with OIDC"

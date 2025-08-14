@@ -33,7 +33,5 @@ RUN TARGET=$(cat /tmp/target) && mkdir -p /app/linux && cp target/$TARGET/releas
 FROM gcr.io/distroless/static AS release
 ARG TARGETPLATFORM
 COPY --from=build /app/$TARGETPLATFORM /app/colette-server
-VOLUME /app/data
-ENV DATA_DIR=/app/data
 EXPOSE 8000
 ENTRYPOINT ["/app/colette-server"]
