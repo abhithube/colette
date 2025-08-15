@@ -53,8 +53,8 @@ pub struct Config {
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub oidc: Option<OidcConfig>,
-    /// Storage config
-    pub storage: StorageConfig,
+    /// Storage bucket config
+    pub s3: S3Config,
 }
 
 /// API server config
@@ -73,11 +73,11 @@ pub struct OidcConfig {
     pub sign_in_text: String,
 }
 
-/// API storage config
+/// API storage bucket config
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct StorageConfig {
-    /// Base URL for the image storage server
+pub struct S3Config {
+    /// Base URL for the image storage bucket server
     pub image_base_url: Url,
 }
 

@@ -14,8 +14,8 @@ members = [
   "crates/plugins",
   "crates/queue",
   "crates/repository",
+  "crates/s3",
   "crates/scraper",
-  "crates/storage",
   "crates/util",
 ]
 resolver = "2"
@@ -47,8 +47,8 @@ colette-opml.path = "crates/opml"
 colette-plugins.path = "crates/plugins"
 colette-queue.path = "crates/queue"
 colette-repository.path = "crates/repository"
+colette-s3.path = "crates/s3"
 colette-scraper.path = "crates/scraper"
-colette-storage.path = "crates/storage"
 colette-util.path = "crates/util"
 email_address = { version = "0.2.9", default-features = false, features = [
   "serde_support",
@@ -60,9 +60,6 @@ http-body-util = { version = "0.1.2", default-features = false }
 quick-xml = { version = "0.37.2", default-features = false }
 reqwest = { version = "0.12.12", default-features = false, features = [
   "http2",
-] }
-rust-s3 = { version = "0.36.0-beta.2", default-features = false, features = [
-  "fail-on-err",
 ] }
 scraper = { version = "0.23.1", default-features = false }
 serde = { version = "1.0.217", default-features = false }

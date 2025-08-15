@@ -9,8 +9,8 @@ use bookmark::BookmarkApi;
 use collection::CollectionApi;
 use common::{ApiError, BooleanOp, DateOp, TextOp, verify_auth_extension};
 pub use common::{
-    ApiState, Config as ApiConfig, OidcConfig as ApiOidcConfig, ServerConfig as ApiServerConfig,
-    StorageConfig as ApiStorageConfig,
+    ApiState, Config as ApiConfig, OidcConfig as ApiOidcConfig, S3Config as ApiS3Config,
+    ServerConfig as ApiServerConfig,
 };
 use config::ConfigApi;
 use feed::FeedApi;

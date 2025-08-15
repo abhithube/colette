@@ -15,10 +15,6 @@ secret =
 # enabled = false
 # origin_urls = []
 
-
-[storage]
-# backend = "fs" # possible values: "fs" or "s3"
-
 [s3]
 # access_key_id =
 # secret_access_key =

@@ -1,6 +1,6 @@
 use chrono::Utc;
 use colette_http::HttpClient;
-use colette_storage::StorageClient;
+use colette_s3::S3Client;
 use colette_util::{hex_encode, sha256_hash};
 
 use crate::{
@@ -21,19 +21,19 @@ pub struct ArchiveThumbnailCommand {
 pub struct ArchiveThumbnailHandler {
     bookmark_repository: Box<dyn BookmarkRepository>,
     http_client: Box<dyn HttpClient>,
-    storage_client: Box<dyn StorageClient>,
+    s3_client: Box<dyn S3Client>,
 }
 
 impl ArchiveThumbnailHandler {
     pub fn new(
         bookmark_repository: impl BookmarkRepository,
         http_client: impl HttpClient,
-        storage_client: impl StorageClient,
+        s3_client: impl S3Client,
     ) -> Self {
         Self {
             bookmark_repository: Box::new(bookmark_repository),
             http_client: Box::new(http_client),
-            storage_client: Box::new(storage_client),
+            s3_client: Box::new(s3_client),
         }
     }
 }
@@ -59,9 +59,8 @@ impl Handler<ArchiveThumbnailCommand> for ArchiveThumbnailHandler {
 
                 let object_path = format!("{THUMBNAILS_DIR}/{file_name}.{extension}");
 
-                self.storage_client
-                    .upload(&object_path, body.into())
-                    .await?;
+                let data: Vec<u8> = body.into();
+                self.s3_client.put_object(&object_path, &data).await?;
 
                 self.bookmark_repository
                     .set_archived_path(cmd.bookmark_id, Some(object_path))
@@ -71,7 +70,7 @@ impl Handler<ArchiveThumbnailCommand> for ArchiveThumbnailHandler {
         }
 
         if let Some(archived_path) = cmd.archived_path {
-            self.storage_client.delete(&archived_path).await?;
+            self.s3_client.delete_object(&archived_path).await?;
 
             self.bookmark_repository
                 .set_archived_path(cmd.bookmark_id, None)
@@ -88,7 +87,7 @@ pub enum ArchiveThumbnailError {
     Image(#[from] image::ImageError),
 
     #[error(transparent)]
-    Io(#[from] std::io::Error),
+    S3(#[from] colette_s3::Error),
 
     #[error(transparent)]
     Http(#[from] colette_http::Error),

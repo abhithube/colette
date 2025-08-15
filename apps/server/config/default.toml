@@ -6,9 +6,6 @@ base_url = "http://localhost:8000"
 enabled = false
 origin_urls = []
 
-[storage]
-backend = "fs"
-
 [s3]
 bucket_name = "colette"
 path_style_enabled = true

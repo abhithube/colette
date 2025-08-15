@@ -1,10 +1,5 @@
-use std::path::PathBuf;
-
 use config::{Config, Environment, FileFormat};
-use tokio::fs;
 use url::Url;
-
-const FS_PATH: &str = "fs";
 
 const DEFAULT_CONFIG: &str = include_str!("../config/default.toml");
 
@@ -49,60 +44,41 @@ pub async fn from_env() -> Result<AppConfig, Box<dyn std::error::Error>> {
         CorsConfig { origin_urls }
     });
 
-    let storage = match raw.storage.backend {
-        RawStorageBackend::Fs => {
-            let path = raw.data_dir.join(FS_PATH);
+    let s3 = {
+        let access_key_id = raw.s3.access_key_id.expect("'AWS__ACCESS_KEY_ID' not set");
+        let secret_access_key = raw
+            .s3
+            .secret_access_key
+            .expect("'AWS__SECRET_ACCESS_KEY' not set");
+        let region = raw.s3.region.expect("'AWS__REGION' not set");
+        let endpoint = raw.s3.endpoint.expect("'AWS__ENDPOINT' not set");
 
-            if !tokio::fs::try_exists(&path).await? {
-                fs::create_dir_all(&path).await?;
-            }
+        let image_base_url = raw.s3.image_base_url.unwrap_or_else(|| {
+            let mut image_base_url = endpoint.parse::<Url>().unwrap();
 
-            let mut image_base_url = raw.server.base_url.clone();
-            image_base_url.set_path("uploads");
-
-            StorageConfig {
-                image_base_url,
-                backend: StorageBackend::Fs(FsConfig { path }),
-            }
-        }
-        RawStorageBackend::S3 => {
-            let access_key_id = raw.s3.access_key_id.expect("'AWS__ACCESS_KEY_ID' not set");
-            let secret_access_key = raw
-                .s3
-                .secret_access_key
-                .expect("'AWS__SECRET_ACCESS_KEY' not set");
-            let region = raw.s3.region.expect("'AWS__REGION' not set");
-            let endpoint = raw.s3.endpoint.expect("'AWS__ENDPOINT' not set");
-
-            let image_base_url = raw.s3.image_base_url.unwrap_or_else(|| {
-                let mut image_base_url = endpoint.clone();
-
-                if raw.s3.path_style_enabled {
-                    image_base_url.set_path(&format!("{}/", raw.s3.bucket_name));
-                } else {
-                    image_base_url
-                        .set_host(Some(&format!(
-                            "{}.{}",
-                            raw.s3.bucket_name,
-                            image_base_url.host_str().unwrap()
-                        )))
-                        .unwrap();
-                }
-
+            if raw.s3.path_style_enabled {
+                image_base_url.set_path(&format!("{}/", raw.s3.bucket_name));
+            } else {
                 image_base_url
-            });
-
-            StorageConfig {
-                image_base_url,
-                backend: StorageBackend::S3(S3Config {
-                    access_key_id,
-                    secret_access_key,
-                    region,
-                    endpoint,
-                    bucket_name: raw.s3.bucket_name,
-                    path_style_enabled: raw.s3.path_style_enabled,
-                }),
+                    .set_host(Some(&format!(
+                        "{}.{}",
+                        raw.s3.bucket_name,
+                        image_base_url.host_str().unwrap()
+                    )))
+                    .unwrap();
             }
+
+            image_base_url
+        });
+
+        S3Config {
+            access_key_id,
+            secret_access_key,
+            region,
+            endpoint,
+            bucket_name: raw.s3.bucket_name,
+            path_style_enabled: raw.s3.path_style_enabled,
+            image_base_url,
         }
     };
 
@@ -133,7 +109,7 @@ pub async fn from_env() -> Result<AppConfig, Box<dyn std::error::Error>> {
         database,
         jwt,
         cors,
-        storage,
+        s3,
         oidc,
     })
 }
@@ -144,7 +120,7 @@ pub struct AppConfig {
     pub database: DatabaseConfig,
     pub jwt: JwtConfig,
     pub cors: Option<CorsConfig>,
-    pub storage: StorageConfig,
+    pub s3: S3Config,
     pub oidc: Option<OidcConfig>,
 }
 
@@ -175,30 +151,14 @@ pub struct CorsConfig {
 }
 
 #[derive(Debug, Clone)]
-pub struct StorageConfig {
-    pub image_base_url: Url,
-    pub backend: StorageBackend,
-}
-
-#[derive(Debug, Clone)]
-pub enum StorageBackend {
-    Fs(FsConfig),
-    S3(S3Config),
-}
-
-#[derive(Debug, Clone)]
-pub struct FsConfig {
-    pub path: PathBuf,
-}
-
-#[derive(Debug, Clone)]
 pub struct S3Config {
     pub access_key_id: String,
     pub secret_access_key: String,
     pub region: String,
-    pub endpoint: Url,
+    pub endpoint: String,
     pub bucket_name: String,
     pub path_style_enabled: bool,
+    pub image_base_url: Url,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -212,13 +172,11 @@ pub struct OidcConfig {
 
 #[derive(Debug, Clone, serde::Deserialize)]
 struct RawConfig {
-    data_dir: PathBuf,
     server: ServerConfig,
     database: RawDatabaseConfig,
     client: Option<ClientConfig>,
     jwt: RawJwtConfig,
     cors: RawCorsConfig,
-    storage: RawStorageConfig,
     s3: RawS3Config,
     oidc: Option<RawOidcConfig>,
 }
@@ -240,23 +198,11 @@ struct RawCorsConfig {
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
-struct RawStorageConfig {
-    backend: RawStorageBackend,
-}
-
-#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
-enum RawStorageBackend {
-    Fs,
-    S3,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
 struct RawS3Config {
     access_key_id: Option<String>,
     secret_access_key: Option<String>,
     region: Option<String>,
-    endpoint: Option<Url>,
+    endpoint: Option<String>,
     bucket_name: String,
     path_style_enabled: bool,
     image_base_url: Option<Url>,

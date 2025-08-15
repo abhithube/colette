@@ -2,7 +2,7 @@ use std::{error::Error, net::SocketAddr, sync::Arc};
 
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use chrono::Duration;
-use colette_api::{ApiConfig, ApiOidcConfig, ApiServerConfig, ApiState, ApiStorageConfig};
+use colette_api::{ApiConfig, ApiOidcConfig, ApiS3Config, ApiServerConfig, ApiState};
 use colette_core::{
     api_key::{
         CreateApiKeyHandler, DeleteApiKeyHandler, GetApiKeyHandler, ListApiKeysHandler,
@@ -53,17 +53,13 @@ use colette_repository::{
     PostgresJobRepository, PostgresSubscriptionEntryRepository, PostgresSubscriptionRepository,
     PostgresTagRepository, PostgresUserRepository,
 };
+use colette_s3::S3ClientImpl;
 use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
-use colette_storage::{FsStorageClient, S3StorageClient, StorageAdapter};
-use s3::{Bucket, Region, creds::Credentials};
 use sqlx::PgPool;
 use tokio::{net::TcpListener, sync::Mutex};
 use tower::{ServiceBuilder, ServiceExt};
-use tower_http::services::ServeDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use worker::{CronWorker, JobWorker};
-
-use crate::config::StorageBackend;
 
 mod config;
 mod worker;
@@ -138,37 +134,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         oidc_client = Some(client);
     }
 
-    let storage_adapter = match app_config.storage.backend {
-        StorageBackend::Fs(ref config) => {
-            StorageAdapter::Fs(FsStorageClient::new(config.path.to_owned()))
-        }
-        StorageBackend::S3(ref config) => {
-            let mut bucket = Bucket::new(
-                &config.bucket_name,
-                Region::Custom {
-                    region: config.region.to_owned(),
-                    endpoint: config.endpoint.to_string(),
-                },
-                Credentials::new(
-                    Some(&config.access_key_id),
-                    Some(&config.secret_access_key),
-                    None,
-                    None,
-                    None,
-                )?,
-            )?;
-            if config.path_style_enabled {
-                bucket.set_path_style();
-            }
-
-            let exists = bucket.exists().await?;
-            if !exists {
-                panic!("bucket does not exist with name: {}", config.bucket_name);
-            }
-
-            StorageAdapter::S3(S3StorageClient::new(bucket))
-        }
-    };
+    let s3_client = S3ClientImpl::init(colette_s3::S3Config {
+        access_key_id: app_config.s3.access_key_id,
+        secret_access_key: app_config.s3.secret_access_key,
+        region: app_config.s3.region,
+        endpoint: app_config.s3.endpoint,
+        bucket_name: app_config.s3.bucket_name,
+        path_style_enabled: app_config.s3.path_style_enabled,
+    })
+    .await?;
 
     let (scrape_feed_producer, scrape_feed_consumer) = {
         let queue = LocalQueue::new().split();
@@ -227,7 +201,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let archive_thumbnail_handler = Arc::new(ArchiveThumbnailHandler::new(
         bookmark_repository.clone(),
         http_client.clone(),
-        storage_adapter,
+        s3_client,
     ));
     let list_feeds_handler = Arc::new(ListFeedsHandler::new(feed_repository.clone()));
     let refresh_feed_handler = Arc::new(RefreshFeedHandler::new(
@@ -372,8 +346,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
             oidc: app_config.oidc.map(|e| ApiOidcConfig {
                 sign_in_text: e.sign_in_text,
             }),
-            storage: ApiStorageConfig {
-                image_base_url: app_config.storage.image_base_url,
+            s3: ApiS3Config {
+                image_base_url: app_config.s3.image_base_url,
             },
         },
     };
@@ -394,10 +368,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let mut api = colette_api::create_router(api_state, app_config.cors.map(|e| e.origin_urls));
-
-    if let StorageBackend::Fs(ref config) = app_config.storage.backend {
-        api = api.nest_service("/uploads", ServeDir::new(&config.path))
-    }
 
     api = api.fallback_service(ServeEmbed::<Asset>::with_parameters(
         Some(String::from("index.html")),

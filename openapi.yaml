@@ -2388,7 +2388,7 @@ components:
       description: API config
       required:
       - server
-      - storage
+      - s3
       properties:
         server:
           $ref: '#/components/schemas/ServerConfig'
@@ -2396,9 +2396,9 @@ components:
         oidc:
           $ref: '#/components/schemas/OidcConfig'
           description: OIDC config
-        storage:
-          $ref: '#/components/schemas/StorageConfig'
-          description: Storage config
+        s3:
+          $ref: '#/components/schemas/S3Config'
+          description: Storage bucket config
     DateOp:
       oneOf:
       - type: object
@@ -2838,6 +2838,16 @@ components:
         cursor:
           type: string
           description: Pagination cursor, only present if more results are available
+    S3Config:
+      type: object
+      description: API storage bucket config
+      required:
+      - imageBaseUrl
+      properties:
+        imageBaseUrl:
+          type: string
+          format: uri
+          description: Base URL for the image storage bucket server
     SendOtpPayload:
       type: object
       required:
@@ -2856,16 +2866,6 @@ components:
           type: string
           format: uri
           description: Server base URL
-    StorageConfig:
-      type: object
-      description: API storage config
-      required:
-      - imageBaseUrl
-      properties:
-        imageBaseUrl:
-          type: string
-          format: uri
-          description: Base URL for the image storage server
     Subscription:
       type: object
       description: User subscription to an RSS feed
