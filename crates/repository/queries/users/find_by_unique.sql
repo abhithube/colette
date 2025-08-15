@@ -40,7 +40,7 @@ SELECT
         oc.updated_at
       )
       ORDER BY
-        oc.expires_at ASC
+        oc.created_at ASC
     ) FILTER (
       WHERE
         oc.code IS NOT NULL

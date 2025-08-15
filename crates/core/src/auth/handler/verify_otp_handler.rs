@@ -44,7 +44,7 @@ impl Handler<VerifyOtpCommand> for VerifyOtpHandler {
             .await?
             .ok_or_else(|| LoginUserError::NotAuthenticated)?;
 
-        user.verify_otp_code(cmd.code)?;
+        user.use_otp_code(cmd.code)?;
 
         self.user_repository.save(&user).await?;
 

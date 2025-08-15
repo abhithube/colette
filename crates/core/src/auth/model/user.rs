@@ -1,6 +1,6 @@
 use std::{fmt, str::FromStr};
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use email_address::EmailAddress;
 use url::Url;
 use uuid::Uuid;
@@ -9,6 +9,9 @@ use crate::{
     auth::{OtpCode, SocialAccount, UserError},
     common::UuidGenerator,
 };
+
+const OTP_RATE_LIMIT_COUNT: usize = 3;
+const OTP_RATE_LIMIT_DURATION: u8 = 10;
 
 #[derive(Debug, Clone)]
 pub struct User {
@@ -75,6 +78,22 @@ impl User {
         Ok(())
     }
 
+    pub fn check_otp_rate_limit(&self) -> Result<(), UserError> {
+        let time = Utc::now() - Duration::minutes(OTP_RATE_LIMIT_DURATION as i64);
+
+        if self
+            .otp_codes
+            .iter()
+            .rev()
+            .take(OTP_RATE_LIMIT_COUNT)
+            .all(|e| e.created_at() >= time)
+        {
+            return Err(UserError::TooManyOtpCodes);
+        }
+
+        Ok(())
+    }
+
     pub fn add_otp_code(&mut self, value: OtpCode) -> Result<(), UserError> {
         if self.otp_codes.iter().any(|e| e.code() == value.code()) {
             return Err(UserError::DuplicateOtpCode);
@@ -85,7 +104,7 @@ impl User {
         Ok(())
     }
 
-    pub fn verify_otp_code(&mut self, code: String) -> Result<(), UserError> {
+    pub fn use_otp_code(&mut self, code: String) -> Result<(), UserError> {
         let opt_code = self
             .otp_codes
             .iter_mut()

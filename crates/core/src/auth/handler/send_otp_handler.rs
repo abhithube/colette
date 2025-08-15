@@ -40,6 +40,8 @@ impl Handler<SendOtpCommand> for SendOtpHandler {
             None => User::new(cmd.email, None, None)?,
         };
 
+        user.check_otp_rate_limit()?;
+
         let mut attempts = 0;
         loop {
             let otp = OtpCode::new();

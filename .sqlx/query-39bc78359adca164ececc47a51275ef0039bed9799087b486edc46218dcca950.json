@@ -1,0 +1,73 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  u.id,\n  u.email,\n  u.verified,\n  u.display_name,\n  u.image_url AS \"image_url: DbUrl\",\n  coalesce(\n    jsonb_agg(\n      jsonb_build_object(\n        'provider',\n        sa.provider,\n        'sub',\n        sa.sub,\n        'created_at',\n        sa.created_at,\n        'updated_at',\n        sa.updated_at\n      )\n      ORDER BY\n        sa.provider ASC,\n        sa.sub ASC\n    ) FILTER (\n      WHERE\n        sa.sub IS NOT NULL\n    ),\n    '[]'::JSONB\n  ) AS \"social_accounts!: Json<Vec<SocialAccountRow>>\",\n  coalesce(\n    jsonb_agg(\n      jsonb_build_object(\n        'code',\n        oc.code,\n        'expires_at',\n        oc.expires_at,\n        'used_at',\n        oc.used_at,\n        'created_at',\n        oc.created_at,\n        'updated_at',\n        oc.updated_at\n      )\n      ORDER BY\n        oc.created_at ASC\n    ) FILTER (\n      WHERE\n        oc.code IS NOT NULL\n    ),\n    '[]'::JSONB\n  ) AS \"otp_codes!: Json<Vec<OtpCodeRow>>\",\n  u.created_at,\n  u.updated_at\nFROM\n  users u\n  LEFT JOIN social_accounts sa ON sa.user_id = u.id\n  LEFT JOIN otp_codes oc ON oc.user_id = u.id\nWHERE\n  (\n    $1::UUID IS NULL\n    OR u.id = $1\n  )\n  AND (\n    $2::TEXT IS NULL\n    OR u.email = $2\n  )\n  AND (\n    (\n      $3::TEXT IS NULL\n      AND $4::TEXT IS NULL\n    )\n    OR (\n      sa.provider = $3\n      AND sa.sub = $4\n    )\n  )\nGROUP BY\n  u.id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "verified",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "image_url: DbUrl",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "social_accounts!: Json<Vec<SocialAccountRow>>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "otp_codes!: Json<Vec<OtpCodeRow>>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      null,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "39bc78359adca164ececc47a51275ef0039bed9799087b486edc46218dcca950"
+}
