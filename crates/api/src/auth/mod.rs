@@ -6,14 +6,19 @@ use url::Url;
 use utoipa::OpenApi;
 use uuid::Uuid;
 
-use crate::ApiState;
+use crate::{ApiState, pagination::Paginated};
 
+mod create_pat;
+mod delete_pat;
 mod exchange_code;
 mod get_active_user;
+mod get_pat;
+mod list_pats;
 mod logout_user;
 mod redirect_oidc;
 mod refresh_token;
 mod send_otp;
+mod update_pat;
 mod verify_otp;
 
 const AUTH_TAG: &str = "Auth";
@@ -29,7 +34,8 @@ const NONCE_COOKIE: &str = "colette_nonce";
         TokenData,
         send_otp::SendOtpPayload,
         verify_otp::VerifyOtpPayload,
-        exchange_code::CodePayload
+        exchange_code::CodePayload,
+        PersonalAccessToken, Paginated<PersonalAccessToken>, create_pat::PatCreate, create_pat::PatCreated, update_pat::PatUpdate
     )),
     paths(
         send_otp::handler,
@@ -38,7 +44,8 @@ const NONCE_COOKIE: &str = "colette_nonce";
         refresh_token::handler,
         logout_user::handler,
         redirect_oidc::handler,
-        exchange_code::handler
+        exchange_code::handler,
+        list_pats::handler, create_pat::handler, get_pat::handler, update_pat::handler, delete_pat::handler
     )
 )]
 pub(crate) struct AuthApi;
@@ -57,10 +64,15 @@ impl AuthApi {
         Router::new()
             .route("/@me", routing::get(get_active_user::handler))
             .route("/logout", routing::post(logout_user::handler))
+            .route("/pats", routing::get(list_pats::handler))
+            .route("/pats", routing::post(create_pat::handler))
+            .route("/pats/{id}", routing::get(get_pat::handler))
+            .route("/pats/{id}", routing::patch(update_pat::handler))
+            .route("/pats/{id}", routing::delete(delete_pat::handler))
     }
 }
 
-/// User account. Supports email/password and OIDC.
+/// User account
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 struct User {
@@ -77,6 +89,8 @@ struct User {
     /// Profile image URL of the user
     #[schema(required)]
     image_url: Option<Url>,
+    /// Generated PATs
+    personal_access_tokens: Vec<PersonalAccessToken>,
     /// Timestamp at which the user was created
     created_at: DateTime<Utc>,
     /// Timestamp at which the user was last modified
@@ -91,6 +105,39 @@ impl From<colette_core::User> for User {
             verified: value.verified(),
             display_name: value.display_name().map(Into::into),
             image_url: value.image_url().cloned(),
+            personal_access_tokens: value
+                .personal_access_tokens()
+                .to_owned()
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            created_at: value.created_at(),
+            updated_at: value.updated_at(),
+        }
+    }
+}
+
+/// PAT, used for long-lived token access to the API
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct PersonalAccessToken {
+    id: Uuid,
+    lookup_hash: String,
+    verification_hash: String,
+    title: String,
+    preview: String,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl From<auth::PersonalAccessToken> for PersonalAccessToken {
+    fn from(value: auth::PersonalAccessToken) -> Self {
+        Self {
+            id: value.id().as_inner(),
+            lookup_hash: value.lookup_hash().as_inner().to_owned(),
+            verification_hash: value.verification_hash().as_inner().to_owned(),
+            title: value.title().as_inner().to_owned(),
+            preview: value.preview().as_inner().to_owned(),
             created_at: value.created_at(),
             updated_at: value.updated_at(),
         }

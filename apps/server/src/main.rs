@@ -4,13 +4,11 @@ use axum_embed::{FallbackBehavior, ServeEmbed};
 use chrono::Duration;
 use colette_api::{ApiConfig, ApiOidcConfig, ApiS3Config, ApiServerConfig, ApiState};
 use colette_core::{
-    api_key::{
-        CreateApiKeyHandler, DeleteApiKeyHandler, GetApiKeyHandler, ListApiKeysHandler,
-        UpdateApiKeyHandler, ValidateApiKeyHandler,
-    },
     auth::{
-        BuildAuthorizationUrlHandler, ExchangeCodeHandler, GetUserHandler, JwtConfig, OidcConfig,
-        RefreshAccessTokenHandler, SendOtpHandler, ValidateAccessTokenHandler, VerifyOtpHandler,
+        BuildAuthorizationUrlHandler, CreatePatHandler, DeletePatHandler, ExchangeCodeHandler,
+        GetPatHandler, GetUserHandler, JwtConfig, ListPatsHandler, OidcConfig,
+        RefreshAccessTokenHandler, SendOtpHandler, UpdatePatHandler, ValidateAccessTokenHandler,
+        ValidatePatHandler, VerifyOtpHandler,
     },
     backup::{ExportBackupHandler, ImportBackupHandler},
     bookmark::{
@@ -48,9 +46,9 @@ use colette_oidc::OidcClientImpl;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::{JobConsumerAdapter, JobProducerAdapter, LocalQueue};
 use colette_repository::{
-    PostgresApiKeyRepository, PostgresBackupRepository, PostgresBookmarkRepository,
-    PostgresCollectionRepository, PostgresFeedEntryRepository, PostgresFeedRepository,
-    PostgresJobRepository, PostgresSubscriptionEntryRepository, PostgresSubscriptionRepository,
+    PostgresBackupRepository, PostgresBookmarkRepository, PostgresCollectionRepository,
+    PostgresFeedEntryRepository, PostgresFeedRepository, PostgresJobRepository,
+    PostgresPatRepository, PostgresSubscriptionEntryRepository, PostgresSubscriptionRepository,
     PostgresTagRepository, PostgresUserRepository,
 };
 use colette_s3::S3ClientImpl;
@@ -92,11 +90,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let pool = PgPool::connect_lazy(&app_config.database.url)?;
 
-    let api_key_repository = PostgresApiKeyRepository::new(pool.clone());
     let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
     let collection_repository = PostgresCollectionRepository::new(pool.clone());
     let feed_entry_repository = PostgresFeedEntryRepository::new(pool.clone());
     let job_repository = PostgresJobRepository::new(pool.clone());
+    let pat_repository = PostgresPatRepository::new(pool.clone());
     let subscription_repository = PostgresSubscriptionRepository::new(pool.clone());
     let subscription_entry_repository = PostgresSubscriptionEntryRepository::new(pool.clone());
     let tag_repository = PostgresTagRepository::new(pool.clone());
@@ -214,14 +212,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let update_job_handler = Arc::new(UpdateJobHandler::new(job_repository.clone()));
 
     let mut api_state = ApiState {
-        // API Keys
-        list_api_keys: Arc::new(ListApiKeysHandler::new(api_key_repository.clone())),
-        get_api_key: Arc::new(GetApiKeyHandler::new(api_key_repository.clone())),
-        create_api_key: Arc::new(CreateApiKeyHandler::new(api_key_repository.clone())),
-        update_api_key: Arc::new(UpdateApiKeyHandler::new(api_key_repository.clone())),
-        delete_api_key: Arc::new(DeleteApiKeyHandler::new(api_key_repository.clone())),
-        validate_api_key: Arc::new(ValidateApiKeyHandler::new(api_key_repository)),
-
         // Auth
         send_otp: Arc::new(SendOtpHandler::new(user_repository.clone())),
         verify_otp: Arc::new(VerifyOtpHandler::new(
@@ -238,6 +228,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
             jwt_config.clone(),
         )),
         validate_access_token: Arc::new(ValidateAccessTokenHandler::new(jwt_manager.clone())),
+        list_pats: Arc::new(ListPatsHandler::new(pat_repository.clone())),
+        get_pat: Arc::new(GetPatHandler::new(pat_repository.clone())),
+        create_pat: Arc::new(CreatePatHandler::new(user_repository.clone())),
+        update_pat: Arc::new(UpdatePatHandler::new(user_repository.clone())),
+        delete_pat: Arc::new(DeletePatHandler::new(user_repository.clone())),
+        validate_pat: Arc::new(ValidatePatHandler::new(pat_repository)),
 
         // Backup
         import_backup: Arc::new(ImportBackupHandler::new(PostgresBackupRepository::new(

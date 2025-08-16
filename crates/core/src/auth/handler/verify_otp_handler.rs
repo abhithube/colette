@@ -73,7 +73,7 @@ pub enum LoginUserError {
     NotAuthenticated,
 
     #[error(transparent)]
-    Core(#[from] UserError),
+    User(#[from] UserError),
 
     #[error(transparent)]
     Jwt(#[from] colette_jwt::Error),

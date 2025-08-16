@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  id,\n  verification_hash,\n  user_id\nFROM\n  personal_access_tokens\nWHERE\n  lookup_hash = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "verification_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "82db2018d9d05bd0c852c4569fac46f92bb5ad67c1b5f2aabe25d6a531f92515"
+}

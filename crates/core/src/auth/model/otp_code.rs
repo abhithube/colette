@@ -1,6 +1,6 @@
 use chrono::{DateTime, Duration, Utc};
 
-use crate::{auth::UserError, common::NumericCodeGenerator};
+use crate::common::NumericCodeGenerator;
 
 const OTP_LEN: u8 = 6;
 const OTP_EXPIRATION_MIN: u8 = 10;
@@ -36,7 +36,42 @@ impl OtpCode {
         Self::default()
     }
 
-    pub fn from_values(
+    pub fn code(&self) -> &str {
+        &self.code
+    }
+
+    pub fn expires_at(&self) -> DateTime<Utc> {
+        self.expires_at
+    }
+
+    pub fn used_at(&self) -> Option<DateTime<Utc>> {
+        self.used_at
+    }
+
+    pub fn use_up(&mut self) -> Result<(), OtpError> {
+        if self.used_at.is_some() {
+            return Err(OtpError::AlreadyUsedOtpCode);
+        }
+
+        let now = Utc::now();
+        if self.expires_at < now {
+            return Err(OtpError::InvalidOtpCode);
+        }
+
+        self.used_at = Some(now);
+
+        Ok(())
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
+
+    pub fn from_unchecked(
         code: String,
         expires_at: DateTime<Utc>,
         used_at: Option<DateTime<Utc>>,
@@ -51,39 +86,19 @@ impl OtpCode {
             updated_at,
         }
     }
+}
 
-    pub fn use_up(&mut self) -> Result<(), UserError> {
-        if self.used_at.is_some() {
-            return Err(UserError::AlreadyUsedOtpCode);
-        }
+#[derive(Debug, thiserror::Error)]
+pub enum OtpError {
+    #[error("created too many OTP codes")]
+    TooManyOtpCodes,
 
-        let now = Utc::now();
-        if self.expires_at < now {
-            return Err(UserError::InvalidOtpCode);
-        }
+    #[error("duplicate OTP code")]
+    DuplicateOtpCode,
 
-        self.used_at = Some(now);
+    #[error("invalid OTP code")]
+    InvalidOtpCode,
 
-        Ok(())
-    }
-
-    pub fn code(&self) -> &str {
-        &self.code
-    }
-
-    pub fn expires_at(&self) -> DateTime<Utc> {
-        self.expires_at
-    }
-
-    pub fn used_at(&self) -> Option<DateTime<Utc>> {
-        self.used_at
-    }
-
-    pub fn created_at(&self) -> DateTime<Utc> {
-        self.created_at
-    }
-
-    pub fn updated_at(&self) -> DateTime<Utc> {
-        self.updated_at
-    }
+    #[error("already used OTP code")]
+    AlreadyUsedOtpCode,
 }

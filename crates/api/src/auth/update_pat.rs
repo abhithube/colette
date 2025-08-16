@@ -5,51 +5,67 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    api_key::{ApiKeyError, DeleteApiKeyCommand, DeleteApiKeyError},
+    auth::{PatError, UpdatePatCommand, UpdatePatError, UserError},
 };
 
 use crate::{
     ApiState,
-    api_key::API_KEYS_TAG,
-    common::{ApiError, Auth, Id, Path},
+    auth::AUTH_TAG,
+    common::{ApiError, Auth, Id, Json, Path},
 };
 
 #[utoipa::path(
-    delete,
-    path = "/{id}",
+    patch,
+    path = "/pats/{id}",
     params(Id),
+    request_body = PatUpdate,
     responses(OkResponse, ErrResponse),
-    operation_id = "deleteApiKey",
-    description = "Delete an API key by ID",
-    tag = API_KEYS_TAG
+    operation_id = "updatePat",
+    description = "Update a PAT by ID",
+    tag = AUTH_TAG
 )]
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     Auth { user_id }: Auth,
+    Json(body): Json<PatUpdate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .delete_api_key
-        .handle(DeleteApiKeyCommand {
+        .update_pat
+        .handle(UpdatePatCommand {
             id: id.into(),
+            title: body.title,
             user_id,
         })
         .await
     {
-        Ok(()) => Ok(OkResponse),
+        Ok(_) => Ok(OkResponse),
         Err(e) => match e {
-            DeleteApiKeyError::Core(ApiKeyError::Forbidden(_)) => {
-                Err(ErrResponse::Forbidden(e.into()))
-            }
-            DeleteApiKeyError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            UpdatePatError::User(e) => match e {
+                UserError::Pat(e) => match e {
+                    PatError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+                    PatError::InvalidTitleLength => Err(ErrResponse::UnprocessableEntity(e.into())),
+                    _ => Err(ErrResponse::InternalServerError(e.into())),
+                },
+                _ => Err(ErrResponse::InternalServerError(e.into())),
+            },
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
 }
 
+/// Details regarding the existing PAT to update
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct PatUpdate {
+    /// Human-readable name for the PAT to update, cannot be empty
+    #[schema(min_length = 1, nullable = false)]
+    title: Option<String>,
+}
+
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::NO_CONTENT, description = "Successfully deleted API key")]
+#[response(status = StatusCode::NO_CONTENT, description = "Successfully updated PAT")]
 pub(super) struct OkResponse;
 
 impl IntoResponse for OkResponse {
@@ -64,11 +80,11 @@ pub(super) enum ErrResponse {
     #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
     Unauthorized(ApiError),
 
-    #[response(status = StatusCode::FORBIDDEN, description = "User not authorized")]
-    Forbidden(ApiError),
-
-    #[response(status = StatusCode::NOT_FOUND, description = "API key not found")]
+    #[response(status = StatusCode::NOT_FOUND, description = "PAT not found")]
     NotFound(ApiError),
+
+    #[response(status = StatusCode::UNPROCESSABLE_ENTITY, description = "Invalid input")]
+    UnprocessableEntity(ApiError),
 
     #[response(status = "default", description = "Unknown error")]
     InternalServerError(ApiError),
@@ -77,7 +93,6 @@ pub(super) enum ErrResponse {
 impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Forbidden(e) => (StatusCode::FORBIDDEN, e).into_response(),
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
             Self::InternalServerError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()

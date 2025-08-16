@@ -1,218 +1,13 @@
 openapi: 3.1.0
 info:
   title: Colette API
-  description: Public REST API for the Colette app. Supports OAuth 2.0 and API key authentication.
+  description: Public REST API for the Colette app. Supports email OTP, OAuth 2.0, and PAT authentication.
   license:
     name: MIT
   version: 0.1.0
 servers:
 - url: /api
 paths:
-  /apiKeys:
-    get:
-      tags:
-      - API Keys
-      description: List user API keys
-      operationId: listApiKeys
-      parameters:
-      - name: cursor
-        in: query
-        description: Pagination cursor
-        required: false
-        schema:
-          type: string
-      responses:
-        '200':
-          description: Paginated list of API keys
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Paginated_ApiKey'
-        '401':
-          description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        default:
-          description: Unknown error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-    post:
-      tags:
-      - API Keys
-      description: Create an API key
-      operationId: createApiKey
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ApiKeyCreate'
-        required: true
-      responses:
-        '201':
-          description: Created API key
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiKeyCreated'
-        '401':
-          description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '422':
-          description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        default:
-          description: Unknown error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-  /apiKeys/{id}:
-    get:
-      tags:
-      - API Keys
-      description: Get an API key by ID
-      operationId: getApiKey
-      parameters:
-      - name: id
-        in: path
-        description: Unique identifier of the resource
-        required: true
-        schema:
-          type: string
-          format: uuid
-      responses:
-        '200':
-          description: API key by ID
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiKey'
-        '401':
-          description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '404':
-          description: API key not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        default:
-          description: Unknown error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-    delete:
-      tags:
-      - API Keys
-      description: Delete an API key by ID
-      operationId: deleteApiKey
-      parameters:
-      - name: id
-        in: path
-        description: Unique identifier of the resource
-        required: true
-        schema:
-          type: string
-          format: uuid
-      responses:
-        '204':
-          description: Successfully deleted API key
-        '401':
-          description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '404':
-          description: API key not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        default:
-          description: Unknown error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-    patch:
-      tags:
-      - API Keys
-      description: Update an API key by ID
-      operationId: updateApiKey
-      parameters:
-      - name: id
-        in: path
-        description: Unique identifier of the resource
-        required: true
-        schema:
-          type: string
-          format: uuid
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ApiKeyUpdate'
-        required: true
-      responses:
-        '204':
-          description: Successfully updated API key
-        '401':
-          description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '404':
-          description: API key not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '422':
-          description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        default:
-          description: Unknown error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
   /auth/send-otp:
     post:
       tags:
@@ -390,6 +185,193 @@ paths:
                 $ref: '#/components/schemas/TokenData'
         '409':
           description: Missing OAuth cookies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/pats:
+    get:
+      tags:
+      - Auth
+      description: List user PATs
+      operationId: listPats
+      parameters:
+      - name: cursor
+        in: query
+        description: Pagination cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Paginated list of PATs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Paginated_PersonalAccessToken'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    post:
+      tags:
+      - Auth
+      description: Create a PAT
+      operationId: createPat
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatCreate'
+        required: true
+      responses:
+        '201':
+          description: Created API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatCreated'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /auth/pats/{id}:
+    get:
+      tags:
+      - Auth
+      description: Get a PAT by ID
+      operationId: getPat
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier of the resource
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: PAT by ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalAccessToken'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: PAT not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      tags:
+      - Auth
+      description: Delete a PAT by ID
+      operationId: deletePat
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier of the resource
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Successfully deleted API key
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: API key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    patch:
+      tags:
+      - Auth
+      description: Update a PAT by ID
+      operationId: updatePat
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier of the resource
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatUpdate'
+        required: true
+      responses:
+        '204':
+          description: Successfully updated PAT
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: PAT not found
           content:
             application/json:
               schema:
@@ -2016,75 +1998,6 @@ components:
       - VALIDATION
       - BAD_GATEWAY
       - UNKNOWN
-    ApiKey:
-      type: object
-      description: Long-lived token linked to a user's account. Useful for third party client apps to access a user's data. The full value is returned only once, on creation.
-      required:
-      - id
-      - title
-      - preview
-      - createdAt
-      - updatedAt
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: Unique identifier of the API key
-        title:
-          type: string
-          description: Human-readable name of the API key
-        preview:
-          type: string
-          description: Partial view of the API key value for identification purposes
-        createdAt:
-          type: string
-          format: date-time
-          description: Timestamp at which the API key was created
-        updatedAt:
-          type: string
-          format: date-time
-          description: Timestamp at which the API key was last modified
-    ApiKeyCreate:
-      type: object
-      description: Data to create a new API key
-      required:
-      - title
-      properties:
-        title:
-          type: string
-          description: Human-readable name for the API key to create, cannot be empty
-          minLength: 1
-    ApiKeyCreated:
-      type: object
-      description: Newly created API key, containing the full value. This value must be saved in a safe location, as subsequent GET requests will only show a preview.
-      required:
-      - id
-      - value
-      - title
-      - createdAt
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: Unique identifier of the new API key
-        value:
-          type: string
-          description: Full value of the new API key
-        title:
-          type: string
-          description: Human-readable name of the new API key
-        createdAt:
-          type: string
-          format: date-time
-          description: Timestamp at which the API key was created
-    ApiKeyUpdate:
-      type: object
-      description: Details regarding the existing API key to update
-      properties:
-        title:
-          type: string
-          description: Human-readable name for the API key to update, cannot be empty
-          minLength: 1
     Bookmark:
       type: object
       description: Bookmark to a webpage
@@ -2590,46 +2503,6 @@ components:
         signInText:
           type: string
           description: OIDC sign in button text
-    Paginated_ApiKey:
-      type: object
-      description: Paginated list of results
-      required:
-      - items
-      properties:
-        items:
-          type: array
-          items:
-            type: object
-            description: Long-lived token linked to a user's account. Useful for third party client apps to access a user's data. The full value is returned only once, on creation.
-            required:
-            - id
-            - title
-            - preview
-            - createdAt
-            - updatedAt
-            properties:
-              id:
-                type: string
-                format: uuid
-                description: Unique identifier of the API key
-              title:
-                type: string
-                description: Human-readable name of the API key
-              preview:
-                type: string
-                description: Partial view of the API key value for identification purposes
-              createdAt:
-                type: string
-                format: date-time
-                description: Timestamp at which the API key was created
-              updatedAt:
-                type: string
-                format: date-time
-                description: Timestamp at which the API key was last modified
-          description: Current set of results
-        cursor:
-          type: string
-          description: Pagination cursor, only present if more results are available
     Paginated_BookmarkDetails:
       type: object
       description: Paginated list of results
@@ -2750,6 +2623,47 @@ components:
         cursor:
           type: string
           description: Pagination cursor, only present if more results are available
+    Paginated_PersonalAccessToken:
+      type: object
+      description: Paginated list of results
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            description: PAT, used for long-lived token access to the API
+            required:
+            - id
+            - lookupHash
+            - verificationHash
+            - title
+            - preview
+            - createdAt
+            - updatedAt
+            properties:
+              id:
+                type: string
+                format: uuid
+              lookupHash:
+                type: string
+              verificationHash:
+                type: string
+              title:
+                type: string
+              preview:
+                type: string
+              createdAt:
+                type: string
+                format: date-time
+              updatedAt:
+                type: string
+                format: date-time
+          description: Current set of results
+        cursor:
+          type: string
+          description: Pagination cursor, only present if more results are available
     Paginated_SubscriptionDetails:
       type: object
       description: Paginated list of results
@@ -2838,6 +2752,77 @@ components:
         cursor:
           type: string
           description: Pagination cursor, only present if more results are available
+    PatCreate:
+      type: object
+      description: Data to create a new API key
+      required:
+      - title
+      properties:
+        title:
+          type: string
+          description: Human-readable name for the API key to create, cannot be empty
+          maxLength: 50
+          minLength: 1
+    PatCreated:
+      type: object
+      description: Newly created API key, containing the full value. This value must be saved in a safe location, as subsequent GET requests will only show a preview.
+      required:
+      - id
+      - value
+      - title
+      - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the new API key
+        value:
+          type: string
+          description: Full value of the new API key
+        title:
+          type: string
+          description: Human-readable name of the new API key
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp at which the API key was created
+    PatUpdate:
+      type: object
+      description: Details regarding the existing PAT to update
+      properties:
+        title:
+          type: string
+          description: Human-readable name for the PAT to update, cannot be empty
+          minLength: 1
+    PersonalAccessToken:
+      type: object
+      description: PAT, used for long-lived token access to the API
+      required:
+      - id
+      - lookupHash
+      - verificationHash
+      - title
+      - preview
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        lookupHash:
+          type: string
+        verificationHash:
+          type: string
+        title:
+          type: string
+        preview:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     S3Config:
       type: object
       description: API storage bucket config
@@ -3190,13 +3175,14 @@ components:
       - bearer
     User:
       type: object
-      description: User account. Supports email/password and OIDC.
+      description: User account
       required:
       - id
       - email
       - verified
       - displayName
       - imageUrl
+      - personalAccessTokens
       - createdAt
       - updatedAt
       properties:
@@ -3222,6 +3208,11 @@ components:
           - 'null'
           format: uri
           description: Profile image URL of the user
+        personalAccessTokens:
+          type: array
+          items:
+            $ref: '#/components/schemas/PersonalAccessToken'
+          description: Generated PATs
         createdAt:
           type: string
           format: date-time

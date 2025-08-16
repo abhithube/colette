@@ -6,23 +6,23 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    api_key::{ApiKeyError, GetApiKeyError, GetApiKeyQuery},
+    auth::{GetPatError, GetPatQuery, PatError},
 };
 
 use crate::{
     ApiState,
-    api_key::{API_KEYS_TAG, ApiKey},
+    auth::{AUTH_TAG, PersonalAccessToken},
     common::{ApiError, Auth, Id, Path},
 };
 
 #[utoipa::path(
     get,
-    path = "/{id}",
+    path = "/pats/{id}",
     params(Id),
     responses(OkResponse, ErrResponse),
-    operation_id = "getApiKey",
-    description = "Get an API key by ID",
-    tag = API_KEYS_TAG
+    operation_id = "getPat",
+    description = "Get a PAT by ID",
+    tag = AUTH_TAG
 )]
 #[axum::debug_handler]
 pub(super) async fn handler(
@@ -31,8 +31,8 @@ pub(super) async fn handler(
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .get_api_key
-        .handle(GetApiKeyQuery {
+        .get_pat
+        .handle(GetPatQuery {
             id: id.into(),
             user_id,
         })
@@ -40,18 +40,18 @@ pub(super) async fn handler(
     {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            GetApiKeyError::Core(ApiKeyError::Forbidden(_)) => {
-                Err(ErrResponse::Forbidden(e.into()))
-            }
-            GetApiKeyError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            GetPatError::Pat(e) => match e {
+                PatError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+                _ => Err(ErrResponse::InternalServerError(e.into())),
+            },
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
 }
 
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::OK, description = "API key by ID")]
-pub(super) struct OkResponse(ApiKey);
+#[response(status = StatusCode::OK, description = "PAT by ID")]
+pub(super) struct OkResponse(PersonalAccessToken);
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {
@@ -65,10 +65,7 @@ pub(super) enum ErrResponse {
     #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
     Unauthorized(ApiError),
 
-    #[response(status = StatusCode::FORBIDDEN, description = "User not authorized")]
-    Forbidden(ApiError),
-
-    #[response(status = StatusCode::NOT_FOUND, description = "API key not found")]
+    #[response(status = StatusCode::NOT_FOUND, description = "PAT not found")]
     NotFound(ApiError),
 
     #[response(status = "default", description = "Unknown error")]
@@ -78,7 +75,6 @@ pub(super) enum ErrResponse {
 impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Forbidden(e) => (StatusCode::FORBIDDEN, e).into_response(),
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
             Self::InternalServerError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()

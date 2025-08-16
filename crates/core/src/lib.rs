@@ -1,7 +1,6 @@
 #![feature(bufreader_peek)]
 pub use std::error::Error as StdError;
 
-pub use api_key::ApiKey;
 pub use auth::User;
 pub use backup::Backup;
 pub use bookmark::Bookmark;
@@ -12,7 +11,6 @@ pub use subscription::Subscription;
 pub use subscription_entry::SubscriptionEntry;
 pub use tag::Tag;
 
-pub mod api_key;
 pub mod auth;
 pub mod backup;
 pub mod bookmark;

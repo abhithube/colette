@@ -6,35 +6,35 @@ use axum::{
 use chrono::{DateTime, Utc};
 use colette_core::{
     Handler as _,
-    api_key::{self, CreateApiKeyCommand},
+    auth::{self, CreatePatCommand},
 };
 use uuid::Uuid;
 
 use crate::{
     ApiState,
-    api_key::API_KEYS_TAG,
-    common::{ApiError, Auth, Json, NonEmptyString},
+    auth::AUTH_TAG,
+    common::{ApiError, Auth, Json},
 };
 
 #[utoipa::path(
   post,
-  path = "",
-  request_body = ApiKeyCreate,
+  path = "/pats",
+  request_body = PatCreate,
   responses(OkResponse, ErrResponse),
-  operation_id = "createApiKey",
-  description = "Create an API key",
-  tag = API_KEYS_TAG
+  operation_id = "createPat",
+  description = "Create a PAT",
+  tag = AUTH_TAG
 )]
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Auth { user_id }: Auth,
-    Json(body): Json<ApiKeyCreate>,
+    Json(body): Json<PatCreate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .create_api_key
-        .handle(CreateApiKeyCommand {
-            title: body.title.into(),
+        .create_pat
+        .handle(CreatePatCommand {
+            title: body.title,
             user_id,
         })
         .await
@@ -47,16 +47,16 @@ pub(super) async fn handler(
 /// Data to create a new API key
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub(super) struct ApiKeyCreate {
+pub(super) struct PatCreate {
     /// Human-readable name for the API key to create, cannot be empty
-    #[schema(value_type = String, min_length = 1)]
-    title: NonEmptyString,
+    #[schema(min_length = 1, max_length = 50)]
+    title: String,
 }
 
 /// Newly created API key, containing the full value. This value must be saved in a safe location, as subsequent GET requests will only show a preview.
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub(super) struct ApiKeyCreated {
+pub(super) struct PatCreated {
     /// Unique identifier of the new API key
     id: Uuid,
     /// Full value of the new API key
@@ -67,20 +67,20 @@ pub(super) struct ApiKeyCreated {
     created_at: DateTime<Utc>,
 }
 
-impl From<api_key::ApiKeyCreated> for ApiKeyCreated {
-    fn from(value: api_key::ApiKeyCreated) -> Self {
+impl From<auth::PatCreated> for PatCreated {
+    fn from(value: auth::PatCreated) -> Self {
         Self {
-            id: value.id.as_inner(),
-            value: value.value,
-            title: value.title,
-            created_at: value.created_at,
+            id: value.id().as_inner(),
+            value: value.value().as_inner().to_owned(),
+            title: value.title().as_inner().to_owned(),
+            created_at: value.created_at(),
         }
     }
 }
 
 #[derive(utoipa::IntoResponses)]
 #[response(status = StatusCode::CREATED, description = "Created API key")]
-pub(super) struct OkResponse(ApiKeyCreated);
+pub(super) struct OkResponse(PatCreated);
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {

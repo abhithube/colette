@@ -1,4 +1,3 @@
-use api_key::ApiKeyApi;
 use auth::AuthApi;
 use axum::{
     Router,
@@ -31,7 +30,6 @@ use utoipa_scalar::{Scalar, Servable};
 
 use crate::backup::BackupApi;
 
-pub mod api_key;
 mod auth;
 mod backup;
 mod bookmark;
@@ -51,11 +49,10 @@ const API_PREFIX: &str = "/api";
 #[openapi(
     info(
         title = "Colette API",
-        description = "Public REST API for the Colette app. Supports OAuth 2.0 and API key authentication.",
+        description = "Public REST API for the Colette app. Supports email OTP, OAuth 2.0, and PAT authentication.",
         license(name = "MIT")
     ),
     nest(
-        (path = "/apiKeys", api = ApiKeyApi),
         (path = "/auth", api = AuthApi),
         (path = "/backups", api = BackupApi),
         (path = "/bookmarks", api = BookmarkApi),
@@ -111,7 +108,6 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<Url>>) -> Rout
         .nest("/config", ConfigApi::router());
 
     let authenticated_router = Router::new()
-        .nest("/apiKeys", ApiKeyApi::router())
         .nest("/auth", AuthApi::authenticated())
         .nest("/backups", BackupApi::router())
         .nest("/bookmarks", BookmarkApi::router())

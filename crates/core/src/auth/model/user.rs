@@ -6,7 +6,10 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    auth::{OtpCode, SocialAccount, UserError},
+    auth::{
+        OtpCode, OtpError, PatError, PatId, PersonalAccessToken, Provider, SocialAccount,
+        SocialAccountError, Sub,
+    },
     common::UuidGenerator,
 };
 
@@ -22,6 +25,7 @@ pub struct User {
     image_url: Option<Url>,
     social_accounts: Vec<SocialAccount>,
     otp_codes: Vec<OtpCode>,
+    personal_access_tokens: Vec<PersonalAccessToken>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
@@ -32,115 +36,23 @@ impl User {
         display_name: Option<String>,
         image_url: Option<String>,
     ) -> Result<Self, UserError> {
-        Self::new_with_generator(email, display_name, image_url, None)
-    }
-
-    pub fn new_with_generator(
-        email: String,
-        display_name: Option<String>,
-        image_url: Option<String>,
-        uuid_generator: Option<UuidGenerator>,
-    ) -> Result<Self, UserError> {
         let email = email.parse()?;
         let image_url = image_url.as_deref().map(FromStr::from_str).transpose()?;
 
         let now = Utc::now();
-        let uuid_generator =
-            uuid_generator.unwrap_or_else(|| UuidGenerator::new().with_timestamp(now));
 
         Ok(Self {
-            id: uuid_generator.generate().into(),
+            id: UuidGenerator::new().with_timestamp(now).generate().into(),
             email,
             verified: false,
             display_name,
             image_url,
             social_accounts: Vec::new(),
             otp_codes: Vec::new(),
+            personal_access_tokens: Vec::new(),
             created_at: now,
             updated_at: now,
         })
-    }
-
-    pub fn add_social_account(&mut self, value: SocialAccount) -> Result<(), UserError> {
-        if self
-            .social_accounts
-            .iter()
-            .any(|e| e.provider() == value.provider() && e.sub() == value.sub())
-        {
-            return Err(UserError::DuplicateAccount(
-                value.provider().to_owned(),
-                value.sub().into(),
-            ));
-        }
-
-        self.social_accounts.push(value);
-
-        Ok(())
-    }
-
-    pub fn check_otp_rate_limit(&self) -> Result<(), UserError> {
-        let time = Utc::now() - Duration::minutes(OTP_RATE_LIMIT_DURATION as i64);
-
-        if self
-            .otp_codes
-            .iter()
-            .rev()
-            .take(OTP_RATE_LIMIT_COUNT)
-            .all(|e| e.created_at() >= time)
-        {
-            return Err(UserError::TooManyOtpCodes);
-        }
-
-        Ok(())
-    }
-
-    pub fn add_otp_code(&mut self, value: OtpCode) -> Result<(), UserError> {
-        if self.otp_codes.iter().any(|e| e.code() == value.code()) {
-            return Err(UserError::DuplicateOtpCode);
-        }
-
-        self.otp_codes.push(value);
-
-        Ok(())
-    }
-
-    pub fn use_otp_code(&mut self, code: String) -> Result<(), UserError> {
-        let opt_code = self
-            .otp_codes
-            .iter_mut()
-            .find(|e| e.code() == code)
-            .ok_or(UserError::InvalidOtpCode)?;
-
-        opt_code.use_up()?;
-
-        self.verified = true;
-
-        Ok(())
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn from_values(
-        id: UserId,
-        email: EmailAddress,
-        verified: bool,
-        display_name: Option<String>,
-        image_url: Option<Url>,
-        social_accounts: Vec<SocialAccount>,
-        otp_codes: Vec<OtpCode>,
-        created_at: DateTime<Utc>,
-        updated_at: DateTime<Utc>,
-    ) -> Self {
-        Self {
-            id,
-            email,
-            verified,
-            display_name,
-            image_url,
-            social_accounts,
-            otp_codes,
-            created_at,
-            updated_at,
-        }
     }
 
     pub fn id(&self) -> UserId {
@@ -163,12 +75,95 @@ impl User {
         self.image_url.as_ref()
     }
 
+    pub fn otp_codes(&self) -> &[OtpCode] {
+        &self.otp_codes
+    }
+
+    pub fn check_otp_rate_limit(&self) -> Result<(), UserError> {
+        let time = Utc::now() - Duration::minutes(OTP_RATE_LIMIT_DURATION as i64);
+
+        if self
+            .otp_codes
+            .iter()
+            .rev()
+            .take(OTP_RATE_LIMIT_COUNT)
+            .all(|e| e.created_at() >= time)
+        {
+            return Err(UserError::Otp(OtpError::TooManyOtpCodes));
+        }
+
+        Ok(())
+    }
+
+    pub fn add_otp_code(&mut self, value: OtpCode) -> Result<(), UserError> {
+        if self.otp_codes.iter().any(|e| e.code() == value.code()) {
+            return Err(UserError::Otp(OtpError::DuplicateOtpCode));
+        }
+
+        self.otp_codes.push(value);
+
+        Ok(())
+    }
+
+    pub fn use_otp_code(&mut self, code: String) -> Result<(), UserError> {
+        let opt_code = self
+            .otp_codes
+            .iter_mut()
+            .find(|e| e.code() == code)
+            .ok_or(UserError::Otp(OtpError::InvalidOtpCode))?;
+
+        opt_code.use_up()?;
+
+        self.verified = true;
+
+        Ok(())
+    }
+
     pub fn social_accounts(&self) -> &[SocialAccount] {
         &self.social_accounts
     }
 
-    pub fn otp_codes(&self) -> &[OtpCode] {
-        &self.otp_codes
+    pub fn add_social_account(&mut self, value: SocialAccount) -> Result<(), UserError> {
+        if self
+            .social_accounts
+            .iter()
+            .any(|e| e.provider() == value.provider() && e.sub() == value.sub())
+        {
+            return Err(UserError::DuplicateAccount(
+                value.provider().to_owned(),
+                value.sub().to_owned(),
+            ));
+        }
+
+        self.social_accounts.push(value);
+
+        Ok(())
+    }
+
+    pub fn personal_access_tokens(&self) -> &[PersonalAccessToken] {
+        &self.personal_access_tokens
+    }
+
+    pub fn get_personal_access_token(&mut self, id: PatId) -> Option<&mut PersonalAccessToken> {
+        self.personal_access_tokens
+            .iter_mut()
+            .find(|e| e.id() == id)
+    }
+
+    pub fn add_personal_access_token(&mut self, value: PersonalAccessToken) {
+        self.personal_access_tokens.push(value);
+    }
+
+    pub fn remove_personal_access_token(&mut self, id: PatId) -> Result<(), UserError> {
+        let index = self
+            .personal_access_tokens
+            .iter()
+            .position(|e| e.id() == id)
+            .ok_or(UserError::Pat(PatError::NotFound(id)))?;
+
+        self.personal_access_tokens.remove(index);
+
+        Ok(())
     }
 
     pub fn created_at(&self) -> DateTime<Utc> {
@@ -177,6 +172,33 @@ impl User {
 
     pub fn updated_at(&self) -> DateTime<Utc> {
         self.updated_at
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_unchecked(
+        id: Uuid,
+        email: String,
+        verified: bool,
+        display_name: Option<String>,
+        image_url: Option<Url>,
+        otp_codes: Vec<OtpCode>,
+        social_accounts: Vec<SocialAccount>,
+        personal_access_tokens: Vec<PersonalAccessToken>,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id: UserId(id),
+            email: email.parse().unwrap(),
+            verified,
+            display_name,
+            image_url,
+            otp_codes,
+            social_accounts,
+            personal_access_tokens,
+            created_at,
+            updated_at,
+        }
     }
 }
 
@@ -199,4 +221,25 @@ impl fmt::Display for UserId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.as_inner().fmt(f)
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum UserError {
+    #[error(transparent)]
+    InvalidEmail(#[from] email_address::Error),
+
+    #[error(transparent)]
+    InvalidImageUrl(#[from] url::ParseError),
+
+    #[error("already connected to provider {0} with sub {1}")]
+    DuplicateAccount(Provider, Sub),
+
+    #[error(transparent)]
+    Otp(#[from] OtpError),
+
+    #[error(transparent)]
+    SocialAccount(#[from] SocialAccountError),
+
+    #[error(transparent)]
+    Pat(#[from] PatError),
 }

@@ -35,20 +35,16 @@ CREATE TABLE social_accounts (
   UNIQUE (user_id, provider)
 );
 
-CREATE TABLE api_keys (
-  id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7 (),
+CREATE TABLE personal_access_tokens (
+  id UUID NOT NULL PRIMARY KEY,
   lookup_hash TEXT NOT NULL UNIQUE,
   verification_hash TEXT NOT NULL,
   title TEXT NOT NULL,
   preview TEXT NOT NULL,
   user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
 );
-
-CREATE TRIGGER api_keys_updated_at BEFORE
-UPDATE ON api_keys FOR EACH ROW
-EXECUTE PROCEDURE set_updated_at ();
 
 CREATE TABLE jobs (
   id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7 (),

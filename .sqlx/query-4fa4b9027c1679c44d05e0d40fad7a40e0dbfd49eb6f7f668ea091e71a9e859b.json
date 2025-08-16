@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  input_oc AS (\n    SELECT\n      *,\n      $1::UUID AS user_id\n    FROM\n      unnest(\n        $8::TEXT[],\n        $9::TIMESTAMPTZ[],\n        $10::TIMESTAMPTZ[],\n        $11::TIMESTAMPTZ[],\n        $12::TIMESTAMPTZ[]\n      ) AS oc (code, expires_at, used_at, created_at, updated_at)\n  ),\n  input_sa AS (\n    SELECT\n      *,\n      $1::UUID AS user_id\n    FROM\n      unnest(\n        $13::TEXT[],\n        $14::TEXT[],\n        $15::TIMESTAMPTZ[],\n        $16::TIMESTAMPTZ[]\n      ) AS sa (provider, sub, created_at, updated_at)\n  ),\n  input_pat AS (\n    SELECT\n      *,\n      $1::UUID AS user_id\n    FROM\n      unnest(\n        $17::UUID[],\n        $18::TEXT[],\n        $19::TEXT[],\n        $20::TEXT[],\n        $21::TEXT[],\n        $22::TIMESTAMPTZ[],\n        $23::TIMESTAMPTZ[]\n      ) AS pat (\n        id,\n        lookup_hash,\n        verification_hash,\n        title,\n        preview,\n        created_at,\n        updated_at\n      )\n  ),\n  upserted_user AS (\n    INSERT INTO\n      users (\n        id,\n        email,\n        verified,\n        display_name,\n        image_url,\n        created_at,\n        updated_at\n      )\n    VALUES\n      ($1, $2, $3, $4, $5, $6, $7)\n    ON CONFLICT (id) DO UPDATE\n    SET\n      email = EXCLUDED.email,\n      verified = EXCLUDED.verified,\n      display_name = EXCLUDED.display_name,\n      image_url = EXCLUDED.image_url,\n      updated_at = EXCLUDED.updated_at\n    RETURNING\n      id\n  ),\n  inserted_sa AS (\n    INSERT INTO\n      social_accounts (provider, sub, user_id, created_at, updated_at)\n    SELECT\n      provider,\n      sub,\n      user_id,\n      created_at,\n      updated_at\n    FROM\n      input_sa\n    ON CONFLICT (provider, sub) DO NOTHING\n  ),\n  inserted_oc AS (\n    INSERT INTO\n      otp_codes (\n        code,\n        expires_at,\n        used_at,\n        user_id,\n        created_at,\n        updated_at\n      )\n    SELECT\n      code,\n      expires_at,\n      used_at,\n      user_id,\n      created_at,\n      updated_at\n    FROM\n      input_oc\n    ON CONFLICT (user_id, code) DO UPDATE\n    SET\n      expires_at = EXCLUDED.expires_at,\n      used_at = EXCLUDED.used_at,\n      updated_at = EXCLUDED.updated_at\n  ),\n  deleted_sa AS (\n    DELETE FROM social_accounts old USING input_sa sa\n    WHERE\n      NOT old.provider = sa.provider\n      AND NOT old.sub = sa.sub\n  ),\n  inserted_pat AS (\n    INSERT INTO\n      personal_access_tokens (\n        id,\n        lookup_hash,\n        verification_hash,\n        title,\n        preview,\n        user_id,\n        created_at,\n        updated_at\n      )\n    SELECT\n      id,\n      lookup_hash,\n      verification_hash,\n      title,\n      preview,\n      user_id,\n      created_at,\n      updated_at\n    FROM\n      input_pat\n    ON CONFLICT (id) DO UPDATE\n    SET\n      title = EXCLUDED.title,\n      updated_at = EXCLUDED.updated_at\n  )\nDELETE FROM personal_access_tokens old USING input_pat pat\nWHERE\n  old.user_id = $1\n  AND NOT old.id = pat.id\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Bool",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "TextArray",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "TextArray",
+        "TextArray",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "UuidArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TimestamptzArray",
+        "TimestamptzArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4fa4b9027c1679c44d05e0d40fad7a40e0dbfd49eb6f7f668ea091e71a9e859b"
+}

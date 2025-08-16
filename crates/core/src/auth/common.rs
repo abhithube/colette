@@ -1,7 +1,5 @@
 use chrono::Duration;
 
-use crate::auth::Provider;
-
 pub const LOCAL_PROVIDER: &str = "local";
 pub const OIDC_PROVIDER: &str = "oidc";
 
@@ -39,28 +37,4 @@ pub struct TokenData {
 pub enum TokenType {
     #[default]
     Bearer,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum UserError {
-    #[error("already connected to provider {0} with sub {1}")]
-    DuplicateAccount(Provider, String),
-
-    #[error("created too many OTP codes")]
-    TooManyOtpCodes,
-
-    #[error("duplicate OTP code")]
-    DuplicateOtpCode,
-
-    #[error("invalid OTP code")]
-    InvalidOtpCode,
-
-    #[error("already used OTP code")]
-    AlreadyUsedOtpCode,
-
-    #[error(transparent)]
-    InvalidEmail(#[from] email_address::Error),
-
-    #[error(transparent)]
-    InvalidImageUrl(#[from] url::ParseError),
 }

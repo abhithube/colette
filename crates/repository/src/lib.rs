@@ -1,4 +1,3 @@
-pub use api_key::PostgresApiKeyRepository;
 pub use backup::PostgresBackupRepository;
 pub use bookmark::PostgresBookmarkRepository;
 use colette_core::filter::{BooleanOp, DateOp, NumberOp, TextOp};
@@ -6,6 +5,7 @@ pub use collection::PostgresCollectionRepository;
 pub use feed::PostgresFeedRepository;
 pub use feed_entry::PostgresFeedEntryRepository;
 pub use job::PostgresJobRepository;
+pub use pat::PostgresPatRepository;
 use sqlx::{
     Decode, Encode, Postgres, Type,
     encode::IsNull,
@@ -18,13 +18,13 @@ pub use tag::PostgresTagRepository;
 use url::Url;
 pub use user::PostgresUserRepository;
 
-mod api_key;
 mod backup;
 mod bookmark;
 mod collection;
 mod feed;
 mod feed_entry;
 mod job;
+mod pat;
 mod subscription;
 mod subscription_entry;
 mod tag;

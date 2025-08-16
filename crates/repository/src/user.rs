@@ -8,7 +8,7 @@ use email_address::EmailAddress;
 use sqlx::{PgPool, types::Json};
 use uuid::Uuid;
 
-use crate::DbUrl;
+use crate::{DbUrl, pat::PersonalAccessTokenRow};
 
 #[derive(Debug, Clone)]
 pub struct PostgresUserRepository {
@@ -76,18 +76,6 @@ impl UserRepository for PostgresUserRepository {
     }
 
     async fn save(&self, data: &User) -> Result<(), RepositoryError> {
-        let mut sa_providers = Vec::<String>::new();
-        let mut sa_subs = Vec::<String>::new();
-        let mut sa_created_ats = Vec::<DateTime<Utc>>::new();
-        let mut sa_updated_ats = Vec::<DateTime<Utc>>::new();
-
-        for sa in data.social_accounts() {
-            sa_providers.push(sa.provider().to_string());
-            sa_subs.push(sa.sub().to_owned());
-            sa_created_ats.push(sa.created_at());
-            sa_updated_ats.push(sa.updated_at());
-        }
-
         let mut oc_codes = Vec::<String>::new();
         let mut oc_expired_ats = Vec::<DateTime<Utc>>::new();
         let mut oc_used_ats = Vec::<Option<DateTime<Utc>>>::new();
@@ -102,6 +90,36 @@ impl UserRepository for PostgresUserRepository {
             oc_updated_ats.push(oc.updated_at());
         }
 
+        let mut sa_providers = Vec::<String>::new();
+        let mut sa_subs = Vec::<String>::new();
+        let mut sa_created_ats = Vec::<DateTime<Utc>>::new();
+        let mut sa_updated_ats = Vec::<DateTime<Utc>>::new();
+
+        for sa in data.social_accounts() {
+            sa_providers.push(sa.provider().to_string());
+            sa_subs.push(sa.sub().to_string());
+            sa_created_ats.push(sa.created_at());
+            sa_updated_ats.push(sa.updated_at());
+        }
+
+        let mut pat_ids = Vec::<Uuid>::new();
+        let mut pat_lookup_hashes = Vec::<String>::new();
+        let mut pat_verification_hashes = Vec::<String>::new();
+        let mut pat_titles = Vec::<String>::new();
+        let mut pat_previews = Vec::<String>::new();
+        let mut pat_created_ats = Vec::<DateTime<Utc>>::new();
+        let mut pat_updated_ats = Vec::<DateTime<Utc>>::new();
+
+        for pat in data.personal_access_tokens() {
+            pat_ids.push(pat.id().as_inner());
+            pat_lookup_hashes.push(pat.lookup_hash().as_inner().to_owned());
+            pat_verification_hashes.push(pat.verification_hash().as_inner().to_owned());
+            pat_titles.push(pat.title().as_inner().to_owned());
+            pat_previews.push(pat.preview().as_inner().to_owned());
+            pat_created_ats.push(pat.created_at());
+            pat_updated_ats.push(pat.updated_at());
+        }
+
         sqlx::query_file!(
             "queries/users/upsert.sql",
             data.id().as_inner(),
@@ -111,15 +129,22 @@ impl UserRepository for PostgresUserRepository {
             data.image_url().cloned().map(Into::into) as Option<DbUrl>,
             data.created_at(),
             data.updated_at(),
-            &sa_providers,
-            &sa_subs,
-            &sa_created_ats,
-            &sa_updated_ats,
             &oc_codes,
             &oc_expired_ats,
             &oc_used_ats as &[Option<DateTime<Utc>>],
             &oc_created_ats,
-            &oc_updated_ats
+            &oc_updated_ats,
+            &sa_providers,
+            &sa_subs,
+            &sa_created_ats,
+            &sa_updated_ats,
+            &pat_ids,
+            &pat_lookup_hashes,
+            &pat_verification_hashes,
+            &pat_titles,
+            &pat_previews,
+            &pat_created_ats,
+            &pat_updated_ats
         )
         .execute(&self.pool)
         .await?;
@@ -135,6 +160,7 @@ struct UserRow {
     display_name: Option<String>,
     image_url: Option<DbUrl>,
     social_accounts: Json<Vec<SocialAccountRow>>,
+    personal_access_tokens: Json<Vec<PersonalAccessTokenRow>>,
     otp_codes: Json<Vec<OtpCodeRow>>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
@@ -142,38 +168,25 @@ struct UserRow {
 
 impl From<UserRow> for User {
     fn from(value: UserRow) -> Self {
-        Self::from_values(
-            value.id.into(),
-            value.email.parse().unwrap(),
+        Self::from_unchecked(
+            value.id,
+            value.email,
             value.verified,
             value.display_name,
             value.image_url.map(Into::into),
+            value.otp_codes.0.into_iter().map(Into::into).collect(),
             value
                 .social_accounts
                 .0
                 .into_iter()
                 .map(Into::into)
                 .collect(),
-            value.otp_codes.0.into_iter().map(Into::into).collect(),
-            value.created_at,
-            value.updated_at,
-        )
-    }
-}
-
-#[derive(serde::Deserialize)]
-struct SocialAccountRow {
-    provider: String,
-    sub: String,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
-}
-
-impl From<SocialAccountRow> for SocialAccount {
-    fn from(value: SocialAccountRow) -> Self {
-        Self::from_values(
-            value.provider.parse().unwrap(),
-            value.sub,
+            value
+                .personal_access_tokens
+                .0
+                .into_iter()
+                .map(Into::into)
+                .collect(),
             value.created_at,
             value.updated_at,
         )
@@ -191,10 +204,29 @@ struct OtpCodeRow {
 
 impl From<OtpCodeRow> for OtpCode {
     fn from(value: OtpCodeRow) -> Self {
-        Self::from_values(
+        Self::from_unchecked(
             value.code,
             value.expires_at,
             value.used_at,
+            value.created_at,
+            value.updated_at,
+        )
+    }
+}
+
+#[derive(serde::Deserialize)]
+struct SocialAccountRow {
+    provider: String,
+    sub: String,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl From<SocialAccountRow> for SocialAccount {
+    fn from(value: SocialAccountRow) -> Self {
+        Self::from_unchecked(
+            value.provider,
+            value.sub,
             value.created_at,
             value.updated_at,
         )

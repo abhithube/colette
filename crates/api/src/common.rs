@@ -13,14 +13,11 @@ use axum_extra::{
 use chrono::{DateTime, Utc};
 use colette_core::{
     Handler as _,
-    api_key::{
-        CreateApiKeyHandler, DeleteApiKeyHandler, GetApiKeyHandler, ListApiKeysHandler,
-        UpdateApiKeyHandler, ValidateApiKeyHandler, ValidateApiKeyQuery,
-    },
     auth::{
-        BuildAuthorizationUrlHandler, ExchangeCodeHandler, GetUserHandler, GetUserQuery,
-        RefreshAccessTokenHandler, SendOtpHandler, UserId, ValidateAccessTokenHandler,
-        ValidateAccessTokenQuery, VerifyOtpHandler,
+        BuildAuthorizationUrlHandler, CreatePatHandler, DeletePatHandler, ExchangeCodeHandler,
+        GetPatHandler, GetUserHandler, ListPatsHandler, RefreshAccessTokenHandler, SendOtpHandler,
+        UpdatePatHandler, UserId, ValidateAccessTokenHandler, ValidateAccessTokenQuery,
+        ValidatePatHandler, ValidatePatQuery, VerifyOtpHandler,
     },
     backup::{ExportBackupHandler, ImportBackupHandler},
     bookmark::{
@@ -83,14 +80,6 @@ pub struct S3Config {
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct ApiState {
-    // API Keys
-    pub list_api_keys: Arc<ListApiKeysHandler>,
-    pub get_api_key: Arc<GetApiKeyHandler>,
-    pub create_api_key: Arc<CreateApiKeyHandler>,
-    pub update_api_key: Arc<UpdateApiKeyHandler>,
-    pub delete_api_key: Arc<DeleteApiKeyHandler>,
-    pub validate_api_key: Arc<ValidateApiKeyHandler>,
-
     // Auth
     pub send_otp: Arc<SendOtpHandler>,
     pub verify_otp: Arc<VerifyOtpHandler>,
@@ -99,6 +88,12 @@ pub struct ApiState {
     pub get_user: Arc<GetUserHandler>,
     pub refresh_access_token: Arc<RefreshAccessTokenHandler>,
     pub validate_access_token: Arc<ValidateAccessTokenHandler>,
+    pub list_pats: Arc<ListPatsHandler>,
+    pub get_pat: Arc<GetPatHandler>,
+    pub create_pat: Arc<CreatePatHandler>,
+    pub update_pat: Arc<UpdatePatHandler>,
+    pub delete_pat: Arc<DeletePatHandler>,
+    pub validate_pat: Arc<ValidatePatHandler>,
 
     // Backup
     pub import_backup: Arc<ImportBackupHandler>,
@@ -233,31 +228,19 @@ pub(crate) async fn verify_auth_extension(
             user_id: claims.sub().parse::<Uuid>().unwrap().into(),
         });
     } else if let Some(header) = req.headers().get("X-Api-Key").and_then(|e| e.to_str().ok()) {
-        let Ok(api_key) = state
-            .validate_api_key
-            .handle(ValidateApiKeyQuery {
+        let Ok(user_id) = state
+            .validate_pat
+            .handle(ValidatePatQuery {
                 value: header.into(),
             })
             .await
         else {
-            tracing::debug!("invalid API key");
+            tracing::debug!("invalid PAT");
 
             return Err(ApiError::not_authenticated());
         };
 
-        let Ok(user) = state
-            .get_user
-            .handle(GetUserQuery {
-                id: api_key.user_id,
-            })
-            .await
-        else {
-            tracing::debug!("user not found");
-
-            return Err(ApiError::not_authenticated());
-        };
-
-        req.extensions_mut().insert(Auth { user_id: user.id() });
+        req.extensions_mut().insert(Auth { user_id });
     }
 
     Ok(next.run(req).await)

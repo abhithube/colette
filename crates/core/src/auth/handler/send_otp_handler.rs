@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 
 use crate::{
     Handler, User,
-    auth::{OtpCode, UserError, UserRepository},
+    auth::{OtpCode, OtpError, UserError, UserRepository},
     common::RepositoryError,
 };
 
@@ -53,10 +53,12 @@ impl Handler<SendOtpCommand> for SendOtpHandler {
 
                     return Ok(OtpData { expires_at });
                 }
-                Err(UserError::DuplicateOtpCode) => {
+                Err(UserError::Otp(OtpError::DuplicateOtpCode)) => {
                     attempts += 1;
                     if attempts >= MAX_ATTEMPTS {
-                        return Err(SendOtpError::Core(UserError::DuplicateOtpCode));
+                        return Err(SendOtpError::User(UserError::Otp(
+                            OtpError::DuplicateOtpCode,
+                        )));
                     }
 
                     continue;
@@ -75,7 +77,7 @@ pub struct OtpData {
 #[derive(Debug, thiserror::Error)]
 pub enum SendOtpError {
     #[error(transparent)]
-    Core(#[from] UserError),
+    User(#[from] UserError),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

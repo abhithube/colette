@@ -4,8 +4,8 @@ use colette_oidc::OidcClient;
 use crate::{
     Handler, User,
     auth::{
-        JwtConfig, OIDC_PROVIDER, Provider, SocialAccount, TokenData, TokenType, UserError,
-        UserRepository,
+        CustomProvider, JwtConfig, OIDC_PROVIDER, Provider, SocialAccount, Sub, TokenData,
+        TokenType, UserError, UserRepository,
     },
     common::RepositoryError,
 };
@@ -55,13 +55,16 @@ impl Handler<ExchangeCodeCommand> for ExchangeCodeHandler {
 
         let user = match self
             .user_repository
-            .find_by_provider_and_sub(OIDC_PROVIDER.into(), claims.sub.clone())
+            .find_by_email(email.parse().unwrap())
             .await?
         {
             Some(user) => user,
             None => {
-                let social_account =
-                    SocialAccount::new(Provider::Other(OIDC_PROVIDER.into()), claims.sub);
+                let custom_provider =
+                    CustomProvider::new(OIDC_PROVIDER.into()).map_err(UserError::SocialAccount)?;
+                let sub = Sub::new(claims.sub).map_err(UserError::SocialAccount)?;
+
+                let social_account = SocialAccount::new(Provider::Custom(custom_provider), sub);
 
                 match self
                     .user_repository
@@ -109,7 +112,7 @@ impl Handler<ExchangeCodeCommand> for ExchangeCodeHandler {
 #[derive(Debug, thiserror::Error)]
 pub enum ExchangeCodeError {
     #[error(transparent)]
-    Core(#[from] UserError),
+    User(#[from] UserError),
 
     #[error(transparent)]
     Oidc(#[from] colette_oidc::Error),
