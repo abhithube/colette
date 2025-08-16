@@ -13,7 +13,6 @@ pub use common::{
 };
 use config::ConfigApi;
 use feed::FeedApi;
-use feed_entry::FeedEntryApi;
 use subscription::SubscriptionApi;
 use subscription_entry::SubscriptionEntryApi;
 use tag::TagApi;
@@ -37,7 +36,6 @@ mod collection;
 mod common;
 pub mod config;
 mod feed;
-mod feed_entry;
 mod pagination;
 mod subscription;
 mod subscription_entry;
@@ -58,7 +56,6 @@ const API_PREFIX: &str = "/api";
         (path = "/bookmarks", api = BookmarkApi),
         (path = "/collections", api = CollectionApi),
         (path = "/config", api = ConfigApi),
-        (path = "/feedEntries", api = FeedEntryApi),
         (path = "/feeds", api = FeedApi),
         (path = "/subscriptions", api = SubscriptionApi),
         (path = "/subscriptionEntries", api = SubscriptionEntryApi),
@@ -105,15 +102,14 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<Url>>) -> Rout
 
     let public_router = Router::new()
         .nest("/auth", AuthApi::public())
-        .nest("/config", ConfigApi::router());
+        .nest("/config", ConfigApi::router())
+        .nest("/feeds", FeedApi::router());
 
     let authenticated_router = Router::new()
         .nest("/auth", AuthApi::authenticated())
         .nest("/backups", BackupApi::router())
         .nest("/bookmarks", BookmarkApi::router())
         .nest("/collections", CollectionApi::router())
-        .nest("/feedEntries", FeedEntryApi::router())
-        .nest("/feeds", FeedApi::router())
         .nest("/subscriptionEntries", SubscriptionEntryApi::router())
         .nest("/subscriptions", SubscriptionApi::router())
         .nest("/tags", TagApi::router())

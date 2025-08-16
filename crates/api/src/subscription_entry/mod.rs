@@ -1,13 +1,13 @@
 use axum::{Router, routing};
 use chrono::{DateTime, Utc};
 use colette_core::subscription_entry;
+use url::Url;
 use utoipa::OpenApi;
 use uuid::Uuid;
 
 use crate::{
     ApiState,
     common::{BooleanOp, DateOp, TextOp},
-    feed_entry::FeedEntry,
     pagination::Paginated,
 };
 
@@ -19,7 +19,7 @@ const SUBSCRIPTION_ENTRIES_TAG: &str = "Subscription Entries";
 
 #[derive(OpenApi)]
 #[openapi(
-    components(schemas(SubscriptionEntry, SubscriptionEntryDetails, Paginated<SubscriptionEntryDetails>, SubscriptionEntryFilter, SubscriptionEntryTextField, SubscriptionEntryBooleanField, SubscriptionEntryDateField)),
+    components(schemas(SubscriptionEntry, FeedEntry, SubscriptionEntryDetails, Paginated<SubscriptionEntryDetails>, SubscriptionEntryFilter, SubscriptionEntryTextField, SubscriptionEntryBooleanField, SubscriptionEntryDateField)),
     paths(list_subscription_entries::handler, mark_subscription_entry_as_read::handler, mark_subscription_entry_as_unread::handler)
 )]
 pub(crate) struct SubscriptionEntryApi;
@@ -55,16 +55,6 @@ pub(crate) struct SubscriptionEntry {
     feed_entry_id: Uuid,
 }
 
-/// Extended details of a subscription entry
-#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct SubscriptionEntryDetails {
-    /// Subscription entry itself, always present
-    subscription_entry: SubscriptionEntry,
-    /// Associated feed entry, always present
-    feed_entry: FeedEntry,
-}
-
 impl From<colette_core::SubscriptionEntry> for SubscriptionEntry {
     fn from(value: colette_core::SubscriptionEntry) -> Self {
         Self {
@@ -77,6 +67,16 @@ impl From<colette_core::SubscriptionEntry> for SubscriptionEntry {
     }
 }
 
+/// Extended details of a subscription entry
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct SubscriptionEntryDetails {
+    /// Subscription entry itself, always present
+    subscription_entry: SubscriptionEntry,
+    /// Associated feed entry, always present
+    feed_entry: FeedEntry,
+}
+
 impl From<colette_core::SubscriptionEntry> for SubscriptionEntryDetails {
     fn from(value: colette_core::SubscriptionEntry) -> Self {
         let feed_entry = value.feed_entry.clone().into();
@@ -84,6 +84,46 @@ impl From<colette_core::SubscriptionEntry> for SubscriptionEntryDetails {
         Self {
             subscription_entry: value.into(),
             feed_entry,
+        }
+    }
+}
+
+/// RSS feed entry
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct FeedEntry {
+    /// Unique identifier of the feed entry
+    id: Uuid,
+    /// URL of the webpage the feed entry links to
+    link: Url,
+    /// Title of the feed entry
+    title: String,
+    /// Timestamp at which the feed entry was published
+    published_at: DateTime<Utc>,
+    /// Description of the feed entry
+    #[schema(required)]
+    description: Option<String>,
+    /// Author of the feed entry
+    #[schema(required)]
+    author: Option<String>,
+    /// Thumbnail URL of the feed entry
+    #[schema(required)]
+    thumbnail_url: Option<Url>,
+    /// Unique identifier of the associated RSS feed
+    feed_id: Uuid,
+}
+
+impl From<colette_core::FeedEntry> for FeedEntry {
+    fn from(value: colette_core::FeedEntry) -> Self {
+        Self {
+            id: value.id.as_inner(),
+            link: value.link,
+            title: value.title,
+            published_at: value.published_at,
+            description: value.description,
+            author: value.author,
+            thumbnail_url: value.thumbnail_url,
+            feed_id: value.feed_id.as_inner(),
         }
     }
 }
