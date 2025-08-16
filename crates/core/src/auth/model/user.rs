@@ -13,6 +13,7 @@ use crate::{
     common::UuidGenerator,
 };
 
+const DISPLAY_NAME_MAX_LENGTH: usize = 50;
 const OTP_RATE_LIMIT_COUNT: usize = 3;
 const OTP_RATE_LIMIT_DURATION: u8 = 10;
 const MAX_PAT_COUNT: usize = 10;
@@ -22,7 +23,7 @@ pub struct User {
     id: UserId,
     email: EmailAddress,
     verified: bool,
-    display_name: Option<String>,
+    display_name: Option<DisplayName>,
     image_url: Option<Url>,
     social_accounts: Vec<SocialAccount>,
     otp_codes: Vec<OtpCode>,
@@ -34,7 +35,7 @@ pub struct User {
 impl User {
     pub fn new(
         email: String,
-        display_name: Option<String>,
+        display_name: Option<DisplayName>,
         image_url: Option<String>,
     ) -> Result<Self, UserError> {
         let email = email.parse()?;
@@ -68,8 +69,8 @@ impl User {
         self.verified
     }
 
-    pub fn display_name(&self) -> Option<&str> {
-        self.display_name.as_deref()
+    pub fn display_name(&self) -> Option<&DisplayName> {
+        self.display_name.as_ref()
     }
 
     pub fn image_url(&self) -> Option<&Url> {
@@ -201,7 +202,7 @@ impl User {
             id: UserId(id),
             email: email.parse().unwrap(),
             verified,
-            display_name,
+            display_name: display_name.map(DisplayName),
             image_url,
             otp_codes,
             social_accounts,
@@ -233,6 +234,37 @@ impl fmt::Display for UserId {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct DisplayName(String);
+
+impl DisplayName {
+    pub fn new(value: String) -> Result<Self, UserError> {
+        if value.is_empty() || value.len() > DISPLAY_NAME_MAX_LENGTH {
+            return Err(UserError::InvalidDisplayNameLength);
+        }
+
+        Ok(Self(value))
+    }
+
+    pub fn new_truncating(value: String) -> Result<Self, UserError> {
+        if value.is_empty() {
+            return Err(UserError::InvalidDisplayNameLength);
+        }
+
+        let truncated = if value.len() > DISPLAY_NAME_MAX_LENGTH {
+            value[0..DISPLAY_NAME_MAX_LENGTH].to_owned()
+        } else {
+            value
+        };
+
+        Ok(Self(truncated))
+    }
+
+    pub fn as_inner(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum UserError {
     #[error(transparent)]
@@ -240,6 +272,9 @@ pub enum UserError {
 
     #[error(transparent)]
     InvalidImageUrl(#[from] url::ParseError),
+
+    #[error("display name must be between 1 and {DISPLAY_NAME_MAX_LENGTH} characters long")]
+    InvalidDisplayNameLength,
 
     #[error("already connected to provider {0} with sub {1}")]
     DuplicateAccount(Provider, Sub),

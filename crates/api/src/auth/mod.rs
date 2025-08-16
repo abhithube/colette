@@ -103,7 +103,7 @@ impl From<colette_core::User> for User {
             id: value.id().as_inner(),
             email: value.email().to_owned(),
             verified: value.verified(),
-            display_name: value.display_name().map(Into::into),
+            display_name: value.display_name().map(|e| e.as_inner().to_owned()),
             image_url: value.image_url().cloned(),
             personal_access_tokens: value
                 .personal_access_tokens()

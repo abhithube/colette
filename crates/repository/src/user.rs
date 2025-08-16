@@ -125,7 +125,7 @@ impl UserRepository for PostgresUserRepository {
             data.id().as_inner(),
             data.email().as_str(),
             data.verified(),
-            data.display_name(),
+            data.display_name().map(|e| e.as_inner()),
             data.image_url().cloned().map(Into::into) as Option<DbUrl>,
             data.created_at(),
             data.updated_at(),

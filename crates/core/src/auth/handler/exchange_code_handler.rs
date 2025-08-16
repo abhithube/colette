@@ -4,8 +4,8 @@ use colette_oidc::OidcClient;
 use crate::{
     Handler, User,
     auth::{
-        CustomProvider, JwtConfig, OIDC_PROVIDER, Provider, SocialAccount, Sub, TokenData,
-        TokenType, UserError, UserRepository,
+        CustomProvider, DisplayName, JwtConfig, OIDC_PROVIDER, Provider, SocialAccount, Sub,
+        TokenData, TokenType, UserError, UserRepository,
     },
     common::RepositoryError,
 };
@@ -79,7 +79,9 @@ impl Handler<ExchangeCodeCommand> for ExchangeCodeHandler {
                         user
                     }
                     None => {
-                        let mut user = User::new(email, claims.name, claims.picture)?;
+                        let display_name =
+                            claims.name.map(DisplayName::new_truncating).transpose()?;
+                        let mut user = User::new(email, display_name, claims.picture)?;
                         user.add_social_account(social_account)?;
 
                         self.user_repository.save(&user).await?;
