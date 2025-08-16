@@ -90,12 +90,6 @@ impl OtpCode {
 
 #[derive(Debug, thiserror::Error)]
 pub enum OtpError {
-    #[error("created too many OTP codes")]
-    TooManyOtpCodes,
-
-    #[error("duplicate OTP code")]
-    DuplicateOtpCode,
-
     #[error("invalid OTP code")]
     InvalidOtpCode,
 

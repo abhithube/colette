@@ -15,6 +15,7 @@ use crate::{
 
 const OTP_RATE_LIMIT_COUNT: usize = 3;
 const OTP_RATE_LIMIT_DURATION: u8 = 10;
+const MAX_PAT_COUNT: usize = 10;
 
 #[derive(Debug, Clone)]
 pub struct User {
@@ -89,7 +90,7 @@ impl User {
             .take(OTP_RATE_LIMIT_COUNT)
             .all(|e| e.created_at() >= time)
         {
-            return Err(UserError::Otp(OtpError::TooManyOtpCodes));
+            return Err(UserError::TooManyOtpCodes);
         }
 
         Ok(())
@@ -97,7 +98,7 @@ impl User {
 
     pub fn add_otp_code(&mut self, value: OtpCode) -> Result<(), UserError> {
         if self.otp_codes.iter().any(|e| e.code() == value.code()) {
-            return Err(UserError::Otp(OtpError::DuplicateOtpCode));
+            return Err(UserError::DuplicateOtpCode);
         }
 
         self.otp_codes.push(value);
@@ -150,8 +151,17 @@ impl User {
             .find(|e| e.id() == id)
     }
 
-    pub fn add_personal_access_token(&mut self, value: PersonalAccessToken) {
+    pub fn add_personal_access_token(
+        &mut self,
+        value: PersonalAccessToken,
+    ) -> Result<(), UserError> {
+        if self.personal_access_tokens.len() == MAX_PAT_COUNT {
+            return Err(UserError::TooManyPats);
+        }
+
         self.personal_access_tokens.push(value);
+
+        Ok(())
     }
 
     pub fn remove_personal_access_token(&mut self, id: PatId) -> Result<(), UserError> {
@@ -233,6 +243,15 @@ pub enum UserError {
 
     #[error("already connected to provider {0} with sub {1}")]
     DuplicateAccount(Provider, Sub),
+
+    #[error("created too many OTP codes")]
+    TooManyOtpCodes,
+
+    #[error("duplicate OTP code")]
+    DuplicateOtpCode,
+
+    #[error("created too many PATs")]
+    TooManyPats,
 
     #[error(transparent)]
     Otp(#[from] OtpError),

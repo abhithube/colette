@@ -55,7 +55,7 @@ impl Handler<CreatePatCommand> for CreatePatHandler {
         let pat = PersonalAccessToken::new(lookup_hash, verification_hash, title, preview);
         let data = pat.clone();
 
-        user.add_personal_access_token(pat);
+        user.add_personal_access_token(pat)?;
 
         self.user_repository.save(&user).await?;
 
