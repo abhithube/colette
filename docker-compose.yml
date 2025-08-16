@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:18beta2-alpine
+    image: postgres
     ports:
       - 5432:5432
     restart: unless-stopped
@@ -10,20 +10,8 @@ services:
       - ./data/postgres:/var/lib/postgresql/18/docker
     environment:
       - POSTGRES_PASSWORD=postgres
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.2
-    ports:
-      - 8083:8080
-    restart: unless-stopped
-    volumes:
-      - ./data/keycloak:/opt/keycloak/data/h2
-    environment:
-      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
-      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin
-    command:
-      - start-dev
   minio:
-    image: minio/minio:RELEASE.2025-05-24T17-08-30Z
+    image: minio/minio
     ports:
       - 9000:9000
       - 9001:9001
