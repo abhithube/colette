@@ -5,7 +5,7 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    tag::{CreateTagCommand, CreateTagError},
+    tag::{CreateTagCommand, CreateTagError, TagError},
 };
 
 use crate::{
@@ -38,10 +38,10 @@ pub(super) async fn handler(
         .await
     {
         Ok(data) => Ok(OkResponse(CreatedResource {
-            id: data.id.as_inner(),
+            id: data.id().as_inner(),
         })),
         Err(e) => match e {
-            CreateTagError::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
+            CreateTagError::Tag(TagError::Conflict(_)) => Err(ErrResponse::Conflict(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

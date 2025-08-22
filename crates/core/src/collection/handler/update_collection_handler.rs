@@ -1,9 +1,9 @@
 use crate::{
-    Handler,
-    bookmark::BookmarkFilter,
-    collection::{CollectionError, CollectionId, CollectionRepository, CollectionUpdateParams},
-    common::RepositoryError,
+    Collection, Handler,
     auth::UserId,
+    bookmark::BookmarkFilter,
+    collection::{CollectionError, CollectionId, CollectionRepository, CollectionTitle},
+    common::RepositoryError,
 };
 
 #[derive(Debug, Clone)]
@@ -28,26 +28,26 @@ impl UpdateCollectionHandler {
 
 #[async_trait::async_trait]
 impl Handler<UpdateCollectionCommand> for UpdateCollectionHandler {
-    type Response = ();
+    type Response = Collection;
     type Error = UpdateCollectionError;
 
     async fn handle(&self, cmd: UpdateCollectionCommand) -> Result<Self::Response, Self::Error> {
-        let collection = self
+        let mut collection = self
             .collection_repository
-            .find_by_id(cmd.id)
+            .find_by_id(cmd.id, cmd.user_id)
             .await?
             .ok_or_else(|| UpdateCollectionError::NotFound(cmd.id))?;
-        collection.authorize(cmd.user_id)?;
 
-        self.collection_repository
-            .update(CollectionUpdateParams {
-                id: cmd.id,
-                title: cmd.title,
-                filter: cmd.filter,
-            })
-            .await?;
+        if let Some(title) = cmd.title.map(CollectionTitle::new).transpose()? {
+            collection.set_title(title);
+        }
+        if let Some(filter) = cmd.filter {
+            collection.set_filter(filter);
+        }
 
-        Ok(())
+        self.collection_repository.save(&collection).await?;
+
+        Ok(collection)
     }
 }
 

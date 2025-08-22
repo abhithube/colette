@@ -1,11 +1,13 @@
 use crate::{
     Handler,
-    bookmark::{Bookmark, BookmarkCursor, BookmarkFilter, BookmarkFindParams, BookmarkRepository},
+    auth::UserId,
+    bookmark::{
+        BookmarkCursor, BookmarkDto, BookmarkFilter, BookmarkFindParams, BookmarkRepository,
+    },
     collection::{CollectionFindParams, CollectionId, CollectionRepository},
     common::RepositoryError,
     pagination::{Paginated, paginate},
     tag::TagId,
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -14,7 +16,6 @@ pub struct ListBookmarksQuery {
     pub tags: Option<Vec<TagId>>,
     pub cursor: Option<BookmarkCursor>,
     pub limit: Option<usize>,
-    pub with_tags: bool,
     pub user_id: UserId,
 }
 
@@ -37,7 +38,7 @@ impl ListBookmarksHandler {
 
 #[async_trait::async_trait]
 impl Handler<ListBookmarksQuery> for ListBookmarksHandler {
-    type Response = Paginated<Bookmark, BookmarkCursor>;
+    type Response = Paginated<BookmarkDto, BookmarkCursor>;
     type Error = ListBookmarksError;
 
     async fn handle(&self, query: ListBookmarksQuery) -> Result<Self::Response, Self::Error> {
@@ -46,9 +47,10 @@ impl Handler<ListBookmarksQuery> for ListBookmarksHandler {
             let mut collections = self
                 .collection_repository
                 .find(CollectionFindParams {
+                    user_id: query.user_id,
                     id: Some(collection_id),
-                    user_id: Some(query.user_id),
-                    ..Default::default()
+                    cursor: None,
+                    limit: None,
                 })
                 .await?;
             if collections.is_empty() {
@@ -61,13 +63,12 @@ impl Handler<ListBookmarksQuery> for ListBookmarksHandler {
         let bookmarks = self
             .bookmark_repository
             .find(BookmarkFindParams {
+                user_id: query.user_id,
                 filter,
                 tags: query.tags,
-                user_id: Some(query.user_id),
                 cursor: query.cursor.map(|e| e.created_at),
                 limit: query.limit.map(|e| e + 1),
-                with_tags: query.with_tags,
-                ..Default::default()
+                id: None,
             })
             .await?;
 

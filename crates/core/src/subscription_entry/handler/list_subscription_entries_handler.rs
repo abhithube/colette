@@ -1,5 +1,6 @@
 use crate::{
     Handler,
+    auth::UserId,
     collection::{CollectionFindParams, CollectionId, CollectionRepository},
     common::RepositoryError,
     pagination::{Paginated, paginate},
@@ -9,7 +10,6 @@ use crate::{
         SubscriptionEntryFindParams, SubscriptionEntryRepository,
     },
     tag::TagId,
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -54,9 +54,10 @@ impl Handler<ListSubscriptionEntriesQuery> for ListSubscriptionEntriesHandler {
             let collections = self
                 .collection_repository
                 .find(CollectionFindParams {
+                    user_id: query.user_id,
                     id: Some(collection_id),
-                    user_id: Some(query.user_id),
-                    ..Default::default()
+                    cursor: None,
+                    limit: None,
                 })
                 .await?;
             if collections.is_empty() {

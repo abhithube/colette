@@ -26,7 +26,7 @@ const BOOKMARKS_TAG: &str = "Bookmarks";
 
 #[derive(OpenApi)]
 #[openapi(
-    components(schemas(Bookmark, BookmarkDetails, Paginated<BookmarkDetails>, create_bookmark::BookmarkCreate, update_bookmark::BookmarkUpdate, link_bookmark_tags::LinkBookmarkTags, scrape_bookmark::BookmarkScrape, scrape_bookmark::BookmarkScraped, BookmarkFilter, BookmarkTextField, BookmarkDateField)),
+    components(schemas(Bookmark, Paginated<Bookmark>, create_bookmark::BookmarkCreate, update_bookmark::BookmarkUpdate, link_bookmark_tags::LinkBookmarkTags, scrape_bookmark::BookmarkScrape, scrape_bookmark::BookmarkScraped, BookmarkFilter, BookmarkTextField, BookmarkDateField)),
     paths(list_bookmarks::handler, create_bookmark::handler, get_bookmark::handler, update_bookmark::handler, delete_bookmark::handler, link_bookmark_tags::handler, scrape_bookmark::handler, import_bookmarks::handler, export_bookmarks::handler)
 )]
 pub(crate) struct BookmarkApi;
@@ -68,49 +68,27 @@ struct Bookmark {
     /// Storage path of the archived version of the bookmark's thumbnail
     #[schema(required)]
     archived_path: Option<String>,
+    /// Linked tags
+    tags: Vec<Tag>,
     /// Timestamp at which the bookmark was created
     created_at: DateTime<Utc>,
     /// Timestamp at which the bookmark was modified
     updated_at: DateTime<Utc>,
 }
 
-/// Extended details of a bookmark
-#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
-struct BookmarkDetails {
-    /// Bookmark itself, always present
-    bookmark: Bookmark,
-    #[schema(nullable = false)]
-    /// Linked tags, present if requested
-    #[serde(skip_serializing_if = "Option::is_none")]
-    tags: Option<Vec<Tag>>,
-}
-
-impl From<colette_core::Bookmark> for Bookmark {
-    fn from(value: colette_core::Bookmark) -> Self {
+impl From<bookmark::BookmarkDto> for Bookmark {
+    fn from(value: bookmark::BookmarkDto) -> Self {
         Self {
-            id: value.id.as_inner(),
+            id: value.id,
             link: value.link,
             title: value.title,
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
             archived_path: value.archived_path,
+            tags: value.tags.into_iter().map(Into::into).collect(),
             created_at: value.created_at,
             updated_at: value.updated_at,
-        }
-    }
-}
-
-impl From<colette_core::Bookmark> for BookmarkDetails {
-    fn from(value: colette_core::Bookmark) -> Self {
-        let tags = value
-            .tags
-            .clone()
-            .map(|e| e.into_iter().map(Tag::from).collect());
-
-        Self {
-            bookmark: value.into(),
-            tags,
         }
     }
 }

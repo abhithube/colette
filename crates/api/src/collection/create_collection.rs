@@ -5,7 +5,7 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    collection::{CreateCollectionCommand, CreateCollectionError},
+    collection::{CollectionError, CreateCollectionCommand, CreateCollectionError},
 };
 
 use crate::{
@@ -40,10 +40,12 @@ pub(super) async fn handler(
         .await
     {
         Ok(data) => Ok(OkResponse(CreatedResource {
-            id: data.id.as_inner(),
+            id: data.id().as_inner(),
         })),
         Err(e) => match e {
-            CreateCollectionError::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
+            CreateCollectionError::Collection(CollectionError::Conflict(_)) => {
+                Err(ErrResponse::Conflict(e.into()))
+            }
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

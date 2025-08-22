@@ -1,8 +1,8 @@
 use crate::{
     Handler,
-    common::RepositoryError,
-    tag::{TagError, TagId, TagRepository, TagUpdateParams},
     auth::UserId,
+    common::RepositoryError,
+    tag::{TagError, TagId, TagRepository, TagTitle},
 };
 
 #[derive(Debug, Clone)]
@@ -30,19 +30,22 @@ impl Handler<UpdateTagCommand> for UpdateTagHandler {
     type Error = UpdateTagError;
 
     async fn handle(&self, cmd: UpdateTagCommand) -> Result<Self::Response, Self::Error> {
-        let tag = self
+        let mut tag = self
             .tag_repository
-            .find_by_id(cmd.id)
+            .find_by_id(cmd.id, cmd.user_id)
             .await?
-            .ok_or_else(|| UpdateTagError::NotFound(cmd.id))?;
-        tag.authorize(cmd.user_id)?;
+            .ok_or(UpdateTagError::Tag(TagError::NotFound(cmd.id)))?;
 
-        self.tag_repository
-            .update(TagUpdateParams {
-                id: cmd.id,
-                title: cmd.title,
-            })
-            .await?;
+        let title = cmd.title.map(TagTitle::new).transpose()?;
+
+        if let Some(title) = title.clone() {
+            tag.set_title(title);
+        }
+
+        self.tag_repository.save(&tag).await.map_err(|e| match e {
+            RepositoryError::Duplicate => UpdateTagError::Tag(TagError::Conflict(title.unwrap())),
+            _ => UpdateTagError::Repository(e),
+        })?;
 
         Ok(())
     }
@@ -50,11 +53,11 @@ impl Handler<UpdateTagCommand> for UpdateTagHandler {
 
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateTagError {
-    #[error("tag not found with ID: {0}")]
-    NotFound(TagId),
+    #[error("tag already exists with title: {0}")]
+    Conflict(TagTitle),
 
     #[error(transparent)]
-    Core(#[from] TagError),
+    Tag(#[from] TagError),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  upserted_bookmark AS (\n    INSERT INTO\n      bookmarks (\n        id,\n        link,\n        title,\n        thumbnail_url,\n        published_at,\n        author,\n        user_id,\n        created_at,\n        updated_at\n      )\n    VALUES\n      ($1, $2, $3, $4, $5, $6, $8, $9, $10)\n    ON CONFLICT (id) DO UPDATE\n    SET\n      title = EXCLUDED.title,\n      thumbnail_url = EXCLUDED.thumbnail_url,\n      published_at = EXCLUDED.published_at,\n      author = EXCLUDED.author,\n      updated_at = EXCLUDED.updated_at\n  ),\n  input_tags AS (\n    SELECT\n      *\n    FROM\n      unnest($7::UUID[]) AS t (id)\n  ),\n  deleted_bt AS (\n    DELETE FROM bookmark_tags\n    WHERE\n      bookmark_id = $1\n      AND NOT tag_id = ANY ($7)\n  )\nINSERT INTO\n  bookmark_tags (bookmark_id, tag_id, created_at, updated_at)\nSELECT\n  $1,\n  id,\n  now(),\n  now()\nFROM\n  input_tags\nON CONFLICT (bookmark_id, tag_id) DO NOTHING\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Text",
+        "UuidArray",
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e487b10c8feea9b5c4326a0ea2e0a18e1093fab8adeca3844be4492f918b9416"
+}

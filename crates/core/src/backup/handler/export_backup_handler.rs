@@ -2,12 +2,12 @@ use bytes::Bytes;
 
 use crate::{
     Handler,
+    auth::UserId,
     backup::Backup,
     bookmark::{BookmarkFindParams, BookmarkRepository},
     common::RepositoryError,
     subscription::{SubscriptionFindParams, SubscriptionRepository},
     tag::{TagFindParams, TagRepository},
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -44,26 +44,33 @@ impl Handler<ExportBackupCommand> for ExportBackupHandler {
         let subscriptions = self
             .subscription_repository
             .find(SubscriptionFindParams {
-                with_tags: true,
-                user_id: Some(cmd.user_id),
-                ..Default::default()
+                user_id: cmd.user_id,
+                id: None,
+                tags: None,
+                cursor: None,
+                limit: None,
             })
             .await?;
 
         let bookmarks = self
             .bookmark_repository
             .find(BookmarkFindParams {
-                with_tags: true,
-                user_id: Some(cmd.user_id),
-                ..Default::default()
+                user_id: cmd.user_id,
+                id: None,
+                filter: None,
+                tags: None,
+                cursor: None,
+                limit: None,
             })
             .await?;
 
         let tags = self
             .tag_repository
             .find(TagFindParams {
-                user_id: Some(cmd.user_id),
-                ..Default::default()
+                user_id: cmd.user_id,
+                id: None,
+                cursor: None,
+                limit: None,
             })
             .await?;
 

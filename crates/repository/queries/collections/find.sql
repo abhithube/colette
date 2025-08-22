@@ -8,13 +8,10 @@ SELECT
 FROM
   collections
 WHERE
-  (
-    $1::UUID IS NULL
-    OR id = $1
-  )
+  user_id = $1
   AND (
     $2::UUID IS NULL
-    OR user_id = $2
+    OR id = $2
   )
   AND (
     $3::TEXT IS NULL

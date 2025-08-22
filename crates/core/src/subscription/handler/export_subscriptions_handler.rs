@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use bytes::Bytes;
 use colette_opml::{Body, Opml, Outline, OutlineType};
+use uuid::Uuid;
 
 use crate::{
     Handler,
+    auth::UserId,
     common::RepositoryError,
     subscription::{SubscriptionFindParams, SubscriptionRepository},
-    tag::TagId,
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -35,14 +35,16 @@ impl Handler<ExportSubscriptionsQuery> for ExportSubscriptionsHandler {
 
     async fn handle(&self, query: ExportSubscriptionsQuery) -> Result<Self::Response, Self::Error> {
         let mut outlines = Vec::<Outline>::new();
-        let mut outline_map = HashMap::<TagId, Outline>::new();
+        let mut outline_map = HashMap::<Uuid, Outline>::new();
 
         let subscriptions = self
             .subscription_repository
             .find(SubscriptionFindParams {
-                user_id: Some(query.user_id),
-                with_tags: true,
-                ..Default::default()
+                user_id: query.user_id,
+                id: None,
+                tags: None,
+                cursor: None,
+                limit: None,
             })
             .await?;
 
@@ -50,16 +52,14 @@ impl Handler<ExportSubscriptionsQuery> for ExportSubscriptionsHandler {
             let outline = Outline {
                 r#type: Some(OutlineType::default()),
                 text: subscription.title.clone(),
-                xml_url: Some(subscription.feed.source_url.into()),
+                xml_url: Some(subscription.source_url.into()),
                 title: Some(subscription.title),
-                html_url: Some(subscription.feed.link.into()),
+                html_url: Some(subscription.link.into()),
                 ..Default::default()
             };
 
-            if let Some(tags) = subscription.tags
-                && !tags.is_empty()
-            {
-                for tag in tags {
+            if !subscription.tags.is_empty() {
+                for tag in subscription.tags {
                     outline_map
                         .entry(tag.id)
                         .or_insert_with(|| Outline {

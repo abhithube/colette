@@ -12,7 +12,7 @@ use colette_core::{
 use crate::{
     ApiState,
     common::{ApiError, Auth, Id, Path},
-    tag::{TAGS_TAG, TagDetails},
+    tag::{TAGS_TAG, Tag},
 };
 
 #[utoipa::path(
@@ -40,8 +40,7 @@ pub(super) async fn handler(
     {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            GetTagError::Core(TagError::Forbidden(_)) => Err(ErrResponse::Forbidden(e.into())),
-            GetTagError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            GetTagError::Tag(TagError::NotFound(_)) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
@@ -49,7 +48,7 @@ pub(super) async fn handler(
 
 #[derive(utoipa::IntoResponses)]
 #[response(status = StatusCode::OK, description = "Tag by ID")]
-pub(super) struct OkResponse(TagDetails);
+pub(super) struct OkResponse(Tag);
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {
@@ -60,12 +59,6 @@ impl IntoResponse for OkResponse {
 #[allow(dead_code)]
 #[derive(utoipa::IntoResponses)]
 pub(super) enum ErrResponse {
-    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
-    Unauthorized(ApiError),
-
-    #[response(status = StatusCode::FORBIDDEN, description = "User not authorized")]
-    Forbidden(ApiError),
-
     #[response(status = StatusCode::NOT_FOUND, description = "Tag not found")]
     NotFound(ApiError),
 
@@ -76,12 +69,10 @@ pub(super) enum ErrResponse {
 impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Forbidden(e) => (StatusCode::FORBIDDEN, e).into_response(),
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
             Self::InternalServerError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
             }
-            _ => unreachable!(),
         }
     }
 }

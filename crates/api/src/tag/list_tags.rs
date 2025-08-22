@@ -13,7 +13,7 @@ use crate::{
     ApiState,
     common::{ApiError, Auth, Query},
     pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
-    tag::{TAGS_TAG, TagDetails},
+    tag::{TAGS_TAG, Tag},
 };
 
 #[utoipa::path(
@@ -66,7 +66,7 @@ pub(super) struct TagListQuery {
 
 #[derive(utoipa::IntoResponses)]
 #[response(status = StatusCode::OK, description = "Paginated list of tags")]
-pub(super) struct OkResponse(Paginated<TagDetails>);
+pub(super) struct OkResponse(Paginated<Tag>);
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {

@@ -1,5 +1,6 @@
 use axum::{Router, routing};
 use chrono::{DateTime, Utc};
+use colette_core::tag::TagDto;
 use utoipa::OpenApi;
 use uuid::Uuid;
 
@@ -15,7 +16,7 @@ const TAGS_TAG: &str = "Tags";
 
 #[derive(OpenApi)]
 #[openapi(
-    components(schemas(Tag, TagDetails, Paginated<TagDetails>, create_tag::TagCreate, update_tag::TagUpdate)),
+    components(schemas(Tag, Paginated<Tag>, create_tag::TagCreate, update_tag::TagUpdate)),
     paths(list_tags::handler, create_tag::handler, get_tag::handler, update_tag::handler, delete_tag::handler)
 )]
 pub(crate) struct TagApi;
@@ -45,39 +46,13 @@ pub(crate) struct Tag {
     updated_at: DateTime<Utc>,
 }
 
-/// Extended details of a tag
-#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct TagDetails {
-    /// Tag itself, always present
-    tag: Tag,
-    /// Count of subscriptions the tag is linked to, present if requested
-    #[schema(nullable = false)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    subscription_count: Option<i64>,
-    /// Count of bookmarks the tag is linked to, present if requested
-    #[schema(nullable = false)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    bookmark_count: Option<i64>,
-}
-
-impl From<colette_core::Tag> for Tag {
-    fn from(value: colette_core::Tag) -> Self {
+impl From<TagDto> for Tag {
+    fn from(value: TagDto) -> Self {
         Self {
-            id: value.id.as_inner(),
+            id: value.id,
             title: value.title,
             created_at: value.created_at,
             updated_at: value.updated_at,
-        }
-    }
-}
-
-impl From<colette_core::Tag> for TagDetails {
-    fn from(value: colette_core::Tag) -> Self {
-        Self {
-            tag: value.into(),
-            subscription_count: None,
-            bookmark_count: None,
         }
     }
 }

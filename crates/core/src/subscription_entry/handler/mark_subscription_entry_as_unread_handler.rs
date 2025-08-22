@@ -1,10 +1,10 @@
 use crate::{
     Handler,
+    auth::UserId,
     common::RepositoryError,
     subscription_entry::{
         SubscriptionEntryError, SubscriptionEntryId, SubscriptionEntryRepository,
     },
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -39,7 +39,6 @@ impl Handler<MarkSubscriptionEntryAsUnreadCommand> for MarkSubscriptionEntryAsUn
             .find_by_id(cmd.id)
             .await?
             .ok_or_else(|| MarkSubscriptionEntryAsUnreadError::NotFound(cmd.id))?;
-        subscription_entry.authorize(cmd.user_id)?;
 
         self.subscription_entry_repository
             .mark_as_unread(cmd.id)

@@ -6,7 +6,7 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    collection::{CollectionError, GetCollectionError, GetCollectionQuery},
+    collection::{GetCollectionError, GetCollectionQuery},
 };
 
 use crate::{
@@ -40,9 +40,6 @@ pub(super) async fn handler(
     {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            GetCollectionError::Core(CollectionError::Forbidden(_)) => {
-                Err(ErrResponse::Forbidden(e.into()))
-            }
             GetCollectionError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
@@ -65,9 +62,6 @@ pub(super) enum ErrResponse {
     #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
     Unauthorized(ApiError),
 
-    #[response(status = StatusCode::FORBIDDEN, description = "User not authorized")]
-    Forbidden(ApiError),
-
     #[response(status = StatusCode::NOT_FOUND, description = "Collection not found")]
     NotFound(ApiError),
 
@@ -78,7 +72,6 @@ pub(super) enum ErrResponse {
 impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Forbidden(e) => (StatusCode::FORBIDDEN, e).into_response(),
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
             Self::InternalServerError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()

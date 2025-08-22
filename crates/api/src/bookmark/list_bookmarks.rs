@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::{
     ApiState,
-    bookmark::{BOOKMARKS_TAG, BookmarkDetails},
+    bookmark::{BOOKMARKS_TAG, Bookmark},
     common::{ApiError, Auth, Query},
     pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
 };
@@ -49,7 +49,6 @@ pub(super) async fn handler(
             },
             cursor,
             limit: Some(PAGINATION_LIMIT),
-            with_tags: query.with_tags,
             user_id,
         })
         .await
@@ -82,18 +81,11 @@ pub(super) struct BookmarkListQuery {
     /// Pagination cursor
     #[param(nullable = false)]
     cursor: Option<String>,
-    /// Whether to include the tags linked to the bookmark
-    #[serde(default = "with_tags")]
-    with_tags: bool,
-}
-
-fn with_tags() -> bool {
-    false
 }
 
 #[derive(utoipa::IntoResponses)]
 #[response(status = StatusCode::OK, description = "Paginated list of bookmarks")]
-pub(super) struct OkResponse(Paginated<BookmarkDetails>);
+pub(super) struct OkResponse(Paginated<Bookmark>);
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {

@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  upserted_subscription AS (\n    INSERT INTO\n      subscriptions (\n        id,\n        title,\n        description,\n        feed_id,\n        user_id,\n        created_at,\n        updated_at\n      )\n    VALUES\n      ($1, $2, $3, $4, $6, $7, $8)\n    ON CONFLICT (id) DO UPDATE\n    SET\n      title = EXCLUDED.title,\n      description = EXCLUDED.description,\n      updated_at = EXCLUDED.updated_at\n  ),\n  input_tags AS (\n    SELECT\n      *\n    FROM\n      unnest($5::UUID[]) AS t (id)\n  ),\n  deleted_st AS (\n    DELETE FROM subscription_tags\n    WHERE\n      subscription_id = $1\n      AND NOT tag_id = ANY ($5)\n  )\nINSERT INTO\n  subscription_tags (subscription_id, tag_id, created_at, updated_at)\nSELECT\n  $1,\n  id,\n  now(),\n  now()\nFROM\n  input_tags\nON CONFLICT (subscription_id, tag_id) DO NOTHING\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid",
+        "UuidArray",
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5b8bb209c4b80f726046c0065326fd7036887edafab59496541f9ffd73e0372b"
+}

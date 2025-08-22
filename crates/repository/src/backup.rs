@@ -36,7 +36,7 @@ impl BackupRepository for PostgresBackupRepository {
         for bookmark in params.backup.bookmarks {
             let link = DbUrl(bookmark.link);
 
-            for tag in bookmark.tags.unwrap_or_default() {
+            for tag in bookmark.tags {
                 bt_bookmark_links.push(link.clone());
                 bt_tag_titles.push(tag.title);
             }
@@ -63,7 +63,7 @@ impl BackupRepository for PostgresBackupRepository {
         for subscription in params.backup.subscriptions {
             let source_url = DbUrl(subscription.source_url);
 
-            for tag in subscription.tags.unwrap_or_default() {
+            for tag in subscription.tags {
                 st_feed_source_urls.push(source_url.clone());
                 st_tag_titles.push(tag.title);
             }

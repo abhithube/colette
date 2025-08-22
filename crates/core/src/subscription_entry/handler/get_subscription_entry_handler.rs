@@ -1,11 +1,11 @@
 use crate::{
     Handler,
+    auth::UserId,
     common::RepositoryError,
     subscription_entry::{
         SubscriptionEntry, SubscriptionEntryError, SubscriptionEntryFindParams,
         SubscriptionEntryId, SubscriptionEntryRepository,
     },
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -47,7 +47,6 @@ impl Handler<GetSubscriptionEntryQuery> for GetSubscriptionEntryHandler {
         }
 
         let subscription_entry = subscription_entries.swap_remove(0);
-        subscription_entry.authorize(query.user_id)?;
 
         Ok(subscription_entry)
     }

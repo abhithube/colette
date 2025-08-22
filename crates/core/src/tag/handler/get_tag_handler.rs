@@ -1,8 +1,8 @@
 use crate::{
     Handler,
-    common::RepositoryError,
-    tag::{Tag, TagError, TagFindParams, TagId, TagRepository},
     auth::UserId,
+    common::RepositoryError,
+    tag::{TagDto, TagError, TagFindParams, TagId, TagRepository},
 };
 
 #[derive(Debug, Clone)]
@@ -25,35 +25,31 @@ impl GetTagHandler {
 
 #[async_trait::async_trait]
 impl Handler<GetTagQuery> for GetTagHandler {
-    type Response = Tag;
+    type Response = TagDto;
     type Error = GetTagError;
 
     async fn handle(&self, query: GetTagQuery) -> Result<Self::Response, Self::Error> {
         let mut tags = self
             .tag_repository
             .find(TagFindParams {
+                user_id: query.user_id,
                 id: Some(query.id),
-                ..Default::default()
+                cursor: None,
+                limit: None,
             })
             .await?;
         if tags.is_empty() {
-            return Err(GetTagError::NotFound(query.id));
+            return Err(GetTagError::Tag(TagError::NotFound(query.id)));
         }
 
-        let tag = tags.swap_remove(0);
-        tag.authorize(query.user_id)?;
-
-        Ok(tag)
+        Ok(tags.swap_remove(0))
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum GetTagError {
-    #[error("tag not found with ID: {0}")]
-    NotFound(TagId),
-
     #[error(transparent)]
-    Core(#[from] TagError),
+    Tag(#[from] TagError),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

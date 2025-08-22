@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use bytes::Bytes;
 use colette_netscape::{Item, Netscape};
+use uuid::Uuid;
 
 use crate::{
     Handler,
+    auth::UserId,
     bookmark::{BookmarkFindParams, BookmarkRepository},
     common::RepositoryError,
-    tag::TagId,
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -35,14 +35,17 @@ impl Handler<ExportBookmarksQuery> for ExportBookmarksHandler {
 
     async fn handle(&self, query: ExportBookmarksQuery) -> Result<Self::Response, Self::Error> {
         let mut items = Vec::<Item>::new();
-        let mut item_map = HashMap::<TagId, Item>::new();
+        let mut item_map = HashMap::<Uuid, Item>::new();
 
         let bookmarks = self
             .bookmark_repository
             .find(BookmarkFindParams {
-                user_id: Some(query.user_id),
-                with_tags: true,
-                ..Default::default()
+                user_id: query.user_id,
+                id: None,
+                filter: None,
+                tags: None,
+                cursor: None,
+                limit: None,
             })
             .await?;
 
@@ -55,10 +58,8 @@ impl Handler<ExportBookmarksQuery> for ExportBookmarksHandler {
                 ..Default::default()
             };
 
-            if let Some(tags) = bookmark.tags
-                && !tags.is_empty()
-            {
-                for tag in tags {
+            if !bookmark.tags.is_empty() {
+                for tag in bookmark.tags {
                     item_map
                         .entry(tag.id)
                         .or_insert_with(|| Item {

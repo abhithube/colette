@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  id,\n  title,\n  user_id,\n  created_at,\n  updated_at\nFROM\n  tags\nWHERE\n  (\n    $1::UUID IS NULL\n    OR id = $1\n  )\n  AND (\n    $2::UUID IS NULL\n    OR user_id = $2\n  )\n  AND (\n    $3::TEXT IS NULL\n    OR title > $3\n  )\nORDER BY\n  title ASC\nLIMIT\n  $4\n",
+  "query": "SELECT\n  id,\n  title,\n  filter_json AS \"filter_json: Json<BookmarkFilter>\",\n  user_id,\n  created_at,\n  updated_at\nFROM\n  collections\nWHERE\n  id = $1\n  AND user_id = $2\n",
   "describe": {
     "columns": [
       {
@@ -15,16 +15,21 @@
       },
       {
         "ordinal": 2,
+        "name": "filter_json: Json<BookmarkFilter>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 3,
         "name": "user_id",
         "type_info": "Uuid"
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "updated_at",
         "type_info": "Timestamptz"
       }
@@ -32,9 +37,7 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Uuid",
-        "Text",
-        "Int8"
+        "Uuid"
       ]
     },
     "nullable": [
@@ -42,8 +45,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "20001aa5bf8215b3b1affbfb29c49167f4ce4ec1e6b59cc635d6b0a33ce37063"
+  "hash": "4262beecacbe4f91ce3450f6f8f75b8ffec2968ccd025a502418ff51f249a24d"
 }

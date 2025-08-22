@@ -1,0 +1,81 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  s.id,\n  f.source_url AS \"source_url: DbUrl\",\n  f.link AS \"link: DbUrl\",\n  s.title,\n  s.description,\n  s.feed_id,\n  coalesce(uc.unread_count, 0) AS \"unread_count!\",\n  coalesce(t.tags, '[]'::JSONB) AS \"tags!: Json<Vec<TagRow>>\",\n  s.created_at,\n  s.updated_at\nFROM\n  subscriptions s\n  INNER JOIN feeds f ON f.id = s.feed_id\n  LEFT JOIN (\n    SELECT\n      s_inner.id AS subscription_id,\n      count(fe.id) AS unread_count\n    FROM\n      subscriptions s_inner\n      INNER JOIN feed_entries fe ON s_inner.feed_id = fe.feed_id\n    WHERE\n      NOT EXISTS (\n        SELECT\n          1\n        FROM\n          subscription_entries se\n        WHERE\n          se.subscription_id = s_inner.id\n          AND se.feed_entry_id = fe.id\n      )\n    GROUP BY\n      s_inner.id\n  ) AS uc ON s.id = uc.subscription_id\n  LEFT JOIN (\n    SELECT\n      st.subscription_id,\n      jsonb_agg(\n        jsonb_build_object(\n          'id',\n          t.id,\n          'title',\n          t.title,\n          'user_id',\n          t.user_id,\n          'created_at',\n          t.created_at,\n          'updated_at',\n          t.updated_at\n        )\n        ORDER BY\n          t.title ASC\n      ) AS tags\n    FROM\n      subscription_tags st\n      INNER JOIN tags t ON t.id = st.tag_id\n    GROUP BY\n      st.subscription_id\n  ) AS t ON s.id = t.subscription_id\nWHERE\n  s.user_id = $1\n  AND (\n    $2::UUID IS NULL\n    OR s.id = $2\n  )\n  AND (\n    $3::UUID[] IS NULL\n    OR EXISTS (\n      SELECT\n        1\n      FROM\n        subscription_tags st\n      WHERE\n        st.subscription_id = s.id\n        AND st.tag_id = ANY ($3)\n    )\n  )\n  AND (\n    (\n      $4::TEXT IS NULL\n      OR $5::UUID IS NULL\n    )\n    OR (s.title, s.id) > ($4, $5)\n  )\nORDER BY\n  s.title ASC,\n  s.id ASC\nLIMIT\n  $6\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "source_url: DbUrl",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "link: DbUrl",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "feed_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "unread_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "tags!: Json<Vec<TagRow>>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "Text",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      null,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "36b56a6790a06ea161f6a3eaa5262d2debe2e8a1ba01f5b3baef36d8be6ebde8"
+}

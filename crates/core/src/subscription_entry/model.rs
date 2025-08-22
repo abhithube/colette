@@ -5,11 +5,11 @@ use uuid::Uuid;
 
 use crate::{
     FeedEntry,
+    auth::UserId,
     feed_entry::FeedEntryId,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
     pagination::Cursor,
     subscription::SubscriptionId,
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -21,16 +21,6 @@ pub struct SubscriptionEntry {
     pub feed_entry_id: FeedEntryId,
     pub feed_entry: FeedEntry,
     pub user_id: UserId,
-}
-
-impl SubscriptionEntry {
-    pub fn authorize(&self, user_id: UserId) -> Result<(), SubscriptionEntryError> {
-        if self.user_id != user_id {
-            return Err(SubscriptionEntryError::Forbidden(user_id));
-        }
-
-        Ok(())
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -127,7 +117,4 @@ pub enum SubscriptionEntryDateField {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum SubscriptionEntryError {
-    #[error("not authorized to access subscription entry with ID: {0}")]
-    Forbidden(UserId),
-}
+pub enum SubscriptionEntryError {}

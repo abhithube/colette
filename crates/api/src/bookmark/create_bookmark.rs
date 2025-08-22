@@ -6,7 +6,7 @@ use axum::{
 use chrono::{DateTime, Utc};
 use colette_core::{
     Handler as _,
-    bookmark::{CreateBookmarkCommand, CreateBookmarkError},
+    bookmark::{BookmarkError, CreateBookmarkCommand, CreateBookmarkError},
 };
 use url::Url;
 
@@ -44,10 +44,12 @@ pub(super) async fn handler(
         .await
     {
         Ok(data) => Ok(OkResponse(CreatedResource {
-            id: data.id.as_inner(),
+            id: data.id().as_inner(),
         })),
         Err(e) => match e {
-            CreateBookmarkError::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
+            CreateBookmarkError::Bookmark(BookmarkError::Conflict(_)) => {
+                Err(ErrResponse::Conflict(e.into()))
+            }
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

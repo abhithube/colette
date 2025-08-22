@@ -1,11 +1,9 @@
 use crate::{
-    Handler,
-    common::RepositoryError,
-    subscription::{
-        SubscriptionError, SubscriptionId, SubscriptionLinkTagParams, SubscriptionRepository,
-    },
-    tag::TagId,
+    Handler, Subscription,
     auth::UserId,
+    common::RepositoryError,
+    subscription::{SubscriptionError, SubscriptionId, SubscriptionRepository},
+    tag::TagId,
 };
 
 #[derive(Debug, Clone)]
@@ -29,38 +27,33 @@ impl LinkSubscriptionTagsHandler {
 
 #[async_trait::async_trait]
 impl Handler<LinkSubscriptionTagsCommand> for LinkSubscriptionTagsHandler {
-    type Response = ();
+    type Response = Subscription;
     type Error = LinkSubscriptionTagsError;
 
     async fn handle(
         &self,
         cmd: LinkSubscriptionTagsCommand,
     ) -> Result<Self::Response, Self::Error> {
-        let subscription = self
+        let mut subscription = self
             .subscription_repository
-            .find_by_id(cmd.id)
+            .find_by_id(cmd.id, cmd.user_id)
             .await?
-            .ok_or_else(|| LinkSubscriptionTagsError::NotFound(cmd.id))?;
-        subscription.authorize(cmd.user_id)?;
+            .ok_or_else(|| {
+                LinkSubscriptionTagsError::Subscription(SubscriptionError::NotFound(cmd.id))
+            })?;
 
-        self.subscription_repository
-            .link_tags(SubscriptionLinkTagParams {
-                subscription_id: cmd.id,
-                tag_ids: cmd.tag_ids,
-            })
-            .await?;
+        subscription.set_tags(cmd.tag_ids)?;
 
-        Ok(())
+        self.subscription_repository.save(&subscription).await?;
+
+        Ok(subscription)
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum LinkSubscriptionTagsError {
-    #[error("subscription not found with ID: {0}")]
-    NotFound(SubscriptionId),
-
     #[error(transparent)]
-    Core(#[from] SubscriptionError),
+    Subscription(#[from] SubscriptionError),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

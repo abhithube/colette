@@ -1,5 +1,6 @@
 use axum::{Router, routing};
 use chrono::{DateTime, Utc};
+use colette_core::collection::CollectionDto;
 use utoipa::OpenApi;
 use uuid::Uuid;
 
@@ -41,10 +42,10 @@ struct Collection {
     updated_at: DateTime<Utc>,
 }
 
-impl From<colette_core::Collection> for Collection {
-    fn from(value: colette_core::Collection) -> Self {
+impl From<CollectionDto> for Collection {
+    fn from(value: CollectionDto) -> Self {
         Self {
-            id: value.id.as_inner(),
+            id: value.id,
             title: value.title,
             filter: value.filter.into(),
             created_at: value.created_at,

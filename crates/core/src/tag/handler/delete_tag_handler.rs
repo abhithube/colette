@@ -29,14 +29,13 @@ impl Handler<DeleteTagCommand> for DeleteTagHandler {
     type Error = DeleteTagError;
 
     async fn handle(&self, cmd: DeleteTagCommand) -> Result<Self::Response, Self::Error> {
-        let tag = self
-            .tag_repository
-            .find_by_id(cmd.id)
-            .await?
-            .ok_or_else(|| DeleteTagError::NotFound(cmd.id))?;
-        tag.authorize(cmd.user_id)?;
-
-        self.tag_repository.delete_by_id(cmd.id).await?;
+        self.tag_repository
+            .delete_by_id(cmd.id, cmd.user_id)
+            .await
+            .map_err(|e| match e {
+                RepositoryError::NotFound => DeleteTagError::Tag(TagError::NotFound(cmd.id)),
+                _ => DeleteTagError::Repository(e),
+            })?;
 
         Ok(())
     }
@@ -44,11 +43,8 @@ impl Handler<DeleteTagCommand> for DeleteTagHandler {
 
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteTagError {
-    #[error("tag not found with ID: {0}")]
-    NotFound(TagId),
-
     #[error(transparent)]
-    Core(#[from] TagError),
+    Tag(#[from] TagError),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

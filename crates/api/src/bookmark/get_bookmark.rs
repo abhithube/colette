@@ -11,14 +11,14 @@ use colette_core::{
 
 use crate::{
     ApiState,
-    bookmark::{BOOKMARKS_TAG, BookmarkDetails},
-    common::{ApiError, Auth, Id, Path, Query},
+    bookmark::{BOOKMARKS_TAG, Bookmark},
+    common::{ApiError, Auth, Id, Path},
 };
 
 #[utoipa::path(
   get,
   path = "/{id}",
-  params(Id, BookmarkGetQuery),
+  params(Id),
   responses(OkResponse, ErrResponse),
   operation_id = "getBookmark",
   description = "Get a bookmark by ID",
@@ -28,45 +28,29 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    Query(query): Query<BookmarkGetQuery>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .get_bookmark
         .handle(GetBookmarkQuery {
             id: id.into(),
-            with_tags: query.with_tags,
             user_id,
         })
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            GetBookmarkError::Core(BookmarkError::Forbidden(_)) => {
-                Err(ErrResponse::Forbidden(e.into()))
+            GetBookmarkError::Bookmark(BookmarkError::NotFound(_)) => {
+                Err(ErrResponse::NotFound(e.into()))
             }
-            GetBookmarkError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
-#[serde(rename_all = "camelCase")]
-#[into_params(parameter_in = Query)]
-pub(super) struct BookmarkGetQuery {
-    /// Whether to include the tags linked to the bookmark
-    #[serde(default = "with_tags")]
-    with_tags: bool,
-}
-
-fn with_tags() -> bool {
-    false
-}
-
 #[derive(utoipa::IntoResponses)]
 #[response(status = StatusCode::OK, description = "Bookmark by ID")]
-pub(super) struct OkResponse(BookmarkDetails);
+pub(super) struct OkResponse(Bookmark);
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {
@@ -80,9 +64,6 @@ pub(super) enum ErrResponse {
     #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
     Unauthorized(ApiError),
 
-    #[response(status = StatusCode::FORBIDDEN, description = "User not authorized")]
-    Forbidden(ApiError),
-
     #[response(status = StatusCode::NOT_FOUND, description = "Bookmark not found")]
     NotFound(ApiError),
 
@@ -93,7 +74,6 @@ pub(super) enum ErrResponse {
 impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Forbidden(e) => (StatusCode::FORBIDDEN, e).into_response(),
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
             Self::InternalServerError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()

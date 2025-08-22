@@ -1,18 +1,16 @@
 use crate::{
     Handler,
+    auth::UserId,
     common::RepositoryError,
     subscription::{
-        Subscription, SubscriptionError, SubscriptionFindParams, SubscriptionId,
+        SubscriptionDto, SubscriptionError, SubscriptionFindParams, SubscriptionId,
         SubscriptionRepository,
     },
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
 pub struct GetSubscriptionQuery {
     pub id: SubscriptionId,
-    pub with_unread_count: bool,
-    pub with_tags: bool,
     pub user_id: UserId,
 }
 
@@ -30,37 +28,34 @@ impl GetSubscriptionHandler {
 
 #[async_trait::async_trait]
 impl Handler<GetSubscriptionQuery> for GetSubscriptionHandler {
-    type Response = Subscription;
+    type Response = SubscriptionDto;
     type Error = GetSubscriptionError;
 
     async fn handle(&self, query: GetSubscriptionQuery) -> Result<Self::Response, Self::Error> {
         let mut subscriptions = self
             .subscription_repository
             .find(SubscriptionFindParams {
+                user_id: query.user_id,
                 id: Some(query.id),
-                with_unread_count: query.with_unread_count,
-                with_tags: query.with_tags,
-                ..Default::default()
+                tags: None,
+                cursor: None,
+                limit: None,
             })
             .await?;
         if subscriptions.is_empty() {
-            return Err(GetSubscriptionError::NotFound(query.id));
+            return Err(GetSubscriptionError::Subscription(
+                SubscriptionError::NotFound(query.id),
+            ));
         }
 
-        let subscription = subscriptions.swap_remove(0);
-        subscription.authorize(query.user_id)?;
-
-        Ok(subscription)
+        Ok(subscriptions.swap_remove(0))
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum GetSubscriptionError {
-    #[error("subscription not found with ID: {0}")]
-    NotFound(SubscriptionId),
-
     #[error(transparent)]
-    Core(#[from] SubscriptionError),
+    Subscription(#[from] SubscriptionError),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

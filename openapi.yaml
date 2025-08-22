@@ -483,19 +483,13 @@ paths:
         required: false
         schema:
           type: string
-      - name: withTags
-        in: query
-        description: Whether to include the tags linked to the bookmark
-        required: false
-        schema:
-          type: boolean
       responses:
         '200':
           description: Paginated list of bookmarks
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Paginated_BookmarkDetails'
+                $ref: '#/components/schemas/Paginated_Bookmark'
         '401':
           description: User not authenticated
           content:
@@ -564,27 +558,15 @@ paths:
         schema:
           type: string
           format: uuid
-      - name: withTags
-        in: query
-        description: Whether to include the tags linked to the bookmark
-        required: false
-        schema:
-          type: boolean
       responses:
         '200':
           description: Bookmark by ID
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BookmarkDetails'
+                $ref: '#/components/schemas/Bookmark'
         '401':
           description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
           content:
             application/json:
               schema:
@@ -619,12 +601,6 @@ paths:
           description: Successfully deleted bookmark
         '401':
           description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
           content:
             application/json:
               schema:
@@ -665,12 +641,6 @@ paths:
           description: Successfully updated bookmark
         '401':
           description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
           content:
             application/json:
               schema:
@@ -718,12 +688,6 @@ paths:
           description: Successfully linked tags
         '401':
           description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
           content:
             application/json:
               schema:
@@ -950,12 +914,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
         '404':
           description: Collection not found
           content:
@@ -986,12 +944,6 @@ paths:
           description: Successfully deleted collection
         '401':
           description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
           content:
             application/json:
               schema:
@@ -1032,12 +984,6 @@ paths:
           description: Successfully updated collection
         '401':
           description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
           content:
             application/json:
               schema:
@@ -1191,25 +1137,13 @@ paths:
         required: false
         schema:
           type: string
-      - name: withUnreadCount
-        in: query
-        description: Whether to include the count of the unread subscription entries associated with the subscription
-        required: false
-        schema:
-          type: boolean
-      - name: withTags
-        in: query
-        description: Whether to include the tags linked to the subscription
-        required: false
-        schema:
-          type: boolean
       responses:
         '200':
           description: Paginated list of subscriptions
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Paginated_SubscriptionDetails'
+                $ref: '#/components/schemas/Paginated_Subscription'
         '401':
           description: User not authenticated
           content:
@@ -1278,33 +1212,15 @@ paths:
         schema:
           type: string
           format: uuid
-      - name: withUnreadCount
-        in: query
-        description: Whether to include the count of the unread subscription entries associated with the subscription
-        required: false
-        schema:
-          type: boolean
-      - name: withTags
-        in: query
-        description: Whether to include the tags linked to the subscription
-        required: false
-        schema:
-          type: boolean
       responses:
         '200':
           description: Subscription by ID
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SubscriptionDetails'
+                $ref: '#/components/schemas/Subscription'
         '401':
           description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
           content:
             application/json:
               schema:
@@ -1339,12 +1255,6 @@ paths:
           description: Successfully deleted subscription
         '401':
           description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
           content:
             application/json:
               schema:
@@ -1385,12 +1295,6 @@ paths:
           description: Successfully updated subscription
         '401':
           description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
           content:
             application/json:
               schema:
@@ -1438,12 +1342,6 @@ paths:
           description: Successfully linked tags
         '401':
           description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
           content:
             application/json:
               schema:
@@ -1610,12 +1508,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
         '404':
           description: Subscription entry not found
           content:
@@ -1657,12 +1549,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
         '404':
           description: Subscription entry not found
           content:
@@ -1700,7 +1586,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Paginated_TagDetails'
+                $ref: '#/components/schemas/Paginated_Tag'
         '401':
           description: User not authenticated
           content:
@@ -1775,19 +1661,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TagDetails'
-        '401':
-          description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
+                $ref: '#/components/schemas/Tag'
         '404':
           description: Tag not found
           content:
@@ -1816,18 +1690,6 @@ paths:
       responses:
         '204':
           description: Successfully deleted tag
-        '401':
-          description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
         '404':
           description: Tag not found
           content:
@@ -1868,14 +1730,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
-        '403':
-          description: User not authorized
+        '404':
+          description: Tag not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
-        '404':
-          description: Tag not found
+        '409':
+          description: Tag already exists
           content:
             application/json:
               schema:
@@ -1925,6 +1787,7 @@ components:
       - publishedAt
       - author
       - archivedPath
+      - tags
       - createdAt
       - updatedAt
       properties:
@@ -1961,6 +1824,11 @@ components:
           - string
           - 'null'
           description: Storage path of the archived version of the bookmark's thumbnail
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          description: Linked tags
         createdAt:
           type: string
           format: date-time
@@ -2008,20 +1876,6 @@ components:
       - publishedAt
       - createdAt
       - updatedAt
-    BookmarkDetails:
-      type: object
-      description: Extended details of a bookmark
-      required:
-      - bookmark
-      properties:
-        bookmark:
-          $ref: '#/components/schemas/Bookmark'
-          description: Bookmark itself, always present
-        tags:
-          type: array
-          items:
-            $ref: '#/components/schemas/Tag'
-          description: Linked tags, present if requested
     BookmarkFilter:
       oneOf:
       - type: object
@@ -2419,7 +2273,7 @@ components:
         signInText:
           type: string
           description: OIDC sign in button text
-    Paginated_BookmarkDetails:
+    Paginated_Bookmark:
       type: object
       description: Paginated list of results
       required:
@@ -2429,18 +2283,65 @@ components:
           type: array
           items:
             type: object
-            description: Extended details of a bookmark
+            description: Bookmark to a webpage
             required:
-            - bookmark
+            - id
+            - link
+            - title
+            - thumbnailUrl
+            - publishedAt
+            - author
+            - archivedPath
+            - tags
+            - createdAt
+            - updatedAt
             properties:
-              bookmark:
-                $ref: '#/components/schemas/Bookmark'
-                description: Bookmark itself, always present
+              id:
+                type: string
+                format: uuid
+                description: Unique identifier of the bookmark
+              link:
+                type: string
+                format: uri
+                description: URL of the webpage the bookmark links to
+              title:
+                type: string
+                description: Title of the bookmark
+              thumbnailUrl:
+                type:
+                - string
+                - 'null'
+                format: uri
+                description: Thumbnail URL of the bookmark
+              publishedAt:
+                type:
+                - string
+                - 'null'
+                format: date-time
+                description: Timestamp at which the bookmark was published
+              author:
+                type:
+                - string
+                - 'null'
+                description: Author of the bookmark
+              archivedPath:
+                type:
+                - string
+                - 'null'
+                description: Storage path of the archived version of the bookmark's thumbnail
               tags:
                 type: array
                 items:
                   $ref: '#/components/schemas/Tag'
-                description: Linked tags, present if requested
+                description: Linked tags
+              createdAt:
+                type: string
+                format: date-time
+                description: Timestamp at which the bookmark was created
+              updatedAt:
+                type: string
+                format: date-time
+                description: Timestamp at which the bookmark was modified
           description: Current set of results
         cursor:
           type: string
@@ -2520,7 +2421,7 @@ components:
         cursor:
           type: string
           description: Pagination cursor, only present if more results are available
-    Paginated_SubscriptionDetails:
+    Paginated_Subscription:
       type: object
       description: Paginated list of results
       required:
@@ -2530,26 +2431,55 @@ components:
           type: array
           items:
             type: object
-            description: Extended details of a user subscription
+            description: User subscription to an RSS feed
             required:
-            - subscription
-            - feed
+            - id
+            - sourceUrl
+            - link
+            - title
+            - description
+            - tags
+            - unreadCount
+            - createdAt
+            - updatedAt
             properties:
-              subscription:
-                $ref: '#/components/schemas/Subscription'
-                description: Subscription itself, always present
-              feed:
-                $ref: '#/components/schemas/Feed'
-                description: Associated RSS feed, always present
+              id:
+                type: string
+                format: uuid
+                description: Unique identifier of the subscription
+              sourceUrl:
+                type: string
+                format: uri
+                description: Feed source URL
+              link:
+                type: string
+                format: uri
+                description: URL of the webpage the feed links to
+              title:
+                type: string
+                description: Human-readable name of the subscription
+              description:
+                type:
+                - string
+                - 'null'
+                description: Description of the subscription
               tags:
                 type: array
                 items:
                   $ref: '#/components/schemas/Tag'
-                description: Linked tags, present if requested
+                description: Linked tags
               unreadCount:
                 type: integer
                 format: int64
-                description: Count of unread subscription entries associated with the subscription, present if requested
+                description: Count of unread subscription entries associated with the subscription
+              createdAt:
+                type: string
+                format: date-time
+                description: Timestamp at which the subscription was created
+              updatedAt:
+                type: string
+                format: date-time
+                description: Timestamp at which the subscription was modified
           description: Current set of results
         cursor:
           type: string
@@ -2579,7 +2509,7 @@ components:
         cursor:
           type: string
           description: Pagination cursor, only present if more results are available
-    Paginated_TagDetails:
+    Paginated_Tag:
       type: object
       description: Paginated list of results
       required:
@@ -2589,21 +2519,28 @@ components:
           type: array
           items:
             type: object
-            description: Extended details of a tag
+            description: Tag that can be attached to subscriptions and bookmarks
             required:
-            - tag
+            - id
+            - title
+            - createdAt
+            - updatedAt
             properties:
-              tag:
-                $ref: '#/components/schemas/Tag'
-                description: Tag itself, always present
-              subscriptionCount:
-                type: integer
-                format: int64
-                description: Count of subscriptions the tag is linked to, present if requested
-              bookmarkCount:
-                type: integer
-                format: int64
-                description: Count of bookmarks the tag is linked to, present if requested
+              id:
+                type: string
+                format: uuid
+                description: Unique identifier of the tag
+              title:
+                type: string
+                description: Human-readable name of the tag, unique per user
+              createdAt:
+                type: string
+                format: date-time
+                description: Timestamp at which the tag was created
+              updatedAt:
+                type: string
+                format: date-time
+                description: Timestamp at which the tag was last modified
           description: Current set of results
         cursor:
           type: string
@@ -2712,9 +2649,12 @@ components:
       description: User subscription to an RSS feed
       required:
       - id
+      - sourceUrl
+      - link
       - title
       - description
-      - feedId
+      - tags
+      - unreadCount
       - createdAt
       - updatedAt
       properties:
@@ -2722,6 +2662,14 @@ components:
           type: string
           format: uuid
           description: Unique identifier of the subscription
+        sourceUrl:
+          type: string
+          format: uri
+          description: Feed source URL
+        link:
+          type: string
+          format: uri
+          description: URL of the webpage the feed links to
         title:
           type: string
           description: Human-readable name of the subscription
@@ -2730,10 +2678,15 @@ components:
           - string
           - 'null'
           description: Description of the subscription
-        feedId:
-          type: string
-          format: uuid
-          description: Unique identifier of the associated RSS feed
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          description: Linked tags
+        unreadCount:
+          type: integer
+          format: int64
+          description: Count of unread subscription entries associated with the subscription
         createdAt:
           type: string
           format: date-time
@@ -2763,28 +2716,6 @@ components:
           type: string
           format: uuid
           description: Unique identifier of the associated RSS feed
-    SubscriptionDetails:
-      type: object
-      description: Extended details of a user subscription
-      required:
-      - subscription
-      - feed
-      properties:
-        subscription:
-          $ref: '#/components/schemas/Subscription'
-          description: Subscription itself, always present
-        feed:
-          $ref: '#/components/schemas/Feed'
-          description: Associated RSS feed, always present
-        tags:
-          type: array
-          items:
-            $ref: '#/components/schemas/Tag'
-          description: Linked tags, present if requested
-        unreadCount:
-          type: integer
-          format: int64
-          description: Count of unread subscription entries associated with the subscription, present if requested
     SubscriptionEntry:
       type: object
       description: Association of a RSS feed entry to a user subscription. The pairing of subscription ID and feed entry ID is unique.
@@ -2960,23 +2891,6 @@ components:
           type: string
           description: Human-readable name for the new tag, cannot be empty
           minLength: 1
-    TagDetails:
-      type: object
-      description: Extended details of a tag
-      required:
-      - tag
-      properties:
-        tag:
-          $ref: '#/components/schemas/Tag'
-          description: Tag itself, always present
-        subscriptionCount:
-          type: integer
-          format: int64
-          description: Count of subscriptions the tag is linked to, present if requested
-        bookmarkCount:
-          type: integer
-          format: int64
-          description: Count of bookmarks the tag is linked to, present if requested
     TagUpdate:
       type: object
       description: Updates to make to an existing tag

@@ -1,10 +1,10 @@
 use crate::{
     Handler,
+    auth::UserId,
     collection::{
-        Collection, CollectionError, CollectionFindParams, CollectionId, CollectionRepository,
+        CollectionDto, CollectionError, CollectionFindParams, CollectionId, CollectionRepository,
     },
     common::RepositoryError,
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -27,25 +27,24 @@ impl GetCollectionHandler {
 
 #[async_trait::async_trait]
 impl Handler<GetCollectionQuery> for GetCollectionHandler {
-    type Response = Collection;
+    type Response = CollectionDto;
     type Error = GetCollectionError;
 
     async fn handle(&self, query: GetCollectionQuery) -> Result<Self::Response, Self::Error> {
         let mut collections = self
             .collection_repository
             .find(CollectionFindParams {
+                user_id: query.user_id,
                 id: Some(query.id),
-                ..Default::default()
+                cursor: None,
+                limit: None,
             })
             .await?;
         if collections.is_empty() {
             return Err(GetCollectionError::NotFound(query.id));
         }
 
-        let collection = collections.swap_remove(0);
-        collection.authorize(query.user_id)?;
-
-        Ok(collection)
+        Ok(collections.swap_remove(0))
     }
 }
 

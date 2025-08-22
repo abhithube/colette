@@ -1,9 +1,9 @@
 use crate::{
     Handler,
-    collection::{Collection, CollectionCursor, CollectionFindParams, CollectionRepository},
+    auth::UserId,
+    collection::{CollectionCursor, CollectionDto, CollectionFindParams, CollectionRepository},
     common::RepositoryError,
     pagination::{Paginated, paginate},
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -27,17 +27,17 @@ impl ListCollectionsHandler {
 
 #[async_trait::async_trait]
 impl Handler<ListCollectionsQuery> for ListCollectionsHandler {
-    type Response = Paginated<Collection, CollectionCursor>;
+    type Response = Paginated<CollectionDto, CollectionCursor>;
     type Error = ListCollectionsError;
 
     async fn handle(&self, query: ListCollectionsQuery) -> Result<Self::Response, Self::Error> {
         let collections = self
             .collection_repository
             .find(CollectionFindParams {
-                user_id: Some(query.user_id),
+                user_id: query.user_id,
                 cursor: query.cursor.map(|e| e.title),
                 limit: query.limit.map(|e| e + 1),
-                ..Default::default()
+                id: None,
             })
             .await?;
 

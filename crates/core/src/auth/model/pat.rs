@@ -5,8 +5,8 @@ use uuid::Uuid;
 
 use crate::{auth::UserId, common::UuidGenerator, pagination::Cursor};
 
-const VALUE_LENGTH: usize = 32;
-const TITLE_MAX_LENGTH: usize = 50;
+pub const PAT_VALUE_LENGTH: usize = 32;
+pub const PAT_TITLE_MAX_LENGTH: usize = 50;
 
 #[derive(Debug, Clone)]
 pub struct PersonalAccessToken {
@@ -56,8 +56,10 @@ impl PersonalAccessToken {
     }
 
     pub fn set_title(&mut self, value: PatTitle) {
-        self.title = value;
-        self.updated_at = Utc::now()
+        if self.title != value {
+            self.title = value;
+            self.updated_at = Utc::now()
+        }
     }
 
     pub fn preview(&self) -> &PatPreview {
@@ -128,7 +130,7 @@ pub struct PatValue(String);
 
 impl PatValue {
     pub fn new(value: String) -> Result<Self, PatError> {
-        if value.len() != VALUE_LENGTH {
+        if value.len() != PAT_VALUE_LENGTH {
             return Err(PatError::InvalidValueLength);
         }
 
@@ -174,12 +176,12 @@ impl VerificationHash {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatTitle(String);
 
 impl PatTitle {
     pub fn new(value: String) -> Result<Self, PatError> {
-        if value.is_empty() || value.len() > TITLE_MAX_LENGTH {
+        if value.is_empty() || value.len() > PAT_TITLE_MAX_LENGTH {
             return Err(PatError::InvalidTitleLength);
         }
 
@@ -250,10 +252,10 @@ impl Cursor for PersonalAccessToken {
 
 #[derive(Debug, thiserror::Error)]
 pub enum PatError {
-    #[error("PAT title must be between 1 and {TITLE_MAX_LENGTH} characters long")]
+    #[error("PAT title must be between 1 and {PAT_TITLE_MAX_LENGTH} characters long")]
     InvalidTitleLength,
 
-    #[error("PAT value must be {VALUE_LENGTH} characters long")]
+    #[error("PAT value must be {PAT_VALUE_LENGTH} characters long")]
     InvalidValueLength,
 
     #[error("lookup hash cannot be empty")]

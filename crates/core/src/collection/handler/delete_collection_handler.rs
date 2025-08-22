@@ -1,8 +1,8 @@
 use crate::{
     Handler,
+    auth::UserId,
     collection::{CollectionError, CollectionId, CollectionRepository},
     common::RepositoryError,
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -29,14 +29,15 @@ impl Handler<DeleteCollectionCommand> for DeleteCollectionHandler {
     type Error = DeleteCollectionError;
 
     async fn handle(&self, cmd: DeleteCollectionCommand) -> Result<Self::Response, Self::Error> {
-        let collection = self
-            .collection_repository
-            .find_by_id(cmd.id)
-            .await?
-            .ok_or_else(|| DeleteCollectionError::NotFound(cmd.id))?;
-        collection.authorize(cmd.user_id)?;
-
-        self.collection_repository.delete_by_id(cmd.id).await?;
+        self.collection_repository
+            .delete_by_id(cmd.id, cmd.user_id)
+            .await
+            .map_err(|e| match e {
+                RepositoryError::NotFound => {
+                    DeleteCollectionError::Collection(CollectionError::NotFound(cmd.id))
+                }
+                _ => DeleteCollectionError::Repository(e),
+            })?;
 
         Ok(())
     }
@@ -44,11 +45,8 @@ impl Handler<DeleteCollectionCommand> for DeleteCollectionHandler {
 
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteCollectionError {
-    #[error("collection not found with ID: {0}")]
-    NotFound(CollectionId),
-
     #[error(transparent)]
-    Core(#[from] CollectionError),
+    Collection(#[from] CollectionError),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

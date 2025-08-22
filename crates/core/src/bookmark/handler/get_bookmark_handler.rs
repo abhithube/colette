@@ -1,14 +1,13 @@
 use crate::{
     Handler,
-    bookmark::{Bookmark, BookmarkError, BookmarkFindParams, BookmarkId, BookmarkRepository},
-    common::RepositoryError,
     auth::UserId,
+    bookmark::{BookmarkDto, BookmarkError, BookmarkFindParams, BookmarkId, BookmarkRepository},
+    common::RepositoryError,
 };
 
 #[derive(Debug, Clone)]
 pub struct GetBookmarkQuery {
     pub id: BookmarkId,
-    pub with_tags: bool,
     pub user_id: UserId,
 }
 
@@ -26,24 +25,28 @@ impl GetBookmarkHandler {
 
 #[async_trait::async_trait]
 impl Handler<GetBookmarkQuery> for GetBookmarkHandler {
-    type Response = Bookmark;
+    type Response = BookmarkDto;
     type Error = GetBookmarkError;
 
     async fn handle(&self, query: GetBookmarkQuery) -> Result<Self::Response, Self::Error> {
         let mut bookmarks = self
             .bookmark_repository
             .find(BookmarkFindParams {
+                user_id: query.user_id,
                 id: Some(query.id),
-                with_tags: query.with_tags,
-                ..Default::default()
+                filter: None,
+                tags: None,
+                cursor: None,
+                limit: None,
             })
             .await?;
         if bookmarks.is_empty() {
-            return Err(GetBookmarkError::NotFound(query.id));
+            return Err(GetBookmarkError::Bookmark(BookmarkError::NotFound(
+                query.id,
+            )));
         }
 
         let bookmark = bookmarks.swap_remove(0);
-        bookmark.authorize(query.user_id)?;
 
         Ok(bookmark)
     }
@@ -51,11 +54,8 @@ impl Handler<GetBookmarkQuery> for GetBookmarkHandler {
 
 #[derive(Debug, thiserror::Error)]
 pub enum GetBookmarkError {
-    #[error("bookmark not found with ID: {0}")]
-    NotFound(BookmarkId),
-
     #[error(transparent)]
-    Core(#[from] BookmarkError),
+    Bookmark(#[from] BookmarkError),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

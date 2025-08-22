@@ -1,17 +1,17 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    Bookmark, Tag,
+    Bookmark,
+    auth::UserId,
     bookmark::{
-        BookmarkDateField, BookmarkFilter, BookmarkFindParams, BookmarkId, BookmarkInsertParams,
-        BookmarkLinkTagParams, BookmarkRepository, BookmarkTextField, BookmarkUpdateParams,
-        ImportBookmarksParams,
+        BookmarkDateField, BookmarkDto, BookmarkFilter, BookmarkFindParams, BookmarkId,
+        BookmarkRepository, BookmarkTextField, ImportBookmarksParams,
     },
     common::RepositoryError,
 };
 use sqlx::{PgPool, QueryBuilder, types::Json};
 use uuid::Uuid;
 
-use crate::{DbUrl, ToColumn, ToSql};
+use crate::{DbUrl, ToColumn, ToSql, tag::TagRow};
 
 const BASE_QUERY: &str = include_str!("../queries/bookmarks/find.sql");
 
@@ -23,8 +23,7 @@ fn validate_base_query() {
         Option::<Uuid>::None,
         Option::<&[Uuid]>::None,
         Option::<DateTime<Utc>>::None,
-        1,
-        false
+        1
     );
 }
 
@@ -41,7 +40,7 @@ impl PostgresBookmarkRepository {
 
 #[async_trait::async_trait]
 impl BookmarkRepository for PostgresBookmarkRepository {
-    async fn find(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, RepositoryError> {
+    async fn find(&self, params: BookmarkFindParams) -> Result<Vec<BookmarkDto>, RepositoryError> {
         let mut qb = QueryBuilder::new(format!(
             r#"WITH results AS ({BASE_QUERY}) SELECT * FROM results WHERE TRUE"#
         ));
@@ -51,8 +50,8 @@ impl BookmarkRepository for PostgresBookmarkRepository {
 
         let rows = qb
             .build_query_as::<BookmarkRow>()
+            .bind(params.user_id.as_inner())
             .bind(params.id.map(|e| e.as_inner()))
-            .bind(params.user_id.map(|e| e.as_inner()))
             .bind(
                 params
                     .tags
@@ -60,87 +59,62 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             )
             .bind(params.cursor)
             .bind(params.limit.map(|e| e as i64))
-            .bind(params.with_tags)
             .fetch_all(&self.pool)
             .await?;
 
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    async fn insert(&self, params: BookmarkInsertParams) -> Result<BookmarkId, RepositoryError> {
-        if params.upsert {
-            let id = sqlx::query_file_scalar!(
-                "queries/bookmarks/upsert.sql",
-                DbUrl(params.link) as DbUrl,
-                params.title,
-                params.thumbnail_url.map(Into::into) as Option<DbUrl>,
-                params.published_at,
-                params.author,
-                params.user_id.as_inner()
-            )
-            .fetch_one(&self.pool)
-            .await?;
+    async fn find_by_id(
+        &self,
+        id: BookmarkId,
+        user_id: UserId,
+    ) -> Result<Option<Bookmark>, RepositoryError> {
+        let bookmark = sqlx::query_file_as!(
+            BookmarkByIdRow,
+            "queries/bookmarks/find_by_id.sql",
+            id.as_inner(),
+            user_id.as_inner()
+        )
+        .map(Into::into)
+        .fetch_optional(&self.pool)
+        .await?;
 
-            Ok(id.into())
-        } else {
-            let id = sqlx::query_file_scalar!(
-                "queries/bookmarks/insert.sql",
-                DbUrl(params.link.clone()) as DbUrl,
-                params.title,
-                params.thumbnail_url.map(Into::into) as Option<DbUrl>,
-                params.published_at,
-                params.author,
-                params.user_id.as_inner()
-            )
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => RepositoryError::Duplicate,
-                _ => RepositoryError::Unknown(e),
-            })?;
-
-            Ok(id.into())
-        }
+        Ok(bookmark)
     }
 
-    async fn update(&self, params: BookmarkUpdateParams) -> Result<(), RepositoryError> {
-        let (has_thumbnail_url, thumbnail_url) = if let Some(thumbnail_url) = params.thumbnail_url {
-            (true, thumbnail_url)
-        } else {
-            (false, None)
-        };
-        let (has_published_at, published_at) = if let Some(published_at) = params.published_at {
-            (true, published_at)
-        } else {
-            (false, None)
-        };
-        let (has_author, author) = if let Some(author) = params.author {
-            (true, author)
-        } else {
-            (false, None)
-        };
-
+    async fn save(&self, data: &Bookmark) -> Result<(), RepositoryError> {
         sqlx::query_file!(
-            "queries/bookmarks/update.sql",
-            params.id.as_inner(),
-            params.title,
-            has_thumbnail_url,
-            thumbnail_url.map(Into::into) as Option<DbUrl>,
-            has_published_at,
-            published_at,
-            has_author,
-            author
+            "queries/bookmarks/upsert.sql",
+            data.id().as_inner(),
+            DbUrl(data.link().clone()) as DbUrl,
+            data.title().as_inner(),
+            data.thumbnail_url().cloned().map(DbUrl) as Option<DbUrl>,
+            data.published_at(),
+            data.author().map(|e| e.as_inner()),
+            &data.tags().iter().map(|e| e.as_inner()).collect::<Vec<_>>(),
+            data.user_id().as_inner(),
+            data.created_at(),
+            data.updated_at(),
         )
-        .execute(&self.pool)
-        .await?;
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::Database(e) if e.is_unique_violation() => RepositoryError::Duplicate,
+            _ => RepositoryError::Unknown(e),
+        })?;
 
         Ok(())
     }
 
-    async fn delete_by_id(&self, id: BookmarkId) -> Result<(), RepositoryError> {
-        sqlx::query_file!("queries/bookmarks/delete_by_id.sql", id.as_inner())
-            .execute(&self.pool)
-            .await?;
+    async fn delete_by_id(&self, id: BookmarkId, user_id: UserId) -> Result<(), RepositoryError> {
+        sqlx::query_file!(
+            "queries/bookmarks/delete_by_id.sql",
+            id.as_inner(),
+            user_id.as_inner()
+        )
+        .execute(&self.pool)
+        .await?;
 
         Ok(())
     }
@@ -154,22 +128,6 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             "queries/bookmarks/update_archived_path.sql",
             bookmark_id.as_inner(),
             archived_path
-        )
-        .execute(&self.pool)
-        .await?;
-
-        Ok(())
-    }
-
-    async fn link_tags(&self, params: BookmarkLinkTagParams) -> Result<(), RepositoryError> {
-        sqlx::query_file!(
-            "queries/bookmark_tags/update.sql",
-            params.bookmark_id.as_inner(),
-            &params
-                .tag_ids
-                .iter()
-                .map(|e| e.as_inner())
-                .collect::<Vec<_>>()
         )
         .execute(&self.pool)
         .await?;
@@ -234,6 +192,37 @@ impl BookmarkRepository for PostgresBookmarkRepository {
 }
 
 #[derive(sqlx::FromRow)]
+struct BookmarkByIdRow {
+    id: Uuid,
+    link: DbUrl,
+    title: String,
+    thumbnail_url: Option<DbUrl>,
+    published_at: Option<DateTime<Utc>>,
+    author: Option<String>,
+    user_id: Uuid,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    tags: Vec<Uuid>,
+}
+
+impl From<BookmarkByIdRow> for Bookmark {
+    fn from(value: BookmarkByIdRow) -> Self {
+        Self::from_unchecked(
+            value.id,
+            value.link.0,
+            value.title,
+            value.thumbnail_url.map(|e| e.0),
+            value.published_at,
+            value.author,
+            value.tags,
+            value.user_id,
+            value.created_at,
+            value.updated_at,
+        )
+    }
+}
+
+#[derive(sqlx::FromRow)]
 struct BookmarkRow {
     id: Uuid,
     link: DbUrl,
@@ -242,27 +231,24 @@ struct BookmarkRow {
     published_at: Option<DateTime<Utc>>,
     author: Option<String>,
     archived_path: Option<String>,
-    user_id: Uuid,
+    tags: Json<Vec<TagRow>>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
-    #[sqlx(default)]
-    tags: Option<Json<Vec<Tag>>>,
 }
 
-impl From<BookmarkRow> for Bookmark {
+impl From<BookmarkRow> for BookmarkDto {
     fn from(value: BookmarkRow) -> Self {
         Self {
-            id: value.id.into(),
+            id: value.id,
             link: value.link.0,
             title: value.title,
             thumbnail_url: value.thumbnail_url.map(|e| e.0),
             published_at: value.published_at,
             author: value.author,
             archived_path: value.archived_path,
-            user_id: value.user_id.into(),
+            tags: value.tags.0.into_iter().map(Into::into).collect(),
             created_at: value.created_at,
             updated_at: value.updated_at,
-            tags: value.tags.map(|e| e.0),
         }
     }
 }

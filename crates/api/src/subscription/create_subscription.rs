@@ -41,7 +41,7 @@ pub(super) async fn handler(
         .await
     {
         Ok(data) => Ok(OkResponse(CreatedResource {
-            id: data.id.as_inner(),
+            id: data.id().as_inner(),
         })),
         Err(e) => match e {
             CreateSubscriptionError::Conflict(_) => Err(ErrResponse::Conflict(e.into())),

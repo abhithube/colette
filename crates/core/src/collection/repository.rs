@@ -1,40 +1,32 @@
 use crate::{
-    bookmark::BookmarkFilter,
-    collection::{Collection, CollectionId},
-    common::RepositoryError,
     auth::UserId,
+    bookmark::BookmarkFilter,
+    collection::{Collection, CollectionDto, CollectionId},
+    common::RepositoryError,
 };
 
 #[async_trait::async_trait]
 pub trait CollectionRepository: Send + Sync + 'static {
-    async fn find(&self, params: CollectionFindParams) -> Result<Vec<Collection>, RepositoryError>;
+    async fn find(
+        &self,
+        params: CollectionFindParams,
+    ) -> Result<Vec<CollectionDto>, RepositoryError>;
 
-    async fn find_by_id(&self, id: CollectionId) -> Result<Option<Collection>, RepositoryError> {
-        let mut collections = self
-            .find(CollectionFindParams {
-                id: Some(id),
-                ..Default::default()
-            })
-            .await?;
-        if collections.is_empty() {
-            return Ok(None);
-        }
+    async fn find_by_id(
+        &self,
+        id: CollectionId,
+        user_id: UserId,
+    ) -> Result<Option<Collection>, RepositoryError>;
 
-        Ok(Some(collections.swap_remove(0)))
-    }
+    async fn save(&self, data: &Collection) -> Result<(), RepositoryError>;
 
-    async fn insert(&self, params: CollectionInsertParams)
-    -> Result<CollectionId, RepositoryError>;
-
-    async fn update(&self, params: CollectionUpdateParams) -> Result<(), RepositoryError>;
-
-    async fn delete_by_id(&self, id: CollectionId) -> Result<(), RepositoryError>;
+    async fn delete_by_id(&self, id: CollectionId, user_id: UserId) -> Result<(), RepositoryError>;
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct CollectionFindParams {
+    pub user_id: UserId,
     pub id: Option<CollectionId>,
-    pub user_id: Option<UserId>,
     pub cursor: Option<String>,
     pub limit: Option<usize>,
 }

@@ -1,9 +1,11 @@
 use axum::{Router, routing};
 use chrono::{DateTime, Utc};
+use colette_core::subscription;
+use url::Url;
 use utoipa::OpenApi;
 use uuid::Uuid;
 
-use crate::{ApiState, feed::Feed, pagination::Paginated, tag::Tag};
+use crate::{ApiState, pagination::Paginated, tag::Tag};
 
 mod create_subscription;
 mod delete_subscription;
@@ -18,7 +20,7 @@ const SUBSCRIPTIONS_TAG: &str = "Subscriptions";
 
 #[derive(OpenApi)]
 #[openapi(
-    components(schemas(Subscription, SubscriptionDetails, Paginated<SubscriptionDetails>, create_subscription::SubscriptionCreate, update_subscription::SubscriptionUpdate, link_subscription_tags::LinkSubscriptionTags)),
+    components(schemas(Subscription, Paginated<Subscription>, create_subscription::SubscriptionCreate, update_subscription::SubscriptionUpdate, link_subscription_tags::LinkSubscriptionTags)),
     paths(list_subscriptions::handler, create_subscription::handler, get_subscription::handler, update_subscription::handler, delete_subscription::handler, link_subscription_tags::handler, import_subscriptions::handler, export_subscriptions::handler)
 )]
 pub(crate) struct SubscriptionApi;
@@ -46,64 +48,37 @@ impl SubscriptionApi {
 struct Subscription {
     /// Unique identifier of the subscription
     id: Uuid,
+    /// Feed source URL
+    source_url: Url,
+    /// URL of the webpage the feed links to
+    link: Url,
     /// Human-readable name of the subscription
     title: String,
     /// Description of the subscription
     #[schema(required)]
     description: Option<String>,
-    /// Unique identifier of the associated RSS feed
-    feed_id: Uuid,
+    /// Linked tags
+    tags: Vec<Tag>,
+    /// Count of unread subscription entries associated with the subscription
+    unread_count: i64,
     /// Timestamp at which the subscription was created
     created_at: DateTime<Utc>,
     /// Timestamp at which the subscription was modified
     updated_at: DateTime<Utc>,
 }
 
-/// Extended details of a user subscription
-#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct SubscriptionDetails {
-    /// Subscription itself, always present
-    subscription: Subscription,
-    /// Associated RSS feed, always present
-    feed: Feed,
-    /// Linked tags, present if requested
-    #[schema(nullable = false)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    tags: Option<Vec<Tag>>,
-    /// Count of unread subscription entries associated with the subscription, present if requested
-    #[schema(nullable = false)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    unread_count: Option<i64>,
-}
-
-impl From<colette_core::Subscription> for Subscription {
-    fn from(value: colette_core::Subscription) -> Self {
+impl From<subscription::SubscriptionDto> for Subscription {
+    fn from(value: subscription::SubscriptionDto) -> Self {
         Self {
-            id: value.id.as_inner(),
+            id: value.id,
+            source_url: value.source_url,
+            link: value.link,
             title: value.title,
             description: value.description,
-            feed_id: value.feed_id.as_inner(),
+            tags: value.tags.into_iter().map(Into::into).collect(),
+            unread_count: value.unread_count,
             created_at: value.created_at,
             updated_at: value.updated_at,
-        }
-    }
-}
-
-impl From<colette_core::Subscription> for SubscriptionDetails {
-    fn from(value: colette_core::Subscription) -> Self {
-        let feed = value.feed.clone().into();
-        let tags = value
-            .tags
-            .clone()
-            .map(|e| e.into_iter().map(Into::into).collect());
-        let unread_count = value.unread_count;
-
-        Self {
-            subscription: value.into(),
-            feed,
-            tags,
-            unread_count,
         }
     }
 }

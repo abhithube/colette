@@ -61,7 +61,6 @@ impl Service<Job> for ImportBookmarksJobHandler {
                     tags: None,
                     cursor: None,
                     limit: None,
-                    with_tags: false,
                     user_id: input_data.user_id,
                 })
                 .await
@@ -72,7 +71,7 @@ impl Service<Job> for ImportBookmarksJobHandler {
             for bookmark in bookmarks.items {
                 let data = serde_json::to_value(ScrapeBookmarkJobData {
                     url: bookmark.link,
-                    user_id: bookmark.user_id,
+                    user_id: input_data.user_id,
                 })?;
 
                 let job_id = create_job

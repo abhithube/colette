@@ -3,25 +3,99 @@ use std::fmt;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::{bookmark::BookmarkFilter, pagination::Cursor, auth::UserId};
+use crate::{auth::UserId, bookmark::BookmarkFilter, common::UuidGenerator, pagination::Cursor};
+
+pub const COLLECTION_TITLE_MAX_LENGTH: usize = 50;
 
 #[derive(Debug, Clone)]
-pub struct Collection {
-    pub id: CollectionId,
+pub struct CollectionDto {
+    pub id: Uuid,
     pub title: String,
     pub filter: BookmarkFilter,
-    pub user_id: UserId,
+    pub user_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-impl Collection {
-    pub fn authorize(&self, user_id: UserId) -> Result<(), CollectionError> {
-        if self.user_id != user_id {
-            return Err(CollectionError::Forbidden(user_id));
-        }
+#[derive(Debug, Clone)]
+pub struct Collection {
+    id: CollectionId,
+    title: CollectionTitle,
+    filter: BookmarkFilter,
+    user_id: UserId,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
 
-        Ok(())
+impl Collection {
+    pub fn new(title: CollectionTitle, filter: BookmarkFilter, user_id: UserId) -> Self {
+        let now = Utc::now();
+
+        Self {
+            id: UuidGenerator::new().with_timestamp(now).generate().into(),
+            title,
+            filter,
+            user_id,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    pub fn id(&self) -> CollectionId {
+        self.id
+    }
+
+    pub fn title(&self) -> &CollectionTitle {
+        &self.title
+    }
+
+    pub fn set_title(&mut self, value: CollectionTitle) {
+        if value != self.title {
+            self.title = value;
+            self.updated_at = Utc::now();
+        }
+    }
+
+    pub fn filter(&self) -> &BookmarkFilter {
+        &self.filter
+    }
+
+    pub fn set_filter(&mut self, value: BookmarkFilter) {
+        if value != self.filter {
+            self.filter = value;
+            self.updated_at = Utc::now();
+        }
+    }
+
+    pub fn user_id(&self) -> UserId {
+        self.user_id
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_unchecked(
+        id: Uuid,
+        title: String,
+        filter: BookmarkFilter,
+        user_id: Uuid,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id: CollectionId(id),
+            title: CollectionTitle(title),
+            filter,
+            user_id: user_id.into(),
+            created_at,
+            updated_at,
+        }
     }
 }
 
@@ -50,12 +124,29 @@ impl fmt::Display for CollectionId {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CollectionTitle(String);
+
+impl CollectionTitle {
+    pub fn new(value: String) -> Result<Self, CollectionError> {
+        if value.is_empty() || value.len() > COLLECTION_TITLE_MAX_LENGTH {
+            return Err(CollectionError::InvalidTitleLength);
+        }
+
+        Ok(Self(value))
+    }
+
+    pub fn as_inner(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CollectionCursor {
     pub title: String,
 }
 
-impl Cursor for Collection {
+impl Cursor for CollectionDto {
     type Data = CollectionCursor;
 
     fn to_cursor(&self) -> Self::Data {
@@ -67,6 +158,12 @@ impl Cursor for Collection {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CollectionError {
-    #[error("not authorized to access collection with ID: {0}")]
-    Forbidden(UserId),
+    #[error("title must be between 1 and {COLLECTION_TITLE_MAX_LENGTH} characters long")]
+    InvalidTitleLength,
+
+    #[error("collection already exists with title: {0}")]
+    Conflict(String),
+
+    #[error("collection not found with ID: {0}")]
+    NotFound(CollectionId),
 }

@@ -1,9 +1,9 @@
 use crate::{
-    Handler,
-    bookmark::BookmarkFilter,
-    collection::{CollectionId, CollectionInsertParams, CollectionRepository},
-    common::RepositoryError,
+    Collection, Handler,
     auth::UserId,
+    bookmark::BookmarkFilter,
+    collection::{CollectionError, CollectionRepository, CollectionTitle},
+    common::RepositoryError,
 };
 
 #[derive(Debug, Clone)]
@@ -27,36 +27,32 @@ impl CreateCollectionHandler {
 
 #[async_trait::async_trait]
 impl Handler<CreateCollectionCommand> for CreateCollectionHandler {
-    type Response = CollectionCreated;
+    type Response = Collection;
     type Error = CreateCollectionError;
 
     async fn handle(&self, cmd: CreateCollectionCommand) -> Result<Self::Response, Self::Error> {
-        let id = self
-            .collection_repository
-            .insert(CollectionInsertParams {
-                title: cmd.title.clone(),
-                filter: cmd.filter,
-                user_id: cmd.user_id,
-            })
+        let title = CollectionTitle::new(cmd.title.clone())?;
+
+        let collection = Collection::new(title, cmd.filter, cmd.user_id);
+
+        self.collection_repository
+            .save(&collection)
             .await
             .map_err(|e| match e {
-                RepositoryError::Duplicate => CreateCollectionError::Conflict(cmd.title),
+                RepositoryError::Duplicate => {
+                    CreateCollectionError::Collection(CollectionError::Conflict(cmd.title))
+                }
                 _ => CreateCollectionError::Repository(e),
             })?;
 
-        Ok(CollectionCreated { id })
+        Ok(collection)
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct CollectionCreated {
-    pub id: CollectionId,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum CreateCollectionError {
-    #[error("collection already exists with title: {0}")]
-    Conflict(String),
+    #[error(transparent)]
+    Collection(#[from] CollectionError),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

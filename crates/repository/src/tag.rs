@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     Tag,
+    auth::UserId,
     common::RepositoryError,
-    tag::{TagFindParams, TagId, TagInsertParams, TagRepository, TagUpdateParams},
+    tag::{TagDto, TagFindParams, TagId, TagRepository},
 };
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -20,12 +21,12 @@ impl PostgresTagRepository {
 
 #[async_trait::async_trait]
 impl TagRepository for PostgresTagRepository {
-    async fn find(&self, params: TagFindParams) -> Result<Vec<Tag>, RepositoryError> {
+    async fn find(&self, params: TagFindParams) -> Result<Vec<TagDto>, RepositoryError> {
         let tags = sqlx::query_file_as!(
             TagRow,
             "queries/tags/find.sql",
+            params.user_id.as_inner(),
             params.id.map(|e| e.as_inner()),
-            params.user_id.map(|e| e.as_inner()),
             params.cursor,
             params.limit.map(|e| e as i64)
         )
@@ -36,57 +37,92 @@ impl TagRepository for PostgresTagRepository {
         Ok(tags)
     }
 
-    async fn insert(&self, params: TagInsertParams) -> Result<TagId, RepositoryError> {
-        let id = sqlx::query_file_scalar!(
-            "queries/tags/insert.sql",
-            params.title,
-            params.user_id.as_inner()
+    async fn find_by_id(&self, id: TagId, user_id: UserId) -> Result<Option<Tag>, RepositoryError> {
+        let tag = sqlx::query_file_as!(
+            TagByIdRow,
+            "queries/tags/find_by_id.sql",
+            id.as_inner(),
+            user_id.as_inner()
         )
-        .fetch_one(&self.pool)
+        .map(Into::into)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(tag)
+    }
+
+    async fn save(&self, data: &Tag) -> Result<(), RepositoryError> {
+        sqlx::query_file!(
+            "queries/tags/upsert.sql",
+            data.id().as_inner(),
+            data.title().as_inner(),
+            data.user_id().as_inner(),
+            data.created_at(),
+            data.updated_at(),
+        )
+        .execute(&self.pool)
         .await
         .map_err(|e| match e {
             sqlx::Error::Database(e) if e.is_unique_violation() => RepositoryError::Duplicate,
             _ => RepositoryError::Unknown(e),
         })?;
 
-        Ok(id.into())
-    }
-
-    async fn update(&self, params: TagUpdateParams) -> Result<(), RepositoryError> {
-        sqlx::query_file!(
-            "queries/tags/update.sql",
-            params.id.as_inner(),
-            params.title
-        )
-        .execute(&self.pool)
-        .await?;
-
         Ok(())
     }
 
-    async fn delete_by_id(&self, id: TagId) -> Result<(), RepositoryError> {
-        sqlx::query_file!("queries/tags/delete_by_id.sql", id.as_inner())
-            .execute(&self.pool)
-            .await?;
+    async fn delete_by_id(&self, id: TagId, user_id: UserId) -> Result<(), RepositoryError> {
+        sqlx::query_file!(
+            "queries/tags/delete_by_id.sql",
+            id.as_inner(),
+            user_id.as_inner()
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => RepositoryError::NotFound,
+            _ => RepositoryError::Unknown(e),
+        })?;
 
         Ok(())
     }
 }
 
-pub(crate) struct TagRow {
-    pub(crate) id: Uuid,
-    pub(crate) title: String,
+#[derive(Debug, serde::Deserialize)]
+pub(crate) struct TagByIdRow {
+    id: Uuid,
+    title: String,
     user_id: Uuid,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
 
-impl From<TagRow> for Tag {
+impl From<TagByIdRow> for Tag {
+    fn from(value: TagByIdRow) -> Self {
+        Self::from_unchecked(
+            value.id,
+            value.title,
+            value.user_id,
+            value.created_at,
+            value.updated_at,
+        )
+    }
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub(crate) struct TagRow {
+    id: Uuid,
+    title: String,
+    user_id: Uuid,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl From<TagRow> for TagDto {
     fn from(value: TagRow) -> Self {
         Self {
-            id: value.id.into(),
+            id: value.id,
             title: value.title,
-            user_id: value.user_id.into(),
+            user_id: value.user_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
         }

@@ -4,14 +4,11 @@ use tokio::sync::Mutex;
 use url::Url;
 
 use crate::{
-    Handler,
-    bookmark::{
-        ArchiveThumbnailJobData, BookmarkError, BookmarkId, BookmarkRepository,
-        BookmarkUpdateParams, ThumbnailOperation,
-    },
-    common::RepositoryError,
-    job::{JobInsertParams, JobRepository},
+    Bookmark, Handler,
     auth::UserId,
+    bookmark::{BookmarkAuthor, BookmarkError, BookmarkId, BookmarkRepository, BookmarkTitle},
+    common::RepositoryError,
+    job::JobRepository,
 };
 
 #[derive(Debug, Clone)]
@@ -46,67 +43,78 @@ impl UpdateBookmarkHandler {
 
 #[async_trait::async_trait]
 impl Handler<UpdateBookmarkCommand> for UpdateBookmarkHandler {
-    type Response = ();
+    type Response = Bookmark;
     type Error = UpdateBookmarkError;
 
     async fn handle(&self, cmd: UpdateBookmarkCommand) -> Result<Self::Response, Self::Error> {
-        let bookmark = self
+        let mut bookmark = self
             .bookmark_repository
-            .find_by_id(cmd.id)
+            .find_by_id(cmd.id, cmd.user_id)
             .await?
-            .ok_or_else(|| UpdateBookmarkError::NotFound(cmd.id))?;
-        bookmark.authorize(cmd.user_id)?;
+            .ok_or_else(|| UpdateBookmarkError::Bookmark(BookmarkError::NotFound(cmd.id)))?;
 
-        let new_thumbnail = cmd.thumbnail_url.clone();
-
-        self.bookmark_repository
-            .update(BookmarkUpdateParams {
-                id: cmd.id,
-                title: cmd.title,
-                thumbnail_url: cmd.thumbnail_url,
-                published_at: cmd.published_at,
-                author: cmd.author,
-            })
-            .await?;
-
-        if let Some(thumbnail_url) = new_thumbnail
-            && thumbnail_url != bookmark.thumbnail_url
-        {
-            let data = serde_json::to_value(&ArchiveThumbnailJobData {
-                operation: if let Some(thumbnail_url) = thumbnail_url {
-                    ThumbnailOperation::Upload(thumbnail_url)
-                } else {
-                    ThumbnailOperation::Delete
-                },
-                archived_path: bookmark.archived_path.clone(),
-                bookmark_id: bookmark.id,
-            })?;
-
-            let job_id = self
-                .job_repository
-                .insert(JobInsertParams {
-                    job_type: "archive_thumbnail".into(),
-                    data,
-                    group_identifier: None,
-                })
-                .await?;
-
-            let mut producer = self.archive_thumbnail_producer.lock().await;
-
-            producer.push(job_id.as_inner()).await?;
+        if let Some(title) = cmd.title.map(BookmarkTitle::new).transpose()? {
+            bookmark.set_title(title);
+        }
+        if let Some(thumbnail_url) = cmd.thumbnail_url {
+            if let Some(thumbnail_url) = thumbnail_url {
+                bookmark.set_thumbnail_url(thumbnail_url);
+            } else {
+                bookmark.remove_thumbnail_url();
+            }
+        }
+        if let Some(published_at) = cmd.published_at {
+            if let Some(published_at) = published_at {
+                bookmark.set_published_at(published_at);
+            } else {
+                bookmark.remove_published_at();
+            }
+        }
+        if let Some(author) = cmd.author {
+            if let Some(author) = author.map(BookmarkAuthor::new).transpose()? {
+                bookmark.set_author(author);
+            } else {
+                bookmark.remove_author();
+            }
         }
 
-        Ok(())
+        self.bookmark_repository.save(&bookmark).await?;
+
+        // if let Some(thumbnail_url) = new_thumbnail
+        //     && thumbnail_url != bookmark.thumbnail_url
+        // {
+        //     let data = serde_json::to_value(&ArchiveThumbnailJobData {
+        //         operation: if let Some(thumbnail_url) = thumbnail_url {
+        //             ThumbnailOperation::Upload(thumbnail_url)
+        //         } else {
+        //             ThumbnailOperation::Delete
+        //         },
+        //         archived_path: bookmark.archived_path.clone(),
+        //         bookmark_id: bookmark.id,
+        //     })?;
+
+        //     let job_id = self
+        //         .job_repository
+        //         .insert(JobInsertParams {
+        //             job_type: "archive_thumbnail".into(),
+        //             data,
+        //             group_identifier: None,
+        //         })
+        //         .await?;
+
+        //     let mut producer = self.archive_thumbnail_producer.lock().await;
+
+        //     producer.push(job_id.as_inner()).await?;
+        // }
+
+        Ok(bookmark)
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateBookmarkError {
-    #[error("bookmark not found with ID: {0}")]
-    NotFound(BookmarkId),
-
     #[error(transparent)]
-    Core(#[from] BookmarkError),
+    Bookmark(#[from] BookmarkError),
 
     #[error(transparent)]
     Queue(#[from] colette_queue::Error),

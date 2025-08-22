@@ -1,12 +1,12 @@
 use crate::{
     Handler,
+    auth::UserId,
     common::RepositoryError,
     pagination::{Paginated, paginate},
     subscription::{
-        Subscription, SubscriptionCursor, SubscriptionFindParams, SubscriptionRepository,
+        SubscriptionCursor, SubscriptionDto, SubscriptionFindParams, SubscriptionRepository,
     },
     tag::TagId,
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -14,8 +14,6 @@ pub struct ListSubscriptionsQuery {
     pub tags: Option<Vec<TagId>>,
     pub cursor: Option<SubscriptionCursor>,
     pub limit: Option<usize>,
-    pub with_unread_count: bool,
-    pub with_tags: bool,
     pub user_id: UserId,
 }
 
@@ -33,20 +31,18 @@ impl ListSubscriptionsHandler {
 
 #[async_trait::async_trait]
 impl Handler<ListSubscriptionsQuery> for ListSubscriptionsHandler {
-    type Response = Paginated<Subscription, SubscriptionCursor>;
+    type Response = Paginated<SubscriptionDto, SubscriptionCursor>;
     type Error = ListSubscriptionsError;
 
     async fn handle(&self, query: ListSubscriptionsQuery) -> Result<Self::Response, Self::Error> {
         let subscriptions = self
             .subscription_repository
             .find(SubscriptionFindParams {
-                user_id: Some(query.user_id),
+                user_id: query.user_id,
                 tags: query.tags,
                 cursor: query.cursor.map(|e| (e.title, e.id)),
                 limit: query.limit.map(|e| e + 1),
-                with_unread_count: query.with_unread_count,
-                with_tags: query.with_tags,
-                ..Default::default()
+                id: None,
             })
             .await?;
 

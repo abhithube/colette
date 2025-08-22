@@ -1,8 +1,8 @@
 use crate::{
     Handler,
+    auth::UserId,
     common::RepositoryError,
     subscription::{SubscriptionError, SubscriptionId, SubscriptionRepository},
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -29,14 +29,15 @@ impl Handler<DeleteSubscriptionCommand> for DeleteSubscriptionHandler {
     type Error = DeleteSubscriptionError;
 
     async fn handle(&self, cmd: DeleteSubscriptionCommand) -> Result<Self::Response, Self::Error> {
-        let subscription = self
-            .subscription_repository
-            .find_by_id(cmd.id)
-            .await?
-            .ok_or_else(|| DeleteSubscriptionError::NotFound(cmd.id))?;
-        subscription.authorize(cmd.user_id)?;
-
-        self.subscription_repository.delete_by_id(cmd.id).await?;
+        self.subscription_repository
+            .delete_by_id(cmd.id, cmd.user_id)
+            .await
+            .map_err(|e| match e {
+                RepositoryError::NotFound => {
+                    DeleteSubscriptionError::Subscription(SubscriptionError::NotFound(cmd.id))
+                }
+                _ => DeleteSubscriptionError::Repository(e),
+            })?;
 
         Ok(())
     }
@@ -44,11 +45,8 @@ impl Handler<DeleteSubscriptionCommand> for DeleteSubscriptionHandler {
 
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteSubscriptionError {
-    #[error("subscription not found with ID: {0}")]
-    NotFound(SubscriptionId),
-
     #[error(transparent)]
-    Core(#[from] SubscriptionError),
+    Subscription(#[from] SubscriptionError),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

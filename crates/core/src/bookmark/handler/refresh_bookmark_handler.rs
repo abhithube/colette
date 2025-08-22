@@ -3,12 +3,7 @@ use std::sync::Arc;
 use colette_scraper::bookmark::{BookmarkError, BookmarkScraper};
 use url::Url;
 
-use crate::{
-    Handler,
-    bookmark::{BookmarkInsertParams, BookmarkRepository},
-    common::RepositoryError,
-    auth::UserId,
-};
+use crate::{Handler, auth::UserId, bookmark::BookmarkRepository, common::RepositoryError};
 
 #[derive(Debug, Clone)]
 pub struct RefreshBookmarkCommand {
@@ -41,17 +36,17 @@ impl Handler<RefreshBookmarkCommand> for RefreshBookmarkHandler {
     async fn handle(&self, mut cmd: RefreshBookmarkCommand) -> Result<Self::Response, Self::Error> {
         let processed = self.bookmark_scraper.scrape(&mut cmd.url).await?;
 
-        self.bookmark_repository
-            .insert(BookmarkInsertParams {
-                link: cmd.url,
-                title: processed.title,
-                thumbnail_url: processed.thumbnail,
-                published_at: processed.published,
-                author: processed.author,
-                user_id: cmd.user_id,
-                upsert: true,
-            })
-            .await?;
+        // self.bookmark_repository
+        //     .insert(BookmarkInsertParams {
+        //         link: cmd.url,
+        //         title: processed.title,
+        //         thumbnail_url: processed.thumbnail,
+        //         published_at: processed.published,
+        //         author: processed.author,
+        //         user_id: cmd.user_id,
+        //         upsert: true,
+        //     })
+        //     .await?;
 
         Ok(())
     }

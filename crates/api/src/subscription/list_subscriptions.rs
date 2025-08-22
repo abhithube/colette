@@ -14,7 +14,7 @@ use crate::{
     ApiState,
     common::{ApiError, Auth, Query},
     pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
-    subscription::{SUBSCRIPTIONS_TAG, SubscriptionDetails},
+    subscription::{SUBSCRIPTIONS_TAG, Subscription},
 };
 
 #[utoipa::path(
@@ -48,8 +48,6 @@ pub(super) async fn handler(
             },
             cursor,
             limit: Some(PAGINATION_LIMIT),
-            with_unread_count: query.with_unread_count,
-            with_tags: query.with_tags,
             user_id,
         })
         .await
@@ -79,25 +77,11 @@ pub(super) struct SubscriptionListQuery {
     /// Pagination cursor
     #[param(nullable = false)]
     cursor: Option<String>,
-    /// Whether to include the count of the unread subscription entries associated with the subscription
-    #[serde(default = "with_unread_count")]
-    with_unread_count: bool,
-    /// Whether to include the tags linked to the subscription
-    #[serde(default = "with_tags")]
-    with_tags: bool,
-}
-
-fn with_unread_count() -> bool {
-    false
-}
-
-fn with_tags() -> bool {
-    false
 }
 
 #[derive(utoipa::IntoResponses)]
 #[response(status = StatusCode::OK, description = "Paginated list of subscriptions")]
-pub(super) struct OkResponse(Paginated<SubscriptionDetails>);
+pub(super) struct OkResponse(Paginated<Subscription>);
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {

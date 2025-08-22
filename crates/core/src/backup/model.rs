@@ -1,9 +1,8 @@
 use chrono::{DateTime, Utc};
 use url::Url;
+use uuid::Uuid;
 
-use crate::{
-    Bookmark, Subscription, Tag, bookmark::BookmarkId, subscription::SubscriptionId, tag::TagId,
-};
+use crate::{bookmark::BookmarkDto, subscription::SubscriptionDto, tag::TagDto};
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Backup {
@@ -14,7 +13,7 @@ pub struct Backup {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct BackupBookmark {
-    pub id: BookmarkId,
+    pub id: Uuid,
     pub link: Url,
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -25,14 +24,14 @@ pub struct BackupBookmark {
     pub author: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub archived_path: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tags: Option<Vec<BackupTag>>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<BackupTag>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-impl From<Bookmark> for BackupBookmark {
-    fn from(value: Bookmark) -> Self {
+impl From<BookmarkDto> for BackupBookmark {
+    fn from(value: BookmarkDto) -> Self {
         Self {
             id: value.id,
             link: value.link,
@@ -41,7 +40,7 @@ impl From<Bookmark> for BackupBookmark {
             published_at: value.published_at,
             author: value.author,
             archived_path: value.archived_path,
-            tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),
+            tags: value.tags.into_iter().map(Into::into).collect(),
             created_at: value.created_at,
             updated_at: value.updated_at,
         }
@@ -50,46 +49,46 @@ impl From<Bookmark> for BackupBookmark {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct BackupSubscription {
-    pub id: SubscriptionId,
+    pub id: Uuid,
     pub source_url: Url,
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tags: Option<Vec<BackupTag>>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<BackupTag>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-impl From<Subscription> for BackupSubscription {
-    fn from(value: Subscription) -> Self {
+impl From<SubscriptionDto> for BackupSubscription {
+    fn from(value: SubscriptionDto) -> Self {
         Self {
             id: value.id,
-            source_url: value.feed.source_url,
+            source_url: value.source_url,
             title: value.title,
             description: value.description,
-            tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),
+            tags: value.tags.into_iter().map(Into::into).collect(),
             created_at: value.created_at,
-            updated_at: value.created_at,
+            updated_at: value.updated_at,
         }
     }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct BackupTag {
-    pub id: TagId,
+    pub id: Uuid,
     pub title: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-impl From<Tag> for BackupTag {
-    fn from(value: Tag) -> Self {
+impl From<TagDto> for BackupTag {
+    fn from(value: TagDto) -> Self {
         Self {
             id: value.id,
             title: value.title,
             created_at: value.created_at,
-            updated_at: value.created_at,
+            updated_at: value.updated_at,
         }
     }
 }

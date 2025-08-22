@@ -1,9 +1,9 @@
 use crate::{
     Handler,
+    auth::UserId,
     common::RepositoryError,
     pagination::{Paginated, paginate},
-    tag::{Tag, TagCursor, TagFindParams, TagRepository},
-    auth::UserId,
+    tag::{TagCursor, TagDto, TagFindParams, TagRepository},
 };
 
 #[derive(Debug, Clone)]
@@ -27,17 +27,17 @@ impl ListTagsHandler {
 
 #[async_trait::async_trait]
 impl Handler<ListTagsQuery> for ListTagsHandler {
-    type Response = Paginated<Tag, TagCursor>;
+    type Response = Paginated<TagDto, TagCursor>;
     type Error = ListTagsError;
 
     async fn handle(&self, query: ListTagsQuery) -> Result<Self::Response, Self::Error> {
         let tags = self
             .tag_repository
             .find(TagFindParams {
-                user_id: Some(query.user_id),
+                user_id: query.user_id,
+                id: None,
                 cursor: query.cursor.map(|e| e.title),
                 limit: query.limit.map(|e| e + 1),
-                ..Default::default()
             })
             .await?;
 

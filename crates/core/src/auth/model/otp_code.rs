@@ -2,8 +2,8 @@ use chrono::{DateTime, Duration, Utc};
 
 use crate::common::NumericCodeGenerator;
 
-const OTP_LEN: u8 = 6;
-const OTP_EXPIRATION_MIN: u8 = 10;
+pub const OTP_CODE_LEN: u8 = 6;
+pub const OTP_CODE_EXPIRATION_MIN: u8 = 10;
 
 #[derive(Debug, Clone)]
 pub struct OtpCode {
@@ -16,10 +16,10 @@ pub struct OtpCode {
 
 impl Default for OtpCode {
     fn default() -> Self {
-        let code = NumericCodeGenerator::generate(OTP_LEN);
+        let code = NumericCodeGenerator::generate(OTP_CODE_LEN);
 
         let now = Utc::now();
-        let expires_at = now + Duration::minutes(OTP_EXPIRATION_MIN as i64);
+        let expires_at = now + Duration::minutes(OTP_CODE_EXPIRATION_MIN as i64);
 
         Self {
             code: String::from_utf8_lossy(&code).into_owned(),
@@ -59,6 +59,7 @@ impl OtpCode {
         }
 
         self.used_at = Some(now);
+        self.updated_at = now;
 
         Ok(())
     }

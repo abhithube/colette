@@ -6,10 +6,9 @@ SELECT
   b.published_at,
   b.author,
   b.archived_path,
-  b.user_id,
+  coalesce(bt.tags, '[]'::JSONB) AS "tags: Json<Vec<TagRow>>",
   b.created_at,
-  b.updated_at,
-  coalesce(bt.tags, NULL::JSONB) AS "tags: Json<Vec<Tag>>"
+  b.updated_at
 FROM
   bookmarks b
   LEFT JOIN (
@@ -35,26 +34,19 @@ FROM
       bookmark_tags bt
       INNER JOIN tags t ON t.id = bt.tag_id
     WHERE
-      $6
-      AND (
-        $1::UUID IS NULL
-        OR bt.bookmark_id = $1
-      )
+      t.user_id = $1
       AND (
         $2::UUID IS NULL
-        OR t.user_id = $2
+        OR bt.bookmark_id = $2
       )
     GROUP BY
       bt.bookmark_id
   ) AS bt ON bt.bookmark_id = b.id
 WHERE
-  (
-    $1::UUID IS NULL
-    OR id = $1
-  )
+  user_id = $1
   AND (
     $2::UUID IS NULL
-    OR user_id = $2
+    OR id = $2
   )
   AND (
     $3::UUID[] IS NULL

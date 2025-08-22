@@ -1,9 +1,9 @@
 use crate::{
     Handler,
-    bookmark::{BookmarkError, BookmarkId, BookmarkLinkTagParams, BookmarkRepository},
+    auth::UserId,
+    bookmark::{BookmarkError, BookmarkId, BookmarkRepository},
     common::RepositoryError,
     tag::TagId,
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -31,19 +31,15 @@ impl Handler<LinkBookmarkTagsCommand> for LinkBookmarkTagsHandler {
     type Error = LinkBookmarkTagsError;
 
     async fn handle(&self, cmd: LinkBookmarkTagsCommand) -> Result<Self::Response, Self::Error> {
-        let bookmark = self
+        let mut bookmark = self
             .bookmark_repository
-            .find_by_id(cmd.id)
+            .find_by_id(cmd.id, cmd.user_id)
             .await?
-            .ok_or_else(|| LinkBookmarkTagsError::NotFound(cmd.id))?;
-        bookmark.authorize(cmd.user_id)?;
+            .ok_or_else(|| LinkBookmarkTagsError::Bookmark(BookmarkError::NotFound(cmd.id)))?;
 
-        self.bookmark_repository
-            .link_tags(BookmarkLinkTagParams {
-                bookmark_id: cmd.id,
-                tag_ids: cmd.tag_ids,
-            })
-            .await?;
+        bookmark.set_tags(cmd.tag_ids)?;
+
+        self.bookmark_repository.save(&bookmark).await?;
 
         Ok(())
     }
@@ -51,11 +47,8 @@ impl Handler<LinkBookmarkTagsCommand> for LinkBookmarkTagsHandler {
 
 #[derive(Debug, thiserror::Error)]
 pub enum LinkBookmarkTagsError {
-    #[error("bookmark not found with ID: {0}")]
-    NotFound(BookmarkId),
-
     #[error(transparent)]
-    Core(#[from] BookmarkError),
+    Bookmark(#[from] BookmarkError),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

@@ -1,11 +1,9 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     Collection,
+    auth::UserId,
     bookmark::BookmarkFilter,
-    collection::{
-        CollectionFindParams, CollectionId, CollectionInsertParams, CollectionRepository,
-        CollectionUpdateParams,
-    },
+    collection::{CollectionDto, CollectionFindParams, CollectionId, CollectionRepository},
     common::RepositoryError,
 };
 use sqlx::{PgPool, types::Json};
@@ -24,12 +22,15 @@ impl PostgresCollectionRepository {
 
 #[async_trait::async_trait]
 impl CollectionRepository for PostgresCollectionRepository {
-    async fn find(&self, params: CollectionFindParams) -> Result<Vec<Collection>, RepositoryError> {
+    async fn find(
+        &self,
+        params: CollectionFindParams,
+    ) -> Result<Vec<CollectionDto>, RepositoryError> {
         let collections = sqlx::query_file_as!(
             CollectionRow,
             "queries/collections/find.sql",
+            params.user_id.as_inner(),
             params.id.map(|e| e.as_inner()),
-            params.user_id.map(|e| e.as_inner()),
             params.cursor,
             params.limit.map(|e| e as i64)
         )
@@ -40,45 +41,76 @@ impl CollectionRepository for PostgresCollectionRepository {
         Ok(collections)
     }
 
-    async fn insert(
+    async fn find_by_id(
         &self,
-        params: CollectionInsertParams,
-    ) -> Result<CollectionId, RepositoryError> {
-        let id = sqlx::query_file_scalar!(
-            "queries/collections/insert.sql",
-            params.title,
-            Json(params.filter) as Json<BookmarkFilter>,
-            params.user_id.as_inner()
+        id: CollectionId,
+        user_id: UserId,
+    ) -> Result<Option<Collection>, RepositoryError> {
+        let collection = sqlx::query_file_as!(
+            CollectionByIdRow,
+            "queries/collections/find_by_id.sql",
+            id.as_inner(),
+            user_id.as_inner()
         )
-        .fetch_one(&self.pool)
+        .map(Into::into)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(collection)
+    }
+
+    async fn save(&self, data: &Collection) -> Result<(), RepositoryError> {
+        sqlx::query_file!(
+            "queries/collections/upsert.sql",
+            data.id().as_inner(),
+            data.title().as_inner(),
+            Json(data.filter().to_owned()) as Json<BookmarkFilter>,
+            data.user_id().as_inner(),
+            data.created_at(),
+            data.updated_at()
+        )
+        .execute(&self.pool)
         .await
         .map_err(|e| match e {
             sqlx::Error::Database(e) if e.is_unique_violation() => RepositoryError::Duplicate,
             _ => RepositoryError::Unknown(e),
         })?;
 
-        Ok(id.into())
+        Ok(())
     }
 
-    async fn update(&self, params: CollectionUpdateParams) -> Result<(), RepositoryError> {
+    async fn delete_by_id(&self, id: CollectionId, user_id: UserId) -> Result<(), RepositoryError> {
         sqlx::query_file!(
-            "queries/collections/update.sql",
-            params.id.as_inner(),
-            params.title,
-            params.filter.map(Json) as Option<Json<BookmarkFilter>>
+            "queries/collections/delete_by_id.sql",
+            id.as_inner(),
+            user_id.as_inner()
         )
         .execute(&self.pool)
         .await?;
 
         Ok(())
     }
+}
 
-    async fn delete_by_id(&self, id: CollectionId) -> Result<(), RepositoryError> {
-        sqlx::query_file!("queries/collections/delete_by_id.sql", id.as_inner())
-            .execute(&self.pool)
-            .await?;
+struct CollectionByIdRow {
+    id: Uuid,
+    title: String,
+    filter_json: Json<BookmarkFilter>,
+    user_id: Uuid,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
 
-        Ok(())
+impl From<CollectionByIdRow> for Collection {
+    fn from(value: CollectionByIdRow) -> Self {
+        Self::from_unchecked(
+            value.id,
+            value.title,
+            value.filter_json.0,
+            value.user_id,
+            value.created_at,
+            value.updated_at,
+        )
     }
 }
 
@@ -91,13 +123,13 @@ struct CollectionRow {
     updated_at: DateTime<Utc>,
 }
 
-impl From<CollectionRow> for Collection {
+impl From<CollectionRow> for CollectionDto {
     fn from(value: CollectionRow) -> Self {
         Self {
-            id: value.id.into(),
+            id: value.id,
             title: value.title,
             filter: value.filter_json.0,
-            user_id: value.user_id.into(),
+            user_id: value.user_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
         }

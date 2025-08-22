@@ -3,12 +3,10 @@ use tokio::sync::Mutex;
 
 use crate::{
     Handler,
-    bookmark::{
-        ArchiveThumbnailJobData, BookmarkError, BookmarkId, BookmarkRepository, ThumbnailOperation,
-    },
-    common::RepositoryError,
-    job::{JobInsertParams, JobRepository},
     auth::UserId,
+    bookmark::{BookmarkError, BookmarkId, BookmarkRepository},
+    common::RepositoryError,
+    job::JobRepository,
 };
 
 #[derive(Debug, Clone)]
@@ -43,33 +41,34 @@ impl Handler<DeleteBookmarkCommand> for DeleteBookmarkHandler {
     type Error = DeleteBookmarkError;
 
     async fn handle(&self, cmd: DeleteBookmarkCommand) -> Result<Self::Response, Self::Error> {
-        let bookmark = self
-            .bookmark_repository
-            .find_by_id(cmd.id)
-            .await?
-            .ok_or_else(|| DeleteBookmarkError::NotFound(cmd.id))?;
-        bookmark.authorize(cmd.user_id)?;
+        self.bookmark_repository
+            .delete_by_id(cmd.id, cmd.user_id)
+            .await
+            .map_err(|e| match e {
+                RepositoryError::NotFound => {
+                    DeleteBookmarkError::Bookmark(BookmarkError::NotFound(cmd.id))
+                }
+                _ => DeleteBookmarkError::Repository(e),
+            })?;
 
-        self.bookmark_repository.delete_by_id(cmd.id).await?;
+        // let data = serde_json::to_value(&ArchiveThumbnailJobData {
+        //     operation: ThumbnailOperation::Delete,
+        //     archived_path: bookmark.archived_path,
+        //     bookmark_id: bookmark.id,
+        // })?;
 
-        let data = serde_json::to_value(&ArchiveThumbnailJobData {
-            operation: ThumbnailOperation::Delete,
-            archived_path: bookmark.archived_path,
-            bookmark_id: bookmark.id,
-        })?;
+        // let job_id = self
+        //     .job_repository
+        //     .insert(JobInsertParams {
+        //         job_type: "archive_thumbnail".into(),
+        //         data,
+        //         group_identifier: None,
+        //     })
+        //     .await?;
 
-        let job_id = self
-            .job_repository
-            .insert(JobInsertParams {
-                job_type: "archive_thumbnail".into(),
-                data,
-                group_identifier: None,
-            })
-            .await?;
+        // let mut producer = self.archive_thumbnail_producer.lock().await;
 
-        let mut producer = self.archive_thumbnail_producer.lock().await;
-
-        producer.push(job_id.as_inner()).await?;
+        // producer.push(job_id.as_inner()).await?;
 
         Ok(())
     }
@@ -77,11 +76,8 @@ impl Handler<DeleteBookmarkCommand> for DeleteBookmarkHandler {
 
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteBookmarkError {
-    #[error("bookmark not found with ID: {0}")]
-    NotFound(BookmarkId),
-
     #[error(transparent)]
-    Core(#[from] BookmarkError),
+    Bookmark(#[from] BookmarkError),
 
     #[error(transparent)]
     Queue(#[from] colette_queue::Error),

@@ -13,10 +13,11 @@ use crate::{
     common::UuidGenerator,
 };
 
-const DISPLAY_NAME_MAX_LENGTH: usize = 50;
-const OTP_RATE_LIMIT_COUNT: usize = 3;
-const OTP_RATE_LIMIT_DURATION: u8 = 10;
-const MAX_PAT_COUNT: usize = 10;
+pub const USER_DISPLAY_NAME_MAX_LENGTH: usize = 50;
+pub const OTP_CODE_MAX_ATTEMPTS: i8 = 5;
+pub const OTP_RATE_LIMIT_COUNT: usize = 3;
+pub const OTP_RATE_LIMIT_DURATION: u8 = 10;
+pub const PAT_MAX_COUNT: usize = 10;
 
 #[derive(Debug, Clone)]
 pub struct User {
@@ -97,6 +98,26 @@ impl User {
         Ok(())
     }
 
+    pub fn generate_otp_code(&mut self) -> Result<OtpCode, UserError> {
+        let mut attempts = 0;
+        loop {
+            let otp_code: OtpCode = OtpCode::new();
+
+            if self.otp_codes.iter().any(|e| e.code() == otp_code.code()) {
+                attempts += 1;
+                if attempts >= OTP_CODE_MAX_ATTEMPTS {
+                    return Err(UserError::DuplicateOtpCode);
+                }
+
+                continue;
+            }
+
+            self.otp_codes.push(otp_code.clone());
+
+            return Ok(otp_code);
+        }
+    }
+
     pub fn add_otp_code(&mut self, value: OtpCode) -> Result<(), UserError> {
         if self.otp_codes.iter().any(|e| e.code() == value.code()) {
             return Err(UserError::DuplicateOtpCode);
@@ -156,7 +177,7 @@ impl User {
         &mut self,
         value: PersonalAccessToken,
     ) -> Result<(), UserError> {
-        if self.personal_access_tokens.len() == MAX_PAT_COUNT {
+        if self.personal_access_tokens.len() == PAT_MAX_COUNT {
             return Err(UserError::TooManyPats);
         }
 
@@ -239,7 +260,7 @@ pub struct DisplayName(String);
 
 impl DisplayName {
     pub fn new(value: String) -> Result<Self, UserError> {
-        if value.is_empty() || value.len() > DISPLAY_NAME_MAX_LENGTH {
+        if value.is_empty() || value.len() > USER_DISPLAY_NAME_MAX_LENGTH {
             return Err(UserError::InvalidDisplayNameLength);
         }
 
@@ -251,8 +272,8 @@ impl DisplayName {
             return Err(UserError::InvalidDisplayNameLength);
         }
 
-        let truncated = if value.len() > DISPLAY_NAME_MAX_LENGTH {
-            value[0..DISPLAY_NAME_MAX_LENGTH].to_owned()
+        let truncated = if value.len() > USER_DISPLAY_NAME_MAX_LENGTH {
+            value[0..USER_DISPLAY_NAME_MAX_LENGTH].to_owned()
         } else {
             value
         };
@@ -273,7 +294,7 @@ pub enum UserError {
     #[error(transparent)]
     InvalidImageUrl(#[from] url::ParseError),
 
-    #[error("display name must be between 1 and {DISPLAY_NAME_MAX_LENGTH} characters long")]
+    #[error("display name must be between 1 and {USER_DISPLAY_NAME_MAX_LENGTH} characters long")]
     InvalidDisplayNameLength,
 
     #[error("already connected to provider {0} with sub {1}")]

@@ -1,10 +1,11 @@
 use crate::{
-    Handler,
+    Handler, Subscription,
+    auth::UserId,
     common::RepositoryError,
     subscription::{
-        SubscriptionError, SubscriptionId, SubscriptionRepository, SubscriptionUpdateParams,
+        SubscriptionDescription, SubscriptionError, SubscriptionId, SubscriptionRepository,
+        SubscriptionTitle,
     },
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -29,36 +30,39 @@ impl UpdateSubscriptionHandler {
 
 #[async_trait::async_trait]
 impl Handler<UpdateSubscriptionCommand> for UpdateSubscriptionHandler {
-    type Response = ();
+    type Response = Subscription;
     type Error = UpdateSubscriptionError;
 
     async fn handle(&self, cmd: UpdateSubscriptionCommand) -> Result<Self::Response, Self::Error> {
-        let subscription = self
+        let mut subscription = self
             .subscription_repository
-            .find_by_id(cmd.id)
+            .find_by_id(cmd.id, cmd.user_id)
             .await?
-            .ok_or_else(|| UpdateSubscriptionError::NotFound(cmd.id))?;
-        subscription.authorize(cmd.user_id)?;
+            .ok_or_else(|| {
+                UpdateSubscriptionError::Subscription(SubscriptionError::NotFound(cmd.id))
+            })?;
 
-        self.subscription_repository
-            .update(SubscriptionUpdateParams {
-                id: cmd.id,
-                title: cmd.title,
-                description: cmd.description,
-            })
-            .await?;
+        if let Some(title) = cmd.title.map(SubscriptionTitle::new).transpose()? {
+            subscription.set_title(title);
+        }
+        if let Some(description) = cmd.description {
+            if let Some(description) = description.map(SubscriptionDescription::new).transpose()? {
+                subscription.set_description(description);
+            } else {
+                subscription.remove_description();
+            }
+        }
 
-        Ok(())
+        self.subscription_repository.save(&subscription).await?;
+
+        Ok(subscription)
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateSubscriptionError {
-    #[error("subscription not found with ID: {0}")]
-    NotFound(SubscriptionId),
-
     #[error(transparent)]
-    Core(#[from] SubscriptionError),
+    Subscription(#[from] SubscriptionError),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

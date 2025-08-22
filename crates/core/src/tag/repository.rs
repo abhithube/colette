@@ -1,50 +1,24 @@
 use crate::{
-    common::RepositoryError,
-    tag::{Tag, TagId},
     auth::UserId,
+    common::RepositoryError,
+    tag::{Tag, TagDto, TagId},
 };
 
 #[async_trait::async_trait]
 pub trait TagRepository: Send + Sync + 'static {
-    async fn find(&self, params: TagFindParams) -> Result<Vec<Tag>, RepositoryError>;
+    async fn find(&self, params: TagFindParams) -> Result<Vec<TagDto>, RepositoryError>;
 
-    async fn find_by_id(&self, id: TagId) -> Result<Option<Tag>, RepositoryError> {
-        let mut tags = self
-            .find(TagFindParams {
-                id: Some(id),
-                ..Default::default()
-            })
-            .await?;
-        if tags.is_empty() {
-            return Ok(None);
-        }
+    async fn find_by_id(&self, id: TagId, user_id: UserId) -> Result<Option<Tag>, RepositoryError>;
 
-        Ok(Some(tags.swap_remove(0)))
-    }
+    async fn save(&self, data: &Tag) -> Result<(), RepositoryError>;
 
-    async fn insert(&self, params: TagInsertParams) -> Result<TagId, RepositoryError>;
-
-    async fn update(&self, params: TagUpdateParams) -> Result<(), RepositoryError>;
-
-    async fn delete_by_id(&self, id: TagId) -> Result<(), RepositoryError>;
+    async fn delete_by_id(&self, id: TagId, user_id: UserId) -> Result<(), RepositoryError>;
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct TagFindParams {
+    pub user_id: UserId,
     pub id: Option<TagId>,
-    pub user_id: Option<UserId>,
     pub cursor: Option<String>,
     pub limit: Option<usize>,
-}
-
-#[derive(Debug, Clone)]
-pub struct TagInsertParams {
-    pub title: String,
-    pub user_id: UserId,
-}
-
-#[derive(Debug, Clone)]
-pub struct TagUpdateParams {
-    pub id: TagId,
-    pub title: Option<String>,
 }

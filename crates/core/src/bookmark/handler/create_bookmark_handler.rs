@@ -4,14 +4,11 @@ use tokio::sync::Mutex;
 use url::Url;
 
 use crate::{
-    Handler,
-    bookmark::{
-        ArchiveThumbnailJobData, BookmarkId, BookmarkInsertParams, BookmarkRepository,
-        ThumbnailOperation,
-    },
-    common::RepositoryError,
-    job::{JobInsertParams, JobRepository},
+    Bookmark, Handler,
     auth::UserId,
+    bookmark::{BookmarkAuthor, BookmarkError, BookmarkRepository, BookmarkTitle},
+    common::RepositoryError,
+    job::JobRepository,
 };
 
 #[derive(Debug, Clone)]
@@ -46,61 +43,61 @@ impl CreateBookmarkHandler {
 
 #[async_trait::async_trait]
 impl Handler<CreateBookmarkCommand> for CreateBookmarkHandler {
-    type Response = BookmarkCreated;
+    type Response = Bookmark;
     type Error = CreateBookmarkError;
 
     async fn handle(&self, cmd: CreateBookmarkCommand) -> Result<Self::Response, Self::Error> {
-        let id = self
-            .bookmark_repository
-            .insert(BookmarkInsertParams {
-                link: cmd.url.clone(),
-                title: cmd.title,
-                thumbnail_url: cmd.thumbnail_url.clone(),
-                published_at: cmd.published_at,
-                author: cmd.author,
-                user_id: cmd.user_id,
-                upsert: false,
-            })
+        let title = BookmarkTitle::new(cmd.title)?;
+        let author = cmd.author.map(BookmarkAuthor::new).transpose()?;
+
+        let bookmark = Bookmark::new(
+            cmd.url.clone(),
+            title,
+            cmd.thumbnail_url,
+            cmd.published_at,
+            author,
+            cmd.user_id,
+        );
+
+        self.bookmark_repository
+            .save(&bookmark)
             .await
             .map_err(|e| match e {
-                RepositoryError::Duplicate => CreateBookmarkError::Conflict(cmd.url),
+                RepositoryError::Duplicate => {
+                    CreateBookmarkError::Bookmark(BookmarkError::Conflict(cmd.url))
+                }
                 _ => CreateBookmarkError::Repository(e),
             })?;
 
-        if let Some(thumbnail_url) = cmd.thumbnail_url {
-            let data = serde_json::to_value(&ArchiveThumbnailJobData {
-                operation: ThumbnailOperation::Upload(thumbnail_url),
-                archived_path: None,
-                bookmark_id: id,
-            })?;
+        // if let Some(thumbnail_url) = cmd.thumbnail_url {
+        //     let data = serde_json::to_value(&ArchiveThumbnailJobData {
+        //         operation: ThumbnailOperation::Upload(thumbnail_url),
+        //         archived_path: None,
+        //         bookmark_id: id,
+        //     })?;
 
-            let job_id = self
-                .job_repository
-                .insert(JobInsertParams {
-                    job_type: "archive_thumbnail".into(),
-                    data,
-                    group_identifier: None,
-                })
-                .await?;
+        //     let job_id = self
+        //         .job_repository
+        //         .insert(JobInsertParams {
+        //             job_type: "archive_thumbnail".into(),
+        //             data,
+        //             group_identifier: None,
+        //         })
+        //         .await?;
 
-            let mut producer = self.archive_thumbnail_producer.lock().await;
+        //     let mut producer = self.archive_thumbnail_producer.lock().await;
 
-            producer.push(job_id.as_inner()).await?;
-        }
+        //     producer.push(job_id.as_inner()).await?;
+        // }
 
-        Ok(BookmarkCreated { id })
+        Ok(bookmark)
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct BookmarkCreated {
-    pub id: BookmarkId,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum CreateBookmarkError {
-    #[error("bookmark already exists with URL: {0}")]
-    Conflict(Url),
+    #[error(transparent)]
+    Bookmark(#[from] BookmarkError),
 
     #[error(transparent)]
     Queue(#[from] colette_queue::Error),

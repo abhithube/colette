@@ -1,19 +1,12 @@
 SELECT
   s.id,
+  f.source_url AS "source_url: DbUrl",
+  f.link AS "link: DbUrl",
   s.title,
   s.description,
   s.feed_id,
-  f.source_url AS "source_url: DbUrl",
-  f.link AS "link: DbUrl",
-  f.title AS feed_title,
-  f.description AS feed_description,
-  f.refresh_interval_min,
-  f.status AS "status: DbFeedStatus",
-  f.refreshed_at,
-  f.is_custom,
-  coalesce(uc.unread_count, 0) AS unread_count,
-  coalesce(t.tags, NULL::JSONB) AS "tags: Json<Vec<Tag>>",
-  s.user_id,
+  coalesce(uc.unread_count, 0) AS "unread_count!",
+  coalesce(t.tags, '[]'::JSONB) AS "tags!: Json<Vec<TagRow>>",
   s.created_at,
   s.updated_at
 FROM
@@ -27,8 +20,7 @@ FROM
       subscriptions s_inner
       INNER JOIN feed_entries fe ON s_inner.feed_id = fe.feed_id
     WHERE
-      $7
-      AND NOT EXISTS (
+      NOT EXISTS (
         SELECT
           1
         FROM
@@ -62,19 +54,14 @@ FROM
     FROM
       subscription_tags st
       INNER JOIN tags t ON t.id = st.tag_id
-    WHERE
-      $8
     GROUP BY
       st.subscription_id
   ) AS t ON s.id = t.subscription_id
 WHERE
-  (
-    $1::UUID IS NULL
-    OR s.id = $1
-  )
+  s.user_id = $1
   AND (
     $2::UUID IS NULL
-    OR s.user_id = $2
+    OR s.id = $2
   )
   AND (
     $3::UUID[] IS NULL

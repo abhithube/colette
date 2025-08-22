@@ -1,18 +1,18 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    Feed, Subscription, Tag,
+    Subscription,
+    auth::UserId,
     common::RepositoryError,
     feed::DEFAULT_INTERVAL,
     subscription::{
-        ImportSubscriptionsParams, SubscriptionFindParams, SubscriptionId,
-        SubscriptionInsertParams, SubscriptionLinkTagParams, SubscriptionRepository,
-        SubscriptionUpdateParams,
+        ImportSubscriptionsParams, SubscriptionDto, SubscriptionFindParams, SubscriptionId,
+        SubscriptionRepository,
     },
 };
 use sqlx::{PgPool, types::Json};
 use uuid::Uuid;
 
-use crate::{DbUrl, feed::DbFeedStatus};
+use crate::{DbUrl, tag::TagRow};
 
 #[derive(Debug, Clone)]
 pub struct PostgresSubscriptionRepository {
@@ -30,9 +30,9 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
     async fn find(
         &self,
         params: SubscriptionFindParams,
-    ) -> Result<Vec<Subscription>, RepositoryError> {
+    ) -> Result<Vec<SubscriptionDto>, RepositoryError> {
         let (cursor_title, cursor_id) = if let Some((title, id)) = params.cursor {
-            (Some(title), Some(id.as_inner()))
+            (Some(title), Some(id))
         } else {
             (None, None)
         };
@@ -43,14 +43,12 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         let subscriptions = sqlx::query_file_as!(
             SubscriptionRow,
             "queries/subscriptions/find.sql",
+            params.user_id.as_inner(),
             params.id.map(|e| e.as_inner()),
-            params.user_id.map(|e| e.as_inner()),
             tags.as_deref(),
             cursor_title,
             cursor_id,
-            params.limit.map(|e| e as i64),
-            params.with_unread_count,
-            params.with_tags
+            params.limit.map(|e| e as i64)
         )
         .map(Into::into)
         .fetch_all(&self.pool)
@@ -59,64 +57,55 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
         Ok(subscriptions)
     }
 
-    async fn insert(
+    async fn find_by_id(
         &self,
-        params: SubscriptionInsertParams,
-    ) -> Result<SubscriptionId, RepositoryError> {
-        let id = sqlx::query_file_scalar!(
-            "queries/subscriptions/insert.sql",
-            params.title,
-            params.description,
-            params.feed_id.as_inner(),
-            params.user_id.as_inner()
+        id: SubscriptionId,
+        user_id: UserId,
+    ) -> Result<Option<Subscription>, RepositoryError> {
+        let subscription = sqlx::query_file_as!(
+            SubscriptionByIdRow,
+            "queries/subscriptions/find_by_id.sql",
+            id.as_inner(),
+            user_id.as_inner()
         )
-        .fetch_one(&self.pool)
+        .map(Into::into)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(subscription)
+    }
+
+    async fn save(&self, data: &Subscription) -> Result<(), RepositoryError> {
+        sqlx::query_file!(
+            "queries/subscriptions/upsert.sql",
+            data.id().as_inner(),
+            data.title().as_inner(),
+            data.description().map(|e| e.as_inner()),
+            data.feed_id().as_inner(),
+            &data.tags().iter().map(|e| e.as_inner()).collect::<Vec<_>>(),
+            data.user_id().as_inner(),
+            data.created_at(),
+            data.updated_at(),
+        )
+        .execute(&self.pool)
         .await
         .map_err(|e| match e {
             sqlx::Error::Database(e) if e.is_unique_violation() => RepositoryError::Duplicate,
             _ => RepositoryError::Unknown(e),
         })?;
 
-        Ok(id.into())
-    }
-
-    async fn update(&self, params: SubscriptionUpdateParams) -> Result<(), RepositoryError> {
-        let (has_description, description) = if let Some(description) = params.description {
-            (true, description)
-        } else {
-            (false, None)
-        };
-
-        sqlx::query_file!(
-            "queries/subscriptions/update.sql",
-            params.id.as_inner(),
-            params.title,
-            has_description,
-            description,
-        )
-        .execute(&self.pool)
-        .await?;
-
         Ok(())
     }
 
-    async fn delete_by_id(&self, id: SubscriptionId) -> Result<(), RepositoryError> {
-        sqlx::query_file!("queries/subscriptions/delete_by_id.sql", id.as_inner())
-            .execute(&self.pool)
-            .await?;
-
-        Ok(())
-    }
-
-    async fn link_tags(&self, params: SubscriptionLinkTagParams) -> Result<(), RepositoryError> {
+    async fn delete_by_id(
+        &self,
+        id: SubscriptionId,
+        user_id: UserId,
+    ) -> Result<(), RepositoryError> {
         sqlx::query_file!(
-            "queries/subscription_tags/update.sql",
-            params.subscription_id.as_inner(),
-            &params
-                .tag_ids
-                .iter()
-                .map(|e| e.as_inner())
-                .collect::<Vec<_>>()
+            "queries/subscriptions/delete_by_id.sql",
+            id.as_inner(),
+            user_id.as_inner()
         )
         .execute(&self.pool)
         .await?;
@@ -171,47 +160,56 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
 
 struct SubscriptionRow {
     id: Uuid,
+    source_url: DbUrl,
+    link: DbUrl,
     title: String,
     description: Option<String>,
     feed_id: Uuid,
-    source_url: DbUrl,
-    link: DbUrl,
-    feed_title: String,
-    feed_description: Option<String>,
-    refresh_interval_min: i32,
-    refreshed_at: Option<DateTime<Utc>>,
-    status: DbFeedStatus,
-    is_custom: bool,
-    unread_count: Option<i64>,
-    tags: Option<Json<Vec<Tag>>>,
+    tags: Json<Vec<TagRow>>,
+    unread_count: i64,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl From<SubscriptionRow> for SubscriptionDto {
+    fn from(value: SubscriptionRow) -> Self {
+        Self {
+            id: value.id,
+            source_url: value.source_url.into(),
+            link: value.link.into(),
+            title: value.title,
+            description: value.description,
+            feed_id: value.feed_id,
+            tags: value.tags.0.into_iter().map(Into::into).collect(),
+            unread_count: value.unread_count,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+        }
+    }
+}
+
+struct SubscriptionByIdRow {
+    id: Uuid,
+    title: String,
+    description: Option<String>,
+    feed_id: Uuid,
+    tags: Vec<Uuid>,
     user_id: Uuid,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
 
-impl From<SubscriptionRow> for Subscription {
-    fn from(value: SubscriptionRow) -> Self {
-        Self {
-            id: value.id.into(),
-            title: value.title,
-            description: value.description,
-            feed_id: value.feed_id.into(),
-            user_id: value.user_id.into(),
-            created_at: value.created_at,
-            updated_at: value.updated_at,
-            feed: Feed {
-                id: value.feed_id.into(),
-                source_url: value.source_url.into(),
-                link: value.link.into(),
-                title: value.feed_title,
-                description: value.feed_description,
-                refresh_interval_min: value.refresh_interval_min as u32,
-                refreshed_at: value.refreshed_at,
-                status: value.status.into(),
-                is_custom: value.is_custom,
-            },
-            tags: value.tags.map(|e| e.0),
-            unread_count: value.unread_count,
-        }
+impl From<SubscriptionByIdRow> for Subscription {
+    fn from(value: SubscriptionByIdRow) -> Self {
+        Self::from_unchecked(
+            value.id,
+            value.title,
+            value.description,
+            value.feed_id,
+            value.tags,
+            value.user_id,
+            value.created_at,
+            value.updated_at,
+        )
     }
 }

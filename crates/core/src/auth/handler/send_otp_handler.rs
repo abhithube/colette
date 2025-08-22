@@ -2,11 +2,9 @@ use chrono::{DateTime, Utc};
 
 use crate::{
     Handler, User,
-    auth::{OtpCode, UserError, UserRepository},
+    auth::{UserError, UserRepository},
     common::RepositoryError,
 };
-
-const MAX_ATTEMPTS: i8 = 5;
 
 #[derive(Debug, Clone)]
 pub struct SendOtpCommand {
@@ -42,28 +40,12 @@ impl Handler<SendOtpCommand> for SendOtpHandler {
 
         user.check_otp_rate_limit()?;
 
-        let mut attempts = 0;
-        loop {
-            let otp = OtpCode::new();
-            let expires_at = otp.expires_at();
+        let otp_code = user.generate_otp_code()?;
+        self.user_repository.save(&user).await?;
 
-            match user.add_otp_code(otp) {
-                Ok(_) => {
-                    self.user_repository.save(&user).await?;
-
-                    return Ok(OtpData { expires_at });
-                }
-                Err(UserError::DuplicateOtpCode) => {
-                    attempts += 1;
-                    if attempts >= MAX_ATTEMPTS {
-                        return Err(SendOtpError::User(UserError::DuplicateOtpCode));
-                    }
-
-                    continue;
-                }
-                Err(e) => Err(e),
-            }?;
-        }
+        Ok(OtpData {
+            expires_at: otp_code.expires_at(),
+        })
     }
 }
 

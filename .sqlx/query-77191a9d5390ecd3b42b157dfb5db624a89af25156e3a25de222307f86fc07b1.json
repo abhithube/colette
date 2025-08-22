@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  b.id,\n  b.link AS \"link: DbUrl\",\n  b.title,\n  b.thumbnail_url AS \"thumbnail_url: DbUrl\",\n  b.published_at,\n  b.author,\n  array_agg(\n    bt.tag_id\n    ORDER BY\n      bt.created_at ASC\n  ) AS \"tags!\",\n  b.user_id,\n  b.created_at,\n  b.updated_at\nFROM\n  bookmarks b\n  LEFT JOIN bookmark_tags bt ON bt.bookmark_id = b.id\nWHERE\n  b.id = $1\n  AND b.user_id = $2\nGROUP BY\n  b.id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "link: DbUrl",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "thumbnail_url: DbUrl",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "published_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "author",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "tags!",
+        "type_info": "UuidArray"
+      },
+      {
+        "ordinal": 7,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      null,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "77191a9d5390ecd3b42b157dfb5db624a89af25156e3a25de222307f86fc07b1"
+}

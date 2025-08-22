@@ -1,8 +1,8 @@
 use crate::{
-    Handler,
+    Handler, Tag,
     auth::UserId,
     common::RepositoryError,
-    tag::{TagId, TagInsertParams, TagRepository},
+    tag::{TagError, TagRepository, TagTitle},
 };
 
 #[derive(Debug, Clone)]
@@ -25,35 +25,27 @@ impl CreateTagHandler {
 
 #[async_trait::async_trait]
 impl Handler<CreateTagCommand> for CreateTagHandler {
-    type Response = TagCreated;
+    type Response = Tag;
     type Error = CreateTagError;
 
     async fn handle(&self, cmd: CreateTagCommand) -> Result<Self::Response, Self::Error> {
-        let id = self
-            .tag_repository
-            .insert(TagInsertParams {
-                title: cmd.title.clone(),
-                user_id: cmd.user_id,
-            })
-            .await
-            .map_err(|e| match e {
-                RepositoryError::Duplicate => CreateTagError::Conflict(cmd.title),
-                _ => CreateTagError::Repository(e),
-            })?;
+        let title = TagTitle::new(cmd.title)?;
 
-        Ok(TagCreated { id })
+        let tag = Tag::new(title.clone(), cmd.user_id);
+
+        self.tag_repository.save(&tag).await.map_err(|e| match e {
+            RepositoryError::Duplicate => CreateTagError::Tag(TagError::Conflict(title)),
+            _ => CreateTagError::Repository(e),
+        })?;
+
+        Ok(tag)
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct TagCreated {
-    pub id: TagId,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum CreateTagError {
-    #[error("tag already exists with title: {0}")]
-    Conflict(String),
+    #[error(transparent)]
+    Tag(#[from] TagError),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

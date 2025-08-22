@@ -47,7 +47,7 @@ CREATE TABLE personal_access_tokens (
 );
 
 CREATE TABLE jobs (
-  id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7 (),
+  id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
   job_type TEXT NOT NULL,
   data_json JSONB NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
@@ -62,7 +62,7 @@ UPDATE ON jobs FOR EACH ROW
 EXECUTE PROCEDURE set_updated_at ();
 
 CREATE TABLE feeds (
-  id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7 (),
+  id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
   source_url TEXT NOT NULL UNIQUE,
   link TEXT NOT NULL,
   title TEXT NOT NULL,
@@ -80,7 +80,7 @@ UPDATE ON feeds FOR EACH ROW
 EXECUTE PROCEDURE set_updated_at ();
 
 CREATE TABLE feed_entries (
-  id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7 (),
+  id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
   link TEXT NOT NULL,
   title TEXT NOT NULL,
   published_at TIMESTAMPTZ NOT NULL,
@@ -98,22 +98,18 @@ UPDATE ON feed_entries FOR EACH ROW
 EXECUTE PROCEDURE set_updated_at ();
 
 CREATE TABLE subscriptions (
-  id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7 (),
+  id UUID NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
   feed_id UUID NOT NULL REFERENCES feeds (id) ON DELETE RESTRICT,
   user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
   UNIQUE (user_id, feed_id)
 );
 
-CREATE TRIGGER subscriptions_updated_at BEFORE
-UPDATE ON subscriptions FOR EACH ROW
-EXECUTE PROCEDURE set_updated_at ();
-
 CREATE TABLE subscription_entries (
-  id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7 (),
+  id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
   has_read BOOLEAN NOT NULL DEFAULT FALSE,
   read_at TIMESTAMPTZ,
   subscription_id UUID NOT NULL REFERENCES subscriptions (id) ON DELETE CASCADE,
@@ -123,12 +119,8 @@ CREATE TABLE subscription_entries (
   UNIQUE (subscription_id, feed_entry_id)
 );
 
-CREATE TRIGGER subscription_entries_updated_at BEFORE
-UPDATE ON subscription_entries FOR EACH ROW
-EXECUTE PROCEDURE set_updated_at ();
-
 CREATE TABLE bookmarks (
-  id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7 (),
+  id UUID NOT NULL PRIMARY KEY,
   link TEXT NOT NULL,
   title TEXT NOT NULL,
   thumbnail_url TEXT,
@@ -136,63 +128,43 @@ CREATE TABLE bookmarks (
   author TEXT,
   archived_path TEXT,
   user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
   UNIQUE (user_id, link)
 );
 
-CREATE TRIGGER bookmarks_updated_at BEFORE
-UPDATE ON bookmarks FOR EACH ROW
-EXECUTE PROCEDURE set_updated_at ();
-
 CREATE TABLE tags (
-  id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7 (),
+  id UUID NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
   user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
   UNIQUE (user_id, title)
 );
-
-CREATE TRIGGER tags_updated_at BEFORE
-UPDATE ON tags FOR EACH ROW
-EXECUTE PROCEDURE set_updated_at ();
 
 CREATE TABLE subscription_tags (
   subscription_id UUID NOT NULL REFERENCES subscriptions (id) ON DELETE CASCADE,
   tag_id UUID NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
   PRIMARY KEY (subscription_id, tag_id)
 );
-
-CREATE TRIGGER subscription_tags_updated_at BEFORE
-UPDATE ON subscription_tags FOR EACH ROW
-EXECUTE PROCEDURE set_updated_at ();
 
 CREATE TABLE bookmark_tags (
   bookmark_id UUID NOT NULL REFERENCES bookmarks (id) ON DELETE CASCADE,
   tag_id UUID NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
   PRIMARY KEY (bookmark_id, tag_id)
 );
 
-CREATE TRIGGER bookmark_tags_updated_at BEFORE
-UPDATE ON bookmark_tags FOR EACH ROW
-EXECUTE PROCEDURE set_updated_at ();
-
 CREATE TABLE collections (
-  id UUID NOT NULL PRIMARY KEY DEFAULT uuidv7 (),
+  id UUID NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
   filter_json JSONB NOT NULL,
   user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
   UNIQUE (user_id, title)
 );
-
-CREATE TRIGGER collections_updated_at BEFORE
-UPDATE ON collections FOR EACH ROW
-EXECUTE PROCEDURE set_updated_at ();
