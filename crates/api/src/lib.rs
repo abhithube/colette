@@ -27,7 +27,7 @@ use utoipa::{
 };
 use utoipa_scalar::{Scalar, Servable};
 
-use crate::backup::BackupApi;
+use crate::{backup::BackupApi, common::CreatedResource};
 
 mod auth;
 mod backup;
@@ -61,7 +61,7 @@ const API_PREFIX: &str = "/api";
         (path = "/subscriptionEntries", api = SubscriptionEntryApi),
         (path = "/tags", api = TagApi),
     ),
-    components(schemas(ApiError, TextOp, BooleanOp, DateOp)),
+    components(schemas(CreatedResource, ApiError, TextOp, BooleanOp, DateOp)),
     security(("bearerAuth" = [])),
     modifiers(&Security)
 )]

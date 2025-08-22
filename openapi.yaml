@@ -2082,6 +2082,15 @@ components:
         s3:
           $ref: '#/components/schemas/S3Config'
           description: Storage bucket config
+    CreatedResource:
+      type: object
+      required:
+      - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the resource
     DateOp:
       oneOf:
       - type: object
