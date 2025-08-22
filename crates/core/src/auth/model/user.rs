@@ -83,6 +83,10 @@ impl User {
     }
 
     pub fn check_otp_rate_limit(&self) -> Result<(), UserError> {
+        if self.otp_codes.is_empty() {
+            return Ok(());
+        }
+
         let time = Utc::now() - Duration::minutes(OTP_RATE_LIMIT_DURATION as i64);
 
         if self

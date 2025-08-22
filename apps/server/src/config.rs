@@ -101,6 +101,7 @@ pub async fn from_env() -> Result<AppConfig, Box<dyn std::error::Error>> {
         database,
         jwt,
         cors,
+        smtp: raw.smtp,
         s3,
         oidc,
     })
@@ -112,6 +113,7 @@ pub struct AppConfig {
     pub database: DatabaseConfig,
     pub jwt: JwtConfig,
     pub cors: Option<CorsConfig>,
+    pub smtp: SmtpConfig,
     pub s3: S3Config,
     pub oidc: Option<OidcConfig>,
 }
@@ -142,6 +144,14 @@ pub struct CorsConfig {
     pub origin_urls: Vec<Url>,
 }
 
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct SmtpConfig {
+    pub host: String,
+    pub username: String,
+    pub password: String,
+    pub from_address: String,
+}
+
 #[derive(Debug, Clone)]
 pub struct S3Config {
     pub access_key_id: String,
@@ -153,7 +163,7 @@ pub struct S3Config {
     pub image_base_url: Url,
 }
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone)]
 pub struct OidcConfig {
     pub issuer_url: String,
     pub client_id: String,
@@ -169,6 +179,7 @@ struct RawConfig {
     client: Option<ClientConfig>,
     jwt: RawJwtConfig,
     cors: RawCorsConfig,
+    smtp: SmtpConfig,
     s3: RawS3Config,
     oidc: Option<RawOidcConfig>,
 }

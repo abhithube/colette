@@ -53,6 +53,7 @@ use colette_repository::{
 };
 use colette_s3::S3ClientImpl;
 use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
+use colette_smtp::{SmtpClientImpl, SmtpConfig};
 use sqlx::PgPool;
 use tokio::{net::TcpListener, sync::Mutex};
 use tower::{ServiceBuilder, ServiceExt};
@@ -131,6 +132,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         oidc_client = Some(client);
     }
+
+    let stmp_client = SmtpClientImpl::create(SmtpConfig {
+        host: app_config.smtp.host,
+        username: app_config.smtp.username,
+        password: app_config.smtp.password,
+        from_address: app_config.smtp.from_address,
+    })?;
 
     let s3_client = S3ClientImpl::init(colette_s3::S3Config {
         access_key_id: app_config.s3.access_key_id,
@@ -213,7 +221,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let mut api_state = ApiState {
         // Auth
-        send_otp: Arc::new(SendOtpHandler::new(user_repository.clone())),
+        send_otp: Arc::new(SendOtpHandler::new(user_repository.clone(), stmp_client)),
         verify_otp: Arc::new(VerifyOtpHandler::new(
             user_repository.clone(),
             jwt_manager.clone(),

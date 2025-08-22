@@ -1,0 +1,14 @@
+Colette - Verify your identity
+
+We received a request to sign in to your Colette account.
+Enter the verification code below to complete your authentication.
+
+Verification Code: {{OTP_CODE}}
+
+This code will expire in {{OTP_EXPIRATION_MIN}} minutes.
+
+Security Notice:
+If you didn't request this code, please ignore this email.
+Never share this verification code with anyone.
+
+This email was sent to {{USER_EMAIL}} for your Colette account.

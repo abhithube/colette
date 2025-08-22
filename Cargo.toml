@@ -16,6 +16,7 @@ members = [
   "crates/repository",
   "crates/s3",
   "crates/scraper",
+  "crates/smtp",
   "crates/util",
 ]
 resolver = "2"
@@ -49,6 +50,7 @@ colette-queue.path = "crates/queue"
 colette-repository.path = "crates/repository"
 colette-s3.path = "crates/s3"
 colette-scraper.path = "crates/scraper"
+colette-smtp.path = "crates/smtp"
 colette-util.path = "crates/util"
 email_address = { version = "0.2.9", default-features = false, features = [
   "serde_support",
