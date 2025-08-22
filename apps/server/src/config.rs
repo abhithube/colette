@@ -45,16 +45,8 @@ pub async fn from_env() -> Result<AppConfig, Box<dyn std::error::Error>> {
     });
 
     let s3 = {
-        let access_key_id = raw.s3.access_key_id.expect("'AWS__ACCESS_KEY_ID' not set");
-        let secret_access_key = raw
-            .s3
-            .secret_access_key
-            .expect("'AWS__SECRET_ACCESS_KEY' not set");
-        let region = raw.s3.region.expect("'AWS__REGION' not set");
-        let endpoint = raw.s3.endpoint.expect("'AWS__ENDPOINT' not set");
-
         let image_base_url = raw.s3.image_base_url.unwrap_or_else(|| {
-            let mut image_base_url = endpoint.parse::<Url>().unwrap();
+            let mut image_base_url = raw.s3.endpoint.parse::<Url>().unwrap();
 
             if raw.s3.path_style_enabled {
                 image_base_url.set_path(&format!("{}/", raw.s3.bucket_name));
@@ -72,10 +64,10 @@ pub async fn from_env() -> Result<AppConfig, Box<dyn std::error::Error>> {
         });
 
         S3Config {
-            access_key_id,
-            secret_access_key,
-            region,
-            endpoint,
+            access_key_id: raw.s3.access_key_id,
+            secret_access_key: raw.s3.secret_access_key,
+            region: raw.s3.region,
+            endpoint: raw.s3.endpoint,
             bucket_name: raw.s3.bucket_name,
             path_style_enabled: raw.s3.path_style_enabled,
             image_base_url,
@@ -199,10 +191,10 @@ struct RawCorsConfig {
 
 #[derive(Debug, Clone, serde::Deserialize)]
 struct RawS3Config {
-    access_key_id: Option<String>,
-    secret_access_key: Option<String>,
-    region: Option<String>,
-    endpoint: Option<String>,
+    access_key_id: String,
+    secret_access_key: String,
+    region: String,
+    endpoint: String,
     bucket_name: String,
     path_style_enabled: bool,
     image_base_url: Option<Url>,
