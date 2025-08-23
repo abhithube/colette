@@ -21,29 +21,29 @@ pub struct CreateBookmarkCommand {
     pub user_id: UserId,
 }
 
-pub struct CreateBookmarkHandler<BR: BookmarkRepository, JR: JobRepository> {
+pub struct CreateBookmarkHandler<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> {
     bookmark_repository: BR,
     job_repository: JR,
-    archive_thumbnail_producer: Box<Mutex<dyn JobProducer>>,
+    archive_thumbnail_producer: Mutex<JP>,
 }
 
-impl<BR: BookmarkRepository, JR: JobRepository> CreateBookmarkHandler<BR, JR> {
+impl<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> CreateBookmarkHandler<BR, JR, JP> {
     pub fn new(
         bookmark_repository: BR,
         job_repository: JR,
-        archive_thumbnail_producer: impl JobProducer,
+        archive_thumbnail_producer: JP,
     ) -> Self {
         Self {
             bookmark_repository,
             job_repository,
-            archive_thumbnail_producer: Box::new(Mutex::new(archive_thumbnail_producer)),
+            archive_thumbnail_producer: Mutex::new(archive_thumbnail_producer),
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<BR: BookmarkRepository, JR: JobRepository> Handler<CreateBookmarkCommand>
-    for CreateBookmarkHandler<BR, JR>
+impl<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> Handler<CreateBookmarkCommand>
+    for CreateBookmarkHandler<BR, JR, JP>
 {
     type Response = Bookmark;
     type Error = CreateBookmarkError;

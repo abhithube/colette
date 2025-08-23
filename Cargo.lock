@@ -425,6 +425,7 @@ dependencies = [
  "colette-http",
  "colette-jwt",
  "colette-oidc",
+ "colette-queue",
  "colette-repository",
  "colette-s3",
  "colette-smtp",

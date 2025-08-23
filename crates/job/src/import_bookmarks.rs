@@ -11,7 +11,7 @@ use colette_core::{
     },
     job::{CreateJobCommand, CreateJobHandler, Job},
 };
-use colette_queue::JobProducer;
+use colette_queue::{JobProducer, TokioJobProducer};
 use colette_repository::{
     PostgresBookmarkRepository, PostgresCollectionRepository, PostgresJobRepository,
 };
@@ -25,7 +25,7 @@ pub struct ImportBookmarksJobHandler {
     list_bookmarks:
         Arc<ListBookmarksHandler<PostgresBookmarkRepository, PostgresCollectionRepository>>,
     create_job: Arc<CreateJobHandler<PostgresJobRepository>>,
-    scrape_bookmark_producer: Arc<Mutex<dyn JobProducer>>,
+    scrape_bookmark_producer: Arc<Mutex<TokioJobProducer>>,
 }
 
 impl ImportBookmarksJobHandler {
@@ -34,7 +34,7 @@ impl ImportBookmarksJobHandler {
             ListBookmarksHandler<PostgresBookmarkRepository, PostgresCollectionRepository>,
         >,
         create_job: Arc<CreateJobHandler<PostgresJobRepository>>,
-        scrape_bookmark_producer: Arc<Mutex<dyn JobProducer>>,
+        scrape_bookmark_producer: Arc<Mutex<TokioJobProducer>>,
     ) -> Self {
         Self {
             list_bookmarks,

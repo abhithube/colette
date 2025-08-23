@@ -47,6 +47,7 @@ use colette_core::{
 use colette_http::ReqwestClient;
 use colette_jwt::JwtManagerImpl;
 use colette_oidc::OidcClientImpl;
+use colette_queue::TokioJobProducer;
 use colette_repository::{
     PostgresBackupRepository, PostgresBookmarkRepository, PostgresCollectionRepository,
     PostgresFeedEntryRepository, PostgresFeedRepository, PostgresJobRepository,
@@ -129,17 +130,21 @@ pub struct ApiState {
     pub list_bookmarks:
         Arc<ListBookmarksHandler<PostgresBookmarkRepository, PostgresCollectionRepository>>,
     pub get_bookmark: Arc<GetBookmarkHandler<PostgresBookmarkRepository>>,
-    pub create_bookmark:
-        Arc<CreateBookmarkHandler<PostgresBookmarkRepository, PostgresJobRepository>>,
-    pub update_bookmark:
-        Arc<UpdateBookmarkHandler<PostgresBookmarkRepository, PostgresJobRepository>>,
-    pub delete_bookmark:
-        Arc<DeleteBookmarkHandler<PostgresBookmarkRepository, PostgresJobRepository>>,
+    pub create_bookmark: Arc<
+        CreateBookmarkHandler<PostgresBookmarkRepository, PostgresJobRepository, TokioJobProducer>,
+    >,
+    pub update_bookmark: Arc<
+        UpdateBookmarkHandler<PostgresBookmarkRepository, PostgresJobRepository, TokioJobProducer>,
+    >,
+    pub delete_bookmark: Arc<
+        DeleteBookmarkHandler<PostgresBookmarkRepository, PostgresJobRepository, TokioJobProducer>,
+    >,
     pub scrape_bookmark: Arc<ScrapeBookmarkHandler<ReqwestClient>>,
     pub refresh_bookmark: Arc<RefreshBookmarkHandler<PostgresBookmarkRepository, ReqwestClient>>,
     pub link_bookmark_tags: Arc<LinkBookmarkTagsHandler<PostgresBookmarkRepository>>,
-    pub import_bookmarks:
-        Arc<ImportBookmarksHandler<PostgresBookmarkRepository, PostgresJobRepository>>,
+    pub import_bookmarks: Arc<
+        ImportBookmarksHandler<PostgresBookmarkRepository, PostgresJobRepository, TokioJobProducer>,
+    >,
     pub export_bookmarks: Arc<ExportBookmarksHandler<PostgresBookmarkRepository>>,
     pub archive_thumbnail:
         Arc<ArchiveThumbnailHandler<PostgresBookmarkRepository, ReqwestClient, S3ClientImpl>>,

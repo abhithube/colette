@@ -9,7 +9,7 @@ use colette_core::{
     },
 };
 use colette_job::{Error, JobError};
-use colette_queue::JobConsumer;
+use colette_queue::{JobConsumer, TokioJobConsumer};
 use colette_repository::PostgresJobRepository;
 use cron::Schedule;
 use serde_json::Value;
@@ -18,7 +18,7 @@ use tower::{Service, ServiceExt, util::BoxService};
 pub struct JobWorker {
     get_job: Arc<GetJobHandler<PostgresJobRepository>>,
     update_job: Arc<UpdateJobHandler<PostgresJobRepository>>,
-    job_consumer: Box<dyn JobConsumer>,
+    job_consumer: TokioJobConsumer,
     job_handler: BoxService<Job, (), Error>,
 }
 
@@ -26,13 +26,13 @@ impl JobWorker {
     pub fn new(
         get_job: Arc<GetJobHandler<PostgresJobRepository>>,
         update_job: Arc<UpdateJobHandler<PostgresJobRepository>>,
-        job_consumer: impl JobConsumer,
+        job_consumer: TokioJobConsumer,
         job_handler: BoxService<Job, (), Error>,
     ) -> Self {
         Self {
             get_job,
             update_job,
-            job_consumer: Box::new(job_consumer),
+            job_consumer,
             job_handler,
         }
     }

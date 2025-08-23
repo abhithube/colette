@@ -44,7 +44,7 @@ use colette_job::{
 use colette_jwt::JwtManagerImpl;
 use colette_oidc::OidcClientImpl;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_queue::{JobConsumerAdapter, JobProducerAdapter, LocalQueue};
+use colette_queue::TokioQueue;
 use colette_repository::{
     PostgresBackupRepository, PostgresBookmarkRepository, PostgresCollectionRepository,
     PostgresFeedEntryRepository, PostgresFeedRepository, PostgresJobRepository,
@@ -150,38 +150,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     })
     .await?;
 
-    let (scrape_feed_producer, scrape_feed_consumer) = {
-        let queue = LocalQueue::new().split();
-
-        (
-            JobProducerAdapter::Local(queue.0),
-            JobConsumerAdapter::Local(queue.1),
-        )
-    };
-    let (scrape_bookmark_producer, scrape_bookmark_consumer) = {
-        let queue = LocalQueue::new().split();
-
-        (
-            JobProducerAdapter::Local(queue.0),
-            JobConsumerAdapter::Local(queue.1),
-        )
-    };
-    let (archive_thumbnail_producer, archive_thumbnail_consumer) = {
-        let queue = LocalQueue::new().split();
-
-        (
-            JobProducerAdapter::Local(queue.0),
-            JobConsumerAdapter::Local(queue.1),
-        )
-    };
-    let (import_bookmarks_producer, import_bookmarks_consumer) = {
-        let queue = LocalQueue::new().split();
-
-        (
-            JobProducerAdapter::Local(queue.0),
-            JobConsumerAdapter::Local(queue.1),
-        )
-    };
+    let (scrape_feed_producer, scrape_feed_consumer) = TokioQueue::new().split();
+    let (scrape_bookmark_producer, scrape_bookmark_consumer) = TokioQueue::new().split();
+    let (archive_thumbnail_producer, archive_thumbnail_consumer) = TokioQueue::new().split();
+    let (import_bookmarks_producer, import_bookmarks_consumer) = TokioQueue::new().split();
 
     let bookmark_scraper = Arc::new(BookmarkScraper::new(
         http_client.clone(),

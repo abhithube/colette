@@ -21,29 +21,27 @@ pub struct ImportBookmarksCommand {
     pub user_id: UserId,
 }
 
-pub struct ImportBookmarksHandler<BR: BookmarkRepository, JR: JobRepository> {
+pub struct ImportBookmarksHandler<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> {
     bookmark_repository: BR,
     job_repository: JR,
-    import_bookmarks_producer: Box<Mutex<dyn JobProducer>>,
+    import_bookmarks_producer: Mutex<JP>,
 }
 
-impl<BR: BookmarkRepository, JR: JobRepository> ImportBookmarksHandler<BR, JR> {
-    pub fn new(
-        bookmark_repository: BR,
-        job_repository: JR,
-        import_bookmarks_producer: impl JobProducer,
-    ) -> Self {
+impl<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer>
+    ImportBookmarksHandler<BR, JR, JP>
+{
+    pub fn new(bookmark_repository: BR, job_repository: JR, import_bookmarks_producer: JP) -> Self {
         Self {
             bookmark_repository,
             job_repository,
-            import_bookmarks_producer: Box::new(Mutex::new(import_bookmarks_producer)),
+            import_bookmarks_producer: Mutex::new(import_bookmarks_producer),
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<BR: BookmarkRepository, JR: JobRepository> Handler<ImportBookmarksCommand>
-    for ImportBookmarksHandler<BR, JR>
+impl<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> Handler<ImportBookmarksCommand>
+    for ImportBookmarksHandler<BR, JR, JP>
 {
     type Response = ();
     type Error = ImportBookmarksError;

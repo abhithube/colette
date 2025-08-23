@@ -1,12 +1,5 @@
-#[cfg(not(any(feature = "local")))]
-compile_error!("at least one of 'local' must be enabled");
-
-#[cfg(feature = "local")]
-pub use local::LocalQueue;
+use tokio::sync::mpsc::{self, error::SendError, Receiver, Sender};
 use uuid::Uuid;
-
-#[cfg(feature = "local")]
-mod local;
 
 #[async_trait::async_trait]
 pub trait JobProducer: Send + Sync + 'static {
@@ -18,40 +11,71 @@ pub trait JobConsumer: Send + Sync + 'static {
     async fn pop(&mut self) -> Result<Option<Uuid>, Error>;
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("backend error: {0}")]
-    Backend(String),
-}
-
 #[derive(Debug, Clone)]
-pub enum JobProducerAdapter {
-    #[cfg(feature = "local")]
-    Local(local::LocalJobProducer),
+pub struct TokioJobProducer {
+    tx: Sender<Uuid>,
 }
 
 #[async_trait::async_trait]
-impl JobProducer for JobProducerAdapter {
+impl JobProducer for TokioJobProducer {
     async fn push(&mut self, job_id: Uuid) -> Result<(), Error> {
-        match self {
-            #[cfg(feature = "local")]
-            Self::Local(producer) => producer.push(job_id).await,
-        }
+        self.tx.send(job_id).await?;
+
+        Ok(())
     }
 }
 
 #[derive(Debug)]
-pub enum JobConsumerAdapter {
-    #[cfg(feature = "local")]
-    Local(local::LocalJobConsumer),
+pub struct TokioJobConsumer {
+    rx: Receiver<Uuid>,
 }
 
 #[async_trait::async_trait]
-impl JobConsumer for JobConsumerAdapter {
+impl JobConsumer for TokioJobConsumer {
     async fn pop(&mut self) -> Result<Option<Uuid>, Error> {
-        match self {
-            #[cfg(feature = "local")]
-            Self::Local(consumer) => consumer.pop().await,
+        let next = self.rx.recv().await;
+
+        Ok(next)
+    }
+}
+
+#[derive(Debug)]
+pub struct TokioQueue {
+    producer: TokioJobProducer,
+    consumer: TokioJobConsumer,
+}
+
+impl TokioQueue {
+    pub fn new() -> Self {
+        let (tx, rx) = mpsc::channel(100);
+
+        Self {
+            producer: TokioJobProducer { tx },
+            consumer: TokioJobConsumer { rx },
         }
     }
+
+    pub fn split(self) -> (TokioJobProducer, TokioJobConsumer) {
+        (self.producer, self.consumer)
+    }
+
+    pub fn producer(&mut self) -> &mut TokioJobProducer {
+        &mut self.producer
+    }
+
+    pub fn consumer(&mut self) -> &mut TokioJobConsumer {
+        &mut self.consumer
+    }
+}
+
+impl Default for TokioQueue {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    Send(#[from] SendError<Uuid>),
 }

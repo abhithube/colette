@@ -17,6 +17,7 @@ colette-core.workspace = true
 colette-http.workspace = true
 colette-jwt.workspace = true
 colette-oidc.workspace = true
+colette-queue.workspace = true
 colette-repository.workspace = true
 colette-s3.workspace = true
 colette-smtp.workspace = true
