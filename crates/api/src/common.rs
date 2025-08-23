@@ -26,7 +26,11 @@ use colette_core::{
         LinkBookmarkTagsHandler, ListBookmarksHandler, RefreshBookmarkHandler,
         ScrapeBookmarkHandler, UpdateBookmarkHandler,
     },
-    feed::{GetFeedHandler, ListFeedsHandler},
+    collection::{
+        CreateCollectionHandler, DeleteCollectionHandler, GetCollectionHandler,
+        ListCollectionsHandler, UpdateCollectionHandler,
+    },
+    feed::{DetectFeedsHandler, GetFeedHandler, ListFeedsHandler, RefreshFeedHandler},
     feed_entry::{GetFeedEntryHandler, ListFeedEntriesHandler},
     filter,
     subscription::{
@@ -34,9 +38,23 @@ use colette_core::{
         GetSubscriptionHandler, ImportSubscriptionsHandler, LinkSubscriptionTagsHandler,
         ListSubscriptionsHandler, UpdateSubscriptionHandler,
     },
-    subscription_entry::{GetSubscriptionEntryHandler, ListSubscriptionEntriesHandler},
+    subscription_entry::{
+        GetSubscriptionEntryHandler, ListSubscriptionEntriesHandler,
+        MarkSubscriptionEntryAsReadHandler, MarkSubscriptionEntryAsUnreadHandler,
+    },
     tag::{CreateTagHandler, DeleteTagHandler, GetTagHandler, ListTagsHandler, UpdateTagHandler},
 };
+use colette_http::ReqwestClient;
+use colette_jwt::JwtManagerImpl;
+use colette_oidc::OidcClientImpl;
+use colette_repository::{
+    PostgresBackupRepository, PostgresBookmarkRepository, PostgresCollectionRepository,
+    PostgresFeedEntryRepository, PostgresFeedRepository, PostgresJobRepository,
+    PostgresPatRepository, PostgresSubscriptionEntryRepository, PostgresSubscriptionRepository,
+    PostgresTagRepository, PostgresUserRepository,
+};
+use colette_s3::S3ClientImpl;
+use colette_smtp::SmtpClientImpl;
 use url::Url;
 use uuid::Uuid;
 
@@ -81,78 +99,99 @@ pub struct S3Config {
 #[derive(Clone, axum::extract::FromRef)]
 pub struct ApiState {
     // Auth
-    pub send_otp: Arc<SendOtpHandler>,
-    pub verify_otp: Arc<VerifyOtpHandler>,
-    pub build_authorization_url: Option<Arc<BuildAuthorizationUrlHandler>>,
-    pub exchange_code: Option<Arc<ExchangeCodeHandler>>,
-    pub get_user: Arc<GetUserHandler>,
-    pub refresh_access_token: Arc<RefreshAccessTokenHandler>,
-    pub validate_access_token: Arc<ValidateAccessTokenHandler>,
-    pub list_pats: Arc<ListPatsHandler>,
-    pub get_pat: Arc<GetPatHandler>,
-    pub create_pat: Arc<CreatePatHandler>,
-    pub update_pat: Arc<UpdatePatHandler>,
-    pub delete_pat: Arc<DeletePatHandler>,
-    pub validate_pat: Arc<ValidatePatHandler>,
+    pub send_otp: Arc<SendOtpHandler<PostgresUserRepository, SmtpClientImpl>>,
+    pub verify_otp: Arc<VerifyOtpHandler<PostgresUserRepository, JwtManagerImpl>>,
+    pub build_authorization_url: Option<Arc<BuildAuthorizationUrlHandler<OidcClientImpl>>>,
+    pub exchange_code:
+        Option<Arc<ExchangeCodeHandler<PostgresUserRepository, OidcClientImpl, JwtManagerImpl>>>,
+    pub get_user: Arc<GetUserHandler<PostgresUserRepository>>,
+    pub refresh_access_token:
+        Arc<RefreshAccessTokenHandler<PostgresUserRepository, JwtManagerImpl>>,
+    pub validate_access_token: Arc<ValidateAccessTokenHandler<JwtManagerImpl>>,
+    pub list_pats: Arc<ListPatsHandler<PostgresPatRepository>>,
+    pub get_pat: Arc<GetPatHandler<PostgresPatRepository>>,
+    pub create_pat: Arc<CreatePatHandler<PostgresUserRepository>>,
+    pub update_pat: Arc<UpdatePatHandler<PostgresUserRepository>>,
+    pub delete_pat: Arc<DeletePatHandler<PostgresUserRepository>>,
+    pub validate_pat: Arc<ValidatePatHandler<PostgresPatRepository>>,
 
     // Backup
-    pub import_backup: Arc<ImportBackupHandler>,
-    pub export_backup: Arc<ExportBackupHandler>,
+    pub import_backup: Arc<ImportBackupHandler<PostgresBackupRepository>>,
+    pub export_backup: Arc<
+        ExportBackupHandler<
+            PostgresBookmarkRepository,
+            PostgresSubscriptionRepository,
+            PostgresTagRepository,
+        >,
+    >,
 
     // Bookmarks
-    pub list_bookmarks: Arc<ListBookmarksHandler>,
-    pub get_bookmark: Arc<GetBookmarkHandler>,
-    pub create_bookmark: Arc<CreateBookmarkHandler>,
-    pub update_bookmark: Arc<UpdateBookmarkHandler>,
-    pub delete_bookmark: Arc<DeleteBookmarkHandler>,
-    pub scrape_bookmark: Arc<ScrapeBookmarkHandler>,
-    pub refresh_bookmark: Arc<RefreshBookmarkHandler>,
-    pub link_bookmark_tags: Arc<LinkBookmarkTagsHandler>,
-    pub import_bookmarks: Arc<ImportBookmarksHandler>,
-    pub export_bookmarks: Arc<ExportBookmarksHandler>,
-    pub archive_thumbnail: Arc<ArchiveThumbnailHandler>,
+    pub list_bookmarks:
+        Arc<ListBookmarksHandler<PostgresBookmarkRepository, PostgresCollectionRepository>>,
+    pub get_bookmark: Arc<GetBookmarkHandler<PostgresBookmarkRepository>>,
+    pub create_bookmark:
+        Arc<CreateBookmarkHandler<PostgresBookmarkRepository, PostgresJobRepository>>,
+    pub update_bookmark:
+        Arc<UpdateBookmarkHandler<PostgresBookmarkRepository, PostgresJobRepository>>,
+    pub delete_bookmark:
+        Arc<DeleteBookmarkHandler<PostgresBookmarkRepository, PostgresJobRepository>>,
+    pub scrape_bookmark: Arc<ScrapeBookmarkHandler<ReqwestClient>>,
+    pub refresh_bookmark: Arc<RefreshBookmarkHandler<PostgresBookmarkRepository, ReqwestClient>>,
+    pub link_bookmark_tags: Arc<LinkBookmarkTagsHandler<PostgresBookmarkRepository>>,
+    pub import_bookmarks:
+        Arc<ImportBookmarksHandler<PostgresBookmarkRepository, PostgresJobRepository>>,
+    pub export_bookmarks: Arc<ExportBookmarksHandler<PostgresBookmarkRepository>>,
+    pub archive_thumbnail:
+        Arc<ArchiveThumbnailHandler<PostgresBookmarkRepository, ReqwestClient, S3ClientImpl>>,
 
     // Collections
-    pub list_collections: Arc<colette_core::collection::ListCollectionsHandler>,
-    pub get_collection: Arc<colette_core::collection::GetCollectionHandler>,
-    pub create_collection: Arc<colette_core::collection::CreateCollectionHandler>,
-    pub update_collection: Arc<colette_core::collection::UpdateCollectionHandler>,
-    pub delete_collection: Arc<colette_core::collection::DeleteCollectionHandler>,
+    pub list_collections: Arc<ListCollectionsHandler<PostgresCollectionRepository>>,
+    pub get_collection: Arc<GetCollectionHandler<PostgresCollectionRepository>>,
+    pub create_collection: Arc<CreateCollectionHandler<PostgresCollectionRepository>>,
+    pub update_collection: Arc<UpdateCollectionHandler<PostgresCollectionRepository>>,
+    pub delete_collection: Arc<DeleteCollectionHandler<PostgresCollectionRepository>>,
 
     // Feeds
-    pub list_feeds: Arc<ListFeedsHandler>,
-    pub get_feed: Arc<GetFeedHandler>,
-    pub detect_feeds: Arc<colette_core::feed::DetectFeedsHandler>,
-    pub refresh_feed: Arc<colette_core::feed::RefreshFeedHandler>,
+    pub list_feeds: Arc<ListFeedsHandler<PostgresFeedRepository>>,
+    pub get_feed: Arc<GetFeedHandler<PostgresFeedRepository>>,
+    pub detect_feeds: Arc<DetectFeedsHandler<ReqwestClient>>,
+    pub refresh_feed:
+        Arc<RefreshFeedHandler<PostgresFeedRepository, PostgresFeedEntryRepository, ReqwestClient>>,
 
     // Feed Entries
-    pub list_feed_entries: Arc<ListFeedEntriesHandler>,
-    pub get_feed_entry: Arc<GetFeedEntryHandler>,
+    pub list_feed_entries: Arc<ListFeedEntriesHandler<PostgresFeedEntryRepository>>,
+    pub get_feed_entry: Arc<GetFeedEntryHandler<PostgresFeedEntryRepository>>,
 
     // Subscriptions
-    pub list_subscriptions: Arc<ListSubscriptionsHandler>,
-    pub get_subscription: Arc<GetSubscriptionHandler>,
-    pub create_subscription: Arc<CreateSubscriptionHandler>,
-    pub update_subscription: Arc<UpdateSubscriptionHandler>,
-    pub delete_subscription: Arc<DeleteSubscriptionHandler>,
-    pub link_subscription_tags: Arc<LinkSubscriptionTagsHandler>,
-    pub import_subscriptions: Arc<ImportSubscriptionsHandler>,
-    pub export_subscriptions: Arc<ExportSubscriptionsHandler>,
+    pub list_subscriptions: Arc<ListSubscriptionsHandler<PostgresSubscriptionRepository>>,
+    pub get_subscription: Arc<GetSubscriptionHandler<PostgresSubscriptionRepository>>,
+    pub create_subscription: Arc<CreateSubscriptionHandler<PostgresSubscriptionRepository>>,
+    pub update_subscription: Arc<UpdateSubscriptionHandler<PostgresSubscriptionRepository>>,
+    pub delete_subscription: Arc<DeleteSubscriptionHandler<PostgresSubscriptionRepository>>,
+    pub link_subscription_tags: Arc<LinkSubscriptionTagsHandler<PostgresSubscriptionRepository>>,
+    pub import_subscriptions: Arc<ImportSubscriptionsHandler<PostgresSubscriptionRepository>>,
+    pub export_subscriptions: Arc<ExportSubscriptionsHandler<PostgresSubscriptionRepository>>,
 
     // Subscription Entries
-    pub list_subscription_entries: Arc<ListSubscriptionEntriesHandler>,
-    pub get_subscription_entry: Arc<GetSubscriptionEntryHandler>,
+    pub list_subscription_entries: Arc<
+        ListSubscriptionEntriesHandler<
+            PostgresSubscriptionEntryRepository,
+            PostgresCollectionRepository,
+        >,
+    >,
+    pub get_subscription_entry:
+        Arc<GetSubscriptionEntryHandler<PostgresSubscriptionEntryRepository>>,
     pub mark_subscription_entry_as_read:
-        Arc<colette_core::subscription_entry::MarkSubscriptionEntryAsReadHandler>,
+        Arc<MarkSubscriptionEntryAsReadHandler<PostgresSubscriptionEntryRepository>>,
     pub mark_subscription_entry_as_unread:
-        Arc<colette_core::subscription_entry::MarkSubscriptionEntryAsUnreadHandler>,
+        Arc<MarkSubscriptionEntryAsUnreadHandler<PostgresSubscriptionEntryRepository>>,
 
     // Tags
-    pub list_tags: Arc<ListTagsHandler>,
-    pub get_tag: Arc<GetTagHandler>,
-    pub create_tag: Arc<CreateTagHandler>,
-    pub update_tag: Arc<UpdateTagHandler>,
-    pub delete_tag: Arc<DeleteTagHandler>,
+    pub list_tags: Arc<ListTagsHandler<PostgresTagRepository>>,
+    pub get_tag: Arc<GetTagHandler<PostgresTagRepository>>,
+    pub create_tag: Arc<CreateTagHandler<PostgresTagRepository>>,
+    pub update_tag: Arc<UpdateTagHandler<PostgresTagRepository>>,
+    pub delete_tag: Arc<DeleteTagHandler<PostgresTagRepository>>,
 
     pub config: Config,
 }

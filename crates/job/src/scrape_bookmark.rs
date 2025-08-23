@@ -9,18 +9,22 @@ use colette_core::{
     bookmark::{RefreshBookmarkCommand, RefreshBookmarkHandler, ScrapeBookmarkJobData},
     job::Job,
 };
+use colette_http::ReqwestClient;
+use colette_repository::PostgresBookmarkRepository;
 use futures::FutureExt;
 use tower::Service;
 
 use crate::Error;
 
 pub struct ScrapeBookmarkJobHandler {
-    bookmark_service: Arc<RefreshBookmarkHandler>,
+    refresh_bookmark: Arc<RefreshBookmarkHandler<PostgresBookmarkRepository, ReqwestClient>>,
 }
 
 impl ScrapeBookmarkJobHandler {
-    pub fn new(bookmark_service: Arc<RefreshBookmarkHandler>) -> Self {
-        Self { bookmark_service }
+    pub fn new(
+        refresh_bookmark: Arc<RefreshBookmarkHandler<PostgresBookmarkRepository, ReqwestClient>>,
+    ) -> Self {
+        Self { refresh_bookmark }
     }
 }
 
@@ -34,14 +38,14 @@ impl Service<Job> for ScrapeBookmarkJobHandler {
     }
 
     fn call(&mut self, job: Job) -> Self::Future {
-        let bookmark_service = self.bookmark_service.clone();
+        let refresh_bookmark = self.refresh_bookmark.clone();
 
         async move {
             let data = serde_json::from_value::<ScrapeBookmarkJobData>(job.data)?;
 
             tracing::debug!("Scraping bookmark at URL: {}", data.url.as_str());
 
-            bookmark_service
+            refresh_bookmark
                 .handle(RefreshBookmarkCommand {
                     url: data.url,
                     user_id: data.user_id,

@@ -23,25 +23,29 @@ pub struct ListSubscriptionEntriesQuery {
     pub user_id: UserId,
 }
 
-pub struct ListSubscriptionEntriesHandler {
-    subscription_entry_repository: Box<dyn SubscriptionEntryRepository>,
-    collection_repository: Box<dyn CollectionRepository>,
+pub struct ListSubscriptionEntriesHandler<
+    SER: SubscriptionEntryRepository,
+    CR: CollectionRepository,
+> {
+    subscription_entry_repository: SER,
+    collection_repository: CR,
 }
 
-impl ListSubscriptionEntriesHandler {
-    pub fn new(
-        subscription_entry_repository: impl SubscriptionEntryRepository,
-        collection_repository: impl CollectionRepository,
-    ) -> Self {
+impl<SER: SubscriptionEntryRepository, CR: CollectionRepository>
+    ListSubscriptionEntriesHandler<SER, CR>
+{
+    pub fn new(subscription_entry_repository: SER, collection_repository: CR) -> Self {
         Self {
-            subscription_entry_repository: Box::new(subscription_entry_repository),
-            collection_repository: Box::new(collection_repository),
+            subscription_entry_repository,
+            collection_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ListSubscriptionEntriesQuery> for ListSubscriptionEntriesHandler {
+impl<SER: SubscriptionEntryRepository, CR: CollectionRepository>
+    Handler<ListSubscriptionEntriesQuery> for ListSubscriptionEntriesHandler<SER, CR>
+{
     type Response = Paginated<SubscriptionEntry, SubscriptionEntryCursor>;
     type Error = ListSubscriptionEntriesError;
 

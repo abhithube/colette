@@ -12,17 +12,25 @@ use colette_core::{
     },
     job::Job,
 };
+use colette_http::ReqwestClient;
+use colette_repository::PostgresBookmarkRepository;
+use colette_s3::S3ClientImpl;
 use futures::FutureExt;
 use tower::Service;
 
 use crate::Error;
 
 pub struct ArchiveThumbnailJobHandler {
-    archive_thumbnail: Arc<ArchiveThumbnailHandler>,
+    archive_thumbnail:
+        Arc<ArchiveThumbnailHandler<PostgresBookmarkRepository, ReqwestClient, S3ClientImpl>>,
 }
 
 impl ArchiveThumbnailJobHandler {
-    pub fn new(archive_thumbnail: Arc<ArchiveThumbnailHandler>) -> Self {
+    pub fn new(
+        archive_thumbnail: Arc<
+            ArchiveThumbnailHandler<PostgresBookmarkRepository, ReqwestClient, S3ClientImpl>,
+        >,
+    ) -> Self {
         Self { archive_thumbnail }
     }
 }

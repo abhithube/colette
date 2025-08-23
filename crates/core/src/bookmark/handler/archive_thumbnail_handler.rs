@@ -18,28 +18,26 @@ pub struct ArchiveThumbnailCommand {
     pub archived_path: Option<String>,
 }
 
-pub struct ArchiveThumbnailHandler {
-    bookmark_repository: Box<dyn BookmarkRepository>,
-    http_client: Box<dyn HttpClient>,
-    s3_client: Box<dyn S3Client>,
+pub struct ArchiveThumbnailHandler<BR: BookmarkRepository, HC: HttpClient, SC: S3Client> {
+    bookmark_repository: BR,
+    http_client: HC,
+    s3_client: SC,
 }
 
-impl ArchiveThumbnailHandler {
-    pub fn new(
-        bookmark_repository: impl BookmarkRepository,
-        http_client: impl HttpClient,
-        s3_client: impl S3Client,
-    ) -> Self {
+impl<BR: BookmarkRepository, HC: HttpClient, SC: S3Client> ArchiveThumbnailHandler<BR, HC, SC> {
+    pub fn new(bookmark_repository: BR, http_client: HC, s3_client: SC) -> Self {
         Self {
-            bookmark_repository: Box::new(bookmark_repository),
-            http_client: Box::new(http_client),
-            s3_client: Box::new(s3_client),
+            bookmark_repository,
+            http_client,
+            s3_client,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ArchiveThumbnailCommand> for ArchiveThumbnailHandler {
+impl<BR: BookmarkRepository, HC: HttpClient, SC: S3Client> Handler<ArchiveThumbnailCommand>
+    for ArchiveThumbnailHandler<BR, HC, SC>
+{
     type Response = ();
     type Error = ArchiveThumbnailError;
 

@@ -17,20 +17,20 @@ pub struct ListSubscriptionsQuery {
     pub user_id: UserId,
 }
 
-pub struct ListSubscriptionsHandler {
-    subscription_repository: Box<dyn SubscriptionRepository>,
+pub struct ListSubscriptionsHandler<SR: SubscriptionRepository> {
+    subscription_repository: SR,
 }
 
-impl ListSubscriptionsHandler {
-    pub fn new(subscription_repository: impl SubscriptionRepository) -> Self {
+impl<SR: SubscriptionRepository> ListSubscriptionsHandler<SR> {
+    pub fn new(subscription_repository: SR) -> Self {
         Self {
-            subscription_repository: Box::new(subscription_repository),
+            subscription_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ListSubscriptionsQuery> for ListSubscriptionsHandler {
+impl<SR: SubscriptionRepository> Handler<ListSubscriptionsQuery> for ListSubscriptionsHandler<SR> {
     type Response = Paginated<SubscriptionDto, SubscriptionCursor>;
     type Error = ListSubscriptionsError;
 

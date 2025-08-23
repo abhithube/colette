@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use colette_http::HttpClient;
 use colette_scraper::bookmark::{BookmarkError, BookmarkScraper};
 use url::Url;
 
@@ -11,25 +12,24 @@ pub struct RefreshBookmarkCommand {
     pub user_id: UserId,
 }
 
-pub struct RefreshBookmarkHandler {
-    bookmark_repository: Box<dyn BookmarkRepository>,
-    bookmark_scraper: Arc<BookmarkScraper>,
+pub struct RefreshBookmarkHandler<BR: BookmarkRepository, HC: HttpClient> {
+    bookmark_repository: BR,
+    bookmark_scraper: Arc<BookmarkScraper<HC>>,
 }
 
-impl RefreshBookmarkHandler {
-    pub fn new(
-        bookmark_repository: impl BookmarkRepository,
-        bookmark_scraper: Arc<BookmarkScraper>,
-    ) -> Self {
+impl<BR: BookmarkRepository, HC: HttpClient> RefreshBookmarkHandler<BR, HC> {
+    pub fn new(bookmark_repository: BR, bookmark_scraper: Arc<BookmarkScraper<HC>>) -> Self {
         Self {
-            bookmark_repository: Box::new(bookmark_repository),
+            bookmark_repository,
             bookmark_scraper,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<RefreshBookmarkCommand> for RefreshBookmarkHandler {
+impl<BR: BookmarkRepository, HC: HttpClient> Handler<RefreshBookmarkCommand>
+    for RefreshBookmarkHandler<BR, HC>
+{
     type Response = ();
     type Error = RefreshBookmarkError;
 

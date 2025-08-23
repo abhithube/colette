@@ -12,22 +12,22 @@ pub struct DetectFeedsCommand {
     pub url: Url,
 }
 
-pub struct DetectFeedsHandler {
-    http_client: Box<dyn HttpClient>,
-    feed_scraper: Arc<FeedScraper>,
+pub struct DetectFeedsHandler<HC: HttpClient> {
+    http_client: HC,
+    feed_scraper: Arc<FeedScraper<HC>>,
 }
 
-impl DetectFeedsHandler {
-    pub fn new(http_client: impl HttpClient, feed_scraper: Arc<FeedScraper>) -> Self {
+impl<HC: HttpClient> DetectFeedsHandler<HC> {
+    pub fn new(http_client: HC, feed_scraper: Arc<FeedScraper<HC>>) -> Self {
         Self {
-            http_client: Box::new(http_client),
+            http_client,
             feed_scraper,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<DetectFeedsCommand> for DetectFeedsHandler {
+impl<HC: HttpClient> Handler<DetectFeedsCommand> for DetectFeedsHandler<HC> {
     type Response = Vec<FeedDetected>;
     type Error = DetectFeedsError;
 

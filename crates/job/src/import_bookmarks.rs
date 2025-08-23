@@ -12,6 +12,9 @@ use colette_core::{
     job::{CreateJobCommand, CreateJobHandler, Job},
 };
 use colette_queue::JobProducer;
+use colette_repository::{
+    PostgresBookmarkRepository, PostgresCollectionRepository, PostgresJobRepository,
+};
 use futures::FutureExt;
 use tokio::sync::Mutex;
 use tower::Service;
@@ -19,15 +22,18 @@ use tower::Service;
 use crate::{Error, JobError};
 
 pub struct ImportBookmarksJobHandler {
-    list_bookmarks: Arc<ListBookmarksHandler>,
-    create_job: Arc<CreateJobHandler>,
+    list_bookmarks:
+        Arc<ListBookmarksHandler<PostgresBookmarkRepository, PostgresCollectionRepository>>,
+    create_job: Arc<CreateJobHandler<PostgresJobRepository>>,
     scrape_bookmark_producer: Arc<Mutex<dyn JobProducer>>,
 }
 
 impl ImportBookmarksJobHandler {
     pub fn new(
-        list_bookmarks: Arc<ListBookmarksHandler>,
-        create_job: Arc<CreateJobHandler>,
+        list_bookmarks: Arc<
+            ListBookmarksHandler<PostgresBookmarkRepository, PostgresCollectionRepository>,
+        >,
+        create_job: Arc<CreateJobHandler<PostgresJobRepository>>,
         scrape_bookmark_producer: Arc<Mutex<dyn JobProducer>>,
     ) -> Self {
         Self {

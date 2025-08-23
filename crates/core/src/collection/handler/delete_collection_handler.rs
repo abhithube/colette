@@ -11,20 +11,20 @@ pub struct DeleteCollectionCommand {
     pub user_id: UserId,
 }
 
-pub struct DeleteCollectionHandler {
-    collection_repository: Box<dyn CollectionRepository>,
+pub struct DeleteCollectionHandler<CR: CollectionRepository> {
+    collection_repository: CR,
 }
 
-impl DeleteCollectionHandler {
-    pub fn new(collection_repository: impl CollectionRepository) -> Self {
+impl<CR: CollectionRepository> DeleteCollectionHandler<CR> {
+    pub fn new(collection_repository: CR) -> Self {
         Self {
-            collection_repository: Box::new(collection_repository),
+            collection_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<DeleteCollectionCommand> for DeleteCollectionHandler {
+impl<CR: CollectionRepository> Handler<DeleteCollectionCommand> for DeleteCollectionHandler<CR> {
     type Response = ();
     type Error = DeleteCollectionError;
 

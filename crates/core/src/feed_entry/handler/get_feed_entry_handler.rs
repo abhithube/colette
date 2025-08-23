@@ -9,20 +9,20 @@ pub struct GetFeedEntryQuery {
     pub id: FeedEntryId,
 }
 
-pub struct GetFeedEntryHandler {
-    feed_entry_repository: Box<dyn FeedEntryRepository>,
+pub struct GetFeedEntryHandler<FER: FeedEntryRepository> {
+    feed_entry_repository: FER,
 }
 
-impl GetFeedEntryHandler {
-    pub fn new(feed_entry_repository: impl FeedEntryRepository) -> Self {
+impl<FER: FeedEntryRepository> GetFeedEntryHandler<FER> {
+    pub fn new(feed_entry_repository: FER) -> Self {
         Self {
-            feed_entry_repository: Box::new(feed_entry_repository),
+            feed_entry_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<GetFeedEntryQuery> for GetFeedEntryHandler {
+impl<FER: FeedEntryRepository> Handler<GetFeedEntryQuery> for GetFeedEntryHandler<FER> {
     type Response = FeedEntry;
     type Error = GetFeedEntryError;
 

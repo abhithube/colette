@@ -12,20 +12,18 @@ pub struct ListPatsQuery {
     pub user_id: UserId,
 }
 
-pub struct ListPatsHandler {
-    pat_repository: Box<dyn PatRepository>,
+pub struct ListPatsHandler<PR: PatRepository> {
+    pat_repository: PR,
 }
 
-impl ListPatsHandler {
-    pub fn new(pat_repository: impl PatRepository) -> Self {
-        Self {
-            pat_repository: Box::new(pat_repository),
-        }
+impl<PR: PatRepository> ListPatsHandler<PR> {
+    pub fn new(pat_repository: PR) -> Self {
+        Self { pat_repository }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ListPatsQuery> for ListPatsHandler {
+impl<PR: PatRepository> Handler<ListPatsQuery> for ListPatsHandler<PR> {
     type Response = Paginated<PersonalAccessToken, PatCursor>;
     type Error = ListPatsError;
 

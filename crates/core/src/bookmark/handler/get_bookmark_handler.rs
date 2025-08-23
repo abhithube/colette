@@ -11,20 +11,20 @@ pub struct GetBookmarkQuery {
     pub user_id: UserId,
 }
 
-pub struct GetBookmarkHandler {
-    bookmark_repository: Box<dyn BookmarkRepository>,
+pub struct GetBookmarkHandler<BR: BookmarkRepository> {
+    bookmark_repository: BR,
 }
 
-impl GetBookmarkHandler {
-    pub fn new(bookmark_repository: impl BookmarkRepository) -> Self {
+impl<BR: BookmarkRepository> GetBookmarkHandler<BR> {
+    pub fn new(bookmark_repository: BR) -> Self {
         Self {
-            bookmark_repository: Box::new(bookmark_repository),
+            bookmark_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<GetBookmarkQuery> for GetBookmarkHandler {
+impl<BR: BookmarkRepository> Handler<GetBookmarkQuery> for GetBookmarkHandler<BR> {
     type Response = BookmarkDto;
     type Error = GetBookmarkError;
 

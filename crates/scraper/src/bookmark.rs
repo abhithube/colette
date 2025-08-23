@@ -22,20 +22,14 @@ pub trait BookmarkPlugin: Send + Sync + 'static {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, BookmarkError>;
 }
 
-pub struct BookmarkScraper {
-    client: Box<dyn HttpClient>,
+pub struct BookmarkScraper<HC: HttpClient> {
+    client: HC,
     plugins: HashMap<&'static str, Box<dyn BookmarkPlugin>>,
 }
 
-impl BookmarkScraper {
-    pub fn new(
-        client: impl HttpClient,
-        plugins: HashMap<&'static str, Box<dyn BookmarkPlugin>>,
-    ) -> Self {
-        Self {
-            client: Box::new(client),
-            plugins,
-        }
+impl<HC: HttpClient> BookmarkScraper<HC> {
+    pub fn new(client: HC, plugins: HashMap<&'static str, Box<dyn BookmarkPlugin>>) -> Self {
+        Self { client, plugins }
     }
 
     pub async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, BookmarkError> {

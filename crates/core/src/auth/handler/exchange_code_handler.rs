@@ -17,31 +17,33 @@ pub struct ExchangeCodeCommand {
     pub nonce: String,
 }
 
-pub struct ExchangeCodeHandler {
-    user_repository: Box<dyn UserRepository>,
-    oidc_client: Box<dyn OidcClient>,
-    jwt_manager: Box<dyn JwtManager>,
+pub struct ExchangeCodeHandler<UR: UserRepository, OC: OidcClient, JM: JwtManager> {
+    user_repository: UR,
+    oidc_client: OC,
+    jwt_manager: JM,
     jwt_config: JwtConfig,
 }
 
-impl ExchangeCodeHandler {
+impl<UR: UserRepository, OC: OidcClient, JM: JwtManager> ExchangeCodeHandler<UR, OC, JM> {
     pub fn new(
-        user_repository: impl UserRepository,
-        oidc_client: impl OidcClient,
-        jwt_manager: impl JwtManager,
+        user_repository: UR,
+        oidc_client: OC,
+        jwt_manager: JM,
         jwt_config: JwtConfig,
     ) -> Self {
         Self {
-            user_repository: Box::new(user_repository),
-            oidc_client: Box::new(oidc_client),
-            jwt_manager: Box::new(jwt_manager),
+            user_repository,
+            oidc_client,
+            jwt_manager,
             jwt_config,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ExchangeCodeCommand> for ExchangeCodeHandler {
+impl<UR: UserRepository, OC: OidcClient, JM: JwtManager> Handler<ExchangeCodeCommand>
+    for ExchangeCodeHandler<UR, OC, JM>
+{
     type Response = TokenData;
     type Error = ExchangeCodeError;
 

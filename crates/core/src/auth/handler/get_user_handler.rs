@@ -9,20 +9,18 @@ pub struct GetUserQuery {
     pub id: UserId,
 }
 
-pub struct GetUserHandler {
-    user_repository: Box<dyn UserRepository>,
+pub struct GetUserHandler<UR: UserRepository> {
+    user_repository: UR,
 }
 
-impl GetUserHandler {
-    pub fn new(user_repository: impl UserRepository) -> Self {
-        Self {
-            user_repository: Box::new(user_repository),
-        }
+impl<UR: UserRepository> GetUserHandler<UR> {
+    pub fn new(user_repository: UR) -> Self {
+        Self { user_repository }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<GetUserQuery> for GetUserHandler {
+impl<UR: UserRepository> Handler<GetUserQuery> for GetUserHandler<UR> {
     type Response = User;
     type Error = GetUserError;
 

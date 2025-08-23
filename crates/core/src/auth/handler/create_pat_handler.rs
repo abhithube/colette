@@ -18,20 +18,18 @@ pub struct CreatePatCommand {
     pub user_id: UserId,
 }
 
-pub struct CreatePatHandler {
-    user_repository: Box<dyn UserRepository>,
+pub struct CreatePatHandler<UR: UserRepository> {
+    user_repository: UR,
 }
 
-impl CreatePatHandler {
-    pub fn new(user_repository: impl UserRepository) -> Self {
-        Self {
-            user_repository: Box::new(user_repository),
-        }
+impl<UR: UserRepository> CreatePatHandler<UR> {
+    pub fn new(user_repository: UR) -> Self {
+        Self { user_repository }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<CreatePatCommand> for CreatePatHandler {
+impl<UR: UserRepository> Handler<CreatePatCommand> for CreatePatHandler<UR> {
     type Response = PatCreated;
     type Error = CreatePatError;
 

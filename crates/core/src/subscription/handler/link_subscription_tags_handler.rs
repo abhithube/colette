@@ -13,20 +13,22 @@ pub struct LinkSubscriptionTagsCommand {
     pub user_id: UserId,
 }
 
-pub struct LinkSubscriptionTagsHandler {
-    subscription_repository: Box<dyn SubscriptionRepository>,
+pub struct LinkSubscriptionTagsHandler<SR: SubscriptionRepository> {
+    subscription_repository: SR,
 }
 
-impl LinkSubscriptionTagsHandler {
-    pub fn new(subscription_repository: impl SubscriptionRepository) -> Self {
+impl<SR: SubscriptionRepository> LinkSubscriptionTagsHandler<SR> {
+    pub fn new(subscription_repository: SR) -> Self {
         Self {
-            subscription_repository: Box::new(subscription_repository),
+            subscription_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<LinkSubscriptionTagsCommand> for LinkSubscriptionTagsHandler {
+impl<SR: SubscriptionRepository> Handler<LinkSubscriptionTagsCommand>
+    for LinkSubscriptionTagsHandler<SR>
+{
     type Response = Subscription;
     type Error = LinkSubscriptionTagsError;
 

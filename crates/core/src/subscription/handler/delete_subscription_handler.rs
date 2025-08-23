@@ -11,20 +11,22 @@ pub struct DeleteSubscriptionCommand {
     pub user_id: UserId,
 }
 
-pub struct DeleteSubscriptionHandler {
-    subscription_repository: Box<dyn SubscriptionRepository>,
+pub struct DeleteSubscriptionHandler<SR: SubscriptionRepository> {
+    subscription_repository: SR,
 }
 
-impl DeleteSubscriptionHandler {
-    pub fn new(subscription_repository: impl SubscriptionRepository) -> Self {
+impl<SR: SubscriptionRepository> DeleteSubscriptionHandler<SR> {
+    pub fn new(subscription_repository: SR) -> Self {
         Self {
-            subscription_repository: Box::new(subscription_repository),
+            subscription_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<DeleteSubscriptionCommand> for DeleteSubscriptionHandler {
+impl<SR: SubscriptionRepository> Handler<DeleteSubscriptionCommand>
+    for DeleteSubscriptionHandler<SR>
+{
     type Response = ();
     type Error = DeleteSubscriptionError;
 

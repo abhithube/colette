@@ -12,20 +12,18 @@ pub struct ListFeedsQuery {
     pub limit: Option<usize>,
 }
 
-pub struct ListFeedsHandler {
-    feed_repository: Box<dyn FeedRepository>,
+pub struct ListFeedsHandler<FR: FeedRepository> {
+    feed_repository: FR,
 }
 
-impl ListFeedsHandler {
-    pub fn new(feed_repository: impl FeedRepository) -> Self {
-        Self {
-            feed_repository: Box::new(feed_repository),
-        }
+impl<FR: FeedRepository> ListFeedsHandler<FR> {
+    pub fn new(feed_repository: FR) -> Self {
+        Self { feed_repository }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ListFeedsQuery> for ListFeedsHandler {
+impl<FR: FeedRepository> Handler<ListFeedsQuery> for ListFeedsHandler<FR> {
     type Response = Paginated<Feed, FeedCursor>;
     type Error = ListFeedsError;
 

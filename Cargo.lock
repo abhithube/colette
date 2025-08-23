@@ -422,8 +422,13 @@ dependencies = [
  "bytes",
  "chrono",
  "colette-core",
+ "colette-http",
+ "colette-jwt",
+ "colette-oidc",
+ "colette-repository",
+ "colette-s3",
+ "colette-smtp",
  "colette-util",
- "email_address",
  "serde",
  "serde_json",
  "serde_with",
@@ -495,7 +500,10 @@ name = "colette-job"
 version = "0.1.0"
 dependencies = [
  "colette-core",
+ "colette-http",
  "colette-queue",
+ "colette-repository",
+ "colette-s3",
  "futures",
  "serde_json",
  "thiserror 2.0.14",
@@ -645,7 +653,6 @@ dependencies = [
  "config",
  "cron",
  "futures",
- "refinery",
  "reqwest",
  "rust-embed",
  "serde",
@@ -2712,47 +2719,6 @@ checksum = "1165225c21bff1f3bbce98f5a1f889949bc902d3575308cc7b0de30b4f6d27c7"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
-]
-
-[[package]]
-name = "refinery"
-version = "0.8.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ba5d693abf62492c37268512ff35b77655d2e957ca53dab85bf993fe9172d15"
-dependencies = [
- "refinery-core",
- "refinery-macros",
-]
-
-[[package]]
-name = "refinery-core"
-version = "0.8.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a83581f18c1a4c3a6ebd7a174bdc665f17f618d79f7edccb6a0ac67e660b319"
-dependencies = [
- "async-trait",
- "cfg-if",
- "log",
- "regex",
- "siphasher",
- "thiserror 1.0.69",
- "time",
- "url",
- "walkdir",
-]
-
-[[package]]
-name = "refinery-macros"
-version = "0.8.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72c225407d8e52ef8cf094393781ecda9a99d6544ec28d90a6915751de259264"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "refinery-core",
- "regex",
  "syn",
 ]
 

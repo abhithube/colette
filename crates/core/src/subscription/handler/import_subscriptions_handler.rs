@@ -6,9 +6,9 @@ use url::Url;
 
 use crate::{
     Handler,
+    auth::UserId,
     common::RepositoryError,
     subscription::{ImportSubscriptionsParams, SubscriptionBatchItem, SubscriptionRepository},
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -17,20 +17,22 @@ pub struct ImportSubscriptionsCommand {
     pub user_id: UserId,
 }
 
-pub struct ImportSubscriptionsHandler {
-    subscription_repository: Box<dyn SubscriptionRepository>,
+pub struct ImportSubscriptionsHandler<SR: SubscriptionRepository> {
+    subscription_repository: SR,
 }
 
-impl ImportSubscriptionsHandler {
-    pub fn new(subscription_repository: impl SubscriptionRepository) -> Self {
+impl<SR: SubscriptionRepository> ImportSubscriptionsHandler<SR> {
+    pub fn new(subscription_repository: SR) -> Self {
         Self {
-            subscription_repository: Box::new(subscription_repository),
+            subscription_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ImportSubscriptionsCommand> for ImportSubscriptionsHandler {
+impl<SR: SubscriptionRepository> Handler<ImportSubscriptionsCommand>
+    for ImportSubscriptionsHandler<SR>
+{
     type Response = ();
     type Error = ImportSubscriptionsError;
 

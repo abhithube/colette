@@ -12,28 +12,24 @@ pub struct VerifyOtpCommand {
     pub code: String,
 }
 
-pub struct VerifyOtpHandler {
-    user_repository: Box<dyn UserRepository>,
-    jwt_manager: Box<dyn JwtManager>,
+pub struct VerifyOtpHandler<UR: UserRepository, JM: JwtManager> {
+    user_repository: UR,
+    jwt_manager: JM,
     jwt_config: JwtConfig,
 }
 
-impl VerifyOtpHandler {
-    pub fn new(
-        user_repository: impl UserRepository,
-        jwt_manager: impl JwtManager,
-        jwt_config: JwtConfig,
-    ) -> Self {
+impl<UR: UserRepository, JM: JwtManager> VerifyOtpHandler<UR, JM> {
+    pub fn new(user_repository: UR, jwt_manager: JM, jwt_config: JwtConfig) -> Self {
         Self {
-            user_repository: Box::new(user_repository),
-            jwt_manager: Box::new(jwt_manager),
+            user_repository,
+            jwt_manager,
             jwt_config,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<VerifyOtpCommand> for VerifyOtpHandler {
+impl<UR: UserRepository, JM: JwtManager> Handler<VerifyOtpCommand> for VerifyOtpHandler<UR, JM> {
     type Response = TokenData;
     type Error = LoginUserError;
 

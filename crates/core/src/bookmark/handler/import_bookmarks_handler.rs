@@ -9,10 +9,10 @@ use url::Url;
 
 use crate::{
     Handler,
+    auth::UserId,
     bookmark::{BookmarkBatchItem, BookmarkRepository, ImportBookmarksParams},
     common::RepositoryError,
     job::{JobInsertParams, JobRepository},
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -21,28 +21,30 @@ pub struct ImportBookmarksCommand {
     pub user_id: UserId,
 }
 
-pub struct ImportBookmarksHandler {
-    bookmark_repository: Box<dyn BookmarkRepository>,
-    job_repository: Box<dyn JobRepository>,
+pub struct ImportBookmarksHandler<BR: BookmarkRepository, JR: JobRepository> {
+    bookmark_repository: BR,
+    job_repository: JR,
     import_bookmarks_producer: Box<Mutex<dyn JobProducer>>,
 }
 
-impl ImportBookmarksHandler {
+impl<BR: BookmarkRepository, JR: JobRepository> ImportBookmarksHandler<BR, JR> {
     pub fn new(
-        bookmark_repository: impl BookmarkRepository,
-        job_repository: impl JobRepository,
+        bookmark_repository: BR,
+        job_repository: JR,
         import_bookmarks_producer: impl JobProducer,
     ) -> Self {
         Self {
-            bookmark_repository: Box::new(bookmark_repository),
-            job_repository: Box::new(job_repository),
+            bookmark_repository,
+            job_repository,
             import_bookmarks_producer: Box::new(Mutex::new(import_bookmarks_producer)),
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ImportBookmarksCommand> for ImportBookmarksHandler {
+impl<BR: BookmarkRepository, JR: JobRepository> Handler<ImportBookmarksCommand>
+    for ImportBookmarksHandler<BR, JR>
+{
     type Response = ();
     type Error = ImportBookmarksError;
 

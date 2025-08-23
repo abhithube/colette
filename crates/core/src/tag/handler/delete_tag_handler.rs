@@ -11,20 +11,18 @@ pub struct DeleteTagCommand {
     pub user_id: UserId,
 }
 
-pub struct DeleteTagHandler {
-    tag_repository: Box<dyn TagRepository>,
+pub struct DeleteTagHandler<TR: TagRepository> {
+    tag_repository: TR,
 }
 
-impl DeleteTagHandler {
-    pub fn new(tag_repository: impl TagRepository) -> Self {
-        Self {
-            tag_repository: Box::new(tag_repository),
-        }
+impl<TR: TagRepository> DeleteTagHandler<TR> {
+    pub fn new(tag_repository: TR) -> Self {
+        Self { tag_repository }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<DeleteTagCommand> for DeleteTagHandler {
+impl<TR: TagRepository> Handler<DeleteTagCommand> for DeleteTagHandler<TR> {
     type Response = ();
     type Error = DeleteTagError;
 

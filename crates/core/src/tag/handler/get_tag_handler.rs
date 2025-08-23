@@ -11,20 +11,18 @@ pub struct GetTagQuery {
     pub user_id: UserId,
 }
 
-pub struct GetTagHandler {
-    tag_repository: Box<dyn TagRepository>,
+pub struct GetTagHandler<TR: TagRepository> {
+    tag_repository: TR,
 }
 
-impl GetTagHandler {
-    pub fn new(tag_repository: impl TagRepository) -> Self {
-        Self {
-            tag_repository: Box::new(tag_repository),
-        }
+impl<TR: TagRepository> GetTagHandler<TR> {
+    pub fn new(tag_repository: TR) -> Self {
+        Self { tag_repository }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<GetTagQuery> for GetTagHandler {
+impl<TR: TagRepository> Handler<GetTagQuery> for GetTagHandler<TR> {
     type Response = TagDto;
     type Error = GetTagError;
 

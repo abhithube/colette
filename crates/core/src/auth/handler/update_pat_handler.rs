@@ -11,20 +11,18 @@ pub struct UpdatePatCommand {
     pub user_id: UserId,
 }
 
-pub struct UpdatePatHandler {
-    user_repository: Box<dyn UserRepository>,
+pub struct UpdatePatHandler<UR: UserRepository> {
+    user_repository: UR,
 }
 
-impl UpdatePatHandler {
-    pub fn new(user_repository: impl UserRepository) -> Self {
-        Self {
-            user_repository: Box::new(user_repository),
-        }
+impl<UR: UserRepository> UpdatePatHandler<UR> {
+    pub fn new(user_repository: UR) -> Self {
+        Self { user_repository }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<UpdatePatCommand> for UpdatePatHandler {
+impl<UR: UserRepository> Handler<UpdatePatCommand> for UpdatePatHandler<UR> {
     type Response = PersonalAccessToken;
     type Error = UpdatePatError;
 

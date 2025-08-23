@@ -19,25 +19,24 @@ pub struct ListBookmarksQuery {
     pub user_id: UserId,
 }
 
-pub struct ListBookmarksHandler {
-    bookmark_repository: Box<dyn BookmarkRepository>,
-    collection_repository: Box<dyn CollectionRepository>,
+pub struct ListBookmarksHandler<BR: BookmarkRepository, CR: CollectionRepository> {
+    bookmark_repository: BR,
+    collection_repository: CR,
 }
 
-impl ListBookmarksHandler {
-    pub fn new(
-        bookmark_repository: impl BookmarkRepository,
-        collection_repository: impl CollectionRepository,
-    ) -> Self {
+impl<BR: BookmarkRepository, CR: CollectionRepository> ListBookmarksHandler<BR, CR> {
+    pub fn new(bookmark_repository: BR, collection_repository: CR) -> Self {
         Self {
-            bookmark_repository: Box::new(bookmark_repository),
-            collection_repository: Box::new(collection_repository),
+            bookmark_repository,
+            collection_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ListBookmarksQuery> for ListBookmarksHandler {
+impl<BR: BookmarkRepository, CR: CollectionRepository> Handler<ListBookmarksQuery>
+    for ListBookmarksHandler<BR, CR>
+{
     type Response = Paginated<BookmarkDto, BookmarkCursor>;
     type Error = ListBookmarksError;
 

@@ -14,20 +14,20 @@ pub struct UpdateCollectionCommand {
     pub user_id: UserId,
 }
 
-pub struct UpdateCollectionHandler {
-    collection_repository: Box<dyn CollectionRepository>,
+pub struct UpdateCollectionHandler<CR: CollectionRepository> {
+    collection_repository: CR,
 }
 
-impl UpdateCollectionHandler {
-    pub fn new(collection_repository: impl CollectionRepository) -> Self {
+impl<CR: CollectionRepository> UpdateCollectionHandler<CR> {
+    pub fn new(collection_repository: CR) -> Self {
         Self {
-            collection_repository: Box::new(collection_repository),
+            collection_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<UpdateCollectionCommand> for UpdateCollectionHandler {
+impl<CR: CollectionRepository> Handler<UpdateCollectionCommand> for UpdateCollectionHandler<CR> {
     type Response = Collection;
     type Error = UpdateCollectionError;
 

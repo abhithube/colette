@@ -13,20 +13,20 @@ pub struct GetCollectionQuery {
     pub user_id: UserId,
 }
 
-pub struct GetCollectionHandler {
-    collection_repository: Box<dyn CollectionRepository>,
+pub struct GetCollectionHandler<CR: CollectionRepository> {
+    collection_repository: CR,
 }
 
-impl GetCollectionHandler {
-    pub fn new(collection_repository: impl CollectionRepository) -> Self {
+impl<CR: CollectionRepository> GetCollectionHandler<CR> {
+    pub fn new(collection_repository: CR) -> Self {
         Self {
-            collection_repository: Box::new(collection_repository),
+            collection_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<GetCollectionQuery> for GetCollectionHandler {
+impl<CR: CollectionRepository> Handler<GetCollectionQuery> for GetCollectionHandler<CR> {
     type Response = CollectionDto;
     type Error = GetCollectionError;
 

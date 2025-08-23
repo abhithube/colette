@@ -15,28 +15,30 @@ pub struct DeleteBookmarkCommand {
     pub user_id: UserId,
 }
 
-pub struct DeleteBookmarkHandler {
-    bookmark_repository: Box<dyn BookmarkRepository>,
-    job_repository: Box<dyn JobRepository>,
+pub struct DeleteBookmarkHandler<BR: BookmarkRepository, JR: JobRepository> {
+    bookmark_repository: BR,
+    job_repository: JR,
     archive_thumbnail_producer: Box<Mutex<dyn JobProducer>>,
 }
 
-impl DeleteBookmarkHandler {
+impl<BR: BookmarkRepository, JR: JobRepository> DeleteBookmarkHandler<BR, JR> {
     pub fn new(
-        bookmark_repository: impl BookmarkRepository,
-        job_repository: impl JobRepository,
+        bookmark_repository: BR,
+        job_repository: JR,
         archive_thumbnail_producer: impl JobProducer,
     ) -> Self {
         Self {
-            bookmark_repository: Box::new(bookmark_repository),
-            job_repository: Box::new(job_repository),
+            bookmark_repository,
+            job_repository,
             archive_thumbnail_producer: Box::new(Mutex::new(archive_thumbnail_producer)),
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<DeleteBookmarkCommand> for DeleteBookmarkHandler {
+impl<BR: BookmarkRepository, JR: JobRepository> Handler<DeleteBookmarkCommand>
+    for DeleteBookmarkHandler<BR, JR>
+{
     type Response = ();
     type Error = DeleteBookmarkError;
 

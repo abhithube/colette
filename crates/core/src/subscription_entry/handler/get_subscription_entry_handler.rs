@@ -14,20 +14,22 @@ pub struct GetSubscriptionEntryQuery {
     pub user_id: UserId,
 }
 
-pub struct GetSubscriptionEntryHandler {
-    subscription_entry_repository: Box<dyn SubscriptionEntryRepository>,
+pub struct GetSubscriptionEntryHandler<SER: SubscriptionEntryRepository> {
+    subscription_entry_repository: SER,
 }
 
-impl GetSubscriptionEntryHandler {
-    pub fn new(subscription_entry_repository: impl SubscriptionEntryRepository) -> Self {
+impl<SER: SubscriptionEntryRepository> GetSubscriptionEntryHandler<SER> {
+    pub fn new(subscription_entry_repository: SER) -> Self {
         Self {
-            subscription_entry_repository: Box::new(subscription_entry_repository),
+            subscription_entry_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<GetSubscriptionEntryQuery> for GetSubscriptionEntryHandler {
+impl<SER: SubscriptionEntryRepository> Handler<GetSubscriptionEntryQuery>
+    for GetSubscriptionEntryHandler<SER>
+{
     type Response = SubscriptionEntry;
     type Error = GetSubscriptionEntryError;
 

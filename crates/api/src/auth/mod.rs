@@ -1,7 +1,6 @@
 use axum::{Router, routing};
 use chrono::{DateTime, Utc};
 use colette_core::auth;
-use email_address::EmailAddress;
 use url::Url;
 use utoipa::OpenApi;
 use uuid::Uuid;
@@ -79,8 +78,8 @@ struct User {
     /// Unique identifier of the user
     id: Uuid,
     /// Email address of the user
-    #[schema(value_type = String, format = "email")]
-    email: EmailAddress,
+    #[schema(format = "email")]
+    email: String,
     /// Whether the user's email has been verified
     verified: bool,
     /// Profile display name of the user
@@ -101,7 +100,7 @@ impl From<colette_core::User> for User {
     fn from(value: colette_core::User) -> Self {
         Self {
             id: value.id().as_inner(),
-            email: value.email().to_owned(),
+            email: value.email().email(),
             verified: value.verified(),
             display_name: value.display_name().map(|e| e.as_inner().to_owned()),
             image_url: value.image_url().cloned(),

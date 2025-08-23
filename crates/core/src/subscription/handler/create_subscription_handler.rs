@@ -16,20 +16,22 @@ pub struct CreateSubscriptionCommand {
     pub user_id: UserId,
 }
 
-pub struct CreateSubscriptionHandler {
-    subscription_repository: Box<dyn SubscriptionRepository>,
+pub struct CreateSubscriptionHandler<SR: SubscriptionRepository> {
+    subscription_repository: SR,
 }
 
-impl CreateSubscriptionHandler {
-    pub fn new(subscription_repository: impl SubscriptionRepository) -> Self {
+impl<SR: SubscriptionRepository> CreateSubscriptionHandler<SR> {
+    pub fn new(subscription_repository: SR) -> Self {
         Self {
-            subscription_repository: Box::new(subscription_repository),
+            subscription_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<CreateSubscriptionCommand> for CreateSubscriptionHandler {
+impl<SR: SubscriptionRepository> Handler<CreateSubscriptionCommand>
+    for CreateSubscriptionHandler<SR>
+{
     type Response = Subscription;
     type Error = CreateSubscriptionError;
 

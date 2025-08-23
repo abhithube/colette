@@ -9,17 +9,24 @@ use colette_core::{
     feed::{RefreshFeedCommand, RefreshFeedHandler, ScrapeFeedJobData},
     job::Job,
 };
+use colette_http::ReqwestClient;
+use colette_repository::{PostgresFeedEntryRepository, PostgresFeedRepository};
 use futures::FutureExt;
 use tower::Service;
 
 use crate::Error;
 
 pub struct ScrapeFeedJobHandler {
-    refresh_feed: Arc<RefreshFeedHandler>,
+    refresh_feed:
+        Arc<RefreshFeedHandler<PostgresFeedRepository, PostgresFeedEntryRepository, ReqwestClient>>,
 }
 
 impl ScrapeFeedJobHandler {
-    pub fn new(refresh_feed: Arc<RefreshFeedHandler>) -> Self {
+    pub fn new(
+        refresh_feed: Arc<
+            RefreshFeedHandler<PostgresFeedRepository, PostgresFeedEntryRepository, ReqwestClient>,
+        >,
+    ) -> Self {
         Self { refresh_feed }
     }
 }

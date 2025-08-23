@@ -13,20 +13,20 @@ pub struct CreateCollectionCommand {
     pub user_id: UserId,
 }
 
-pub struct CreateCollectionHandler {
-    collection_repository: Box<dyn CollectionRepository>,
+pub struct CreateCollectionHandler<CR: CollectionRepository> {
+    collection_repository: CR,
 }
 
-impl CreateCollectionHandler {
-    pub fn new(collection_repository: impl CollectionRepository) -> Self {
+impl<CR: CollectionRepository> CreateCollectionHandler<CR> {
+    pub fn new(collection_repository: CR) -> Self {
         Self {
-            collection_repository: Box::new(collection_repository),
+            collection_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<CreateCollectionCommand> for CreateCollectionHandler {
+impl<CR: CollectionRepository> Handler<CreateCollectionCommand> for CreateCollectionHandler<CR> {
     type Response = Collection;
     type Error = CreateCollectionError;
 

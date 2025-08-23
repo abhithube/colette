@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
+use colette_http::HttpClient;
 use colette_scraper::bookmark::{BookmarkError, BookmarkScraper};
 use url::Url;
 
@@ -11,18 +12,18 @@ pub struct ScrapeBookmarkCommand {
     pub url: Url,
 }
 
-pub struct ScrapeBookmarkHandler {
-    bookmark_scraper: Arc<BookmarkScraper>,
+pub struct ScrapeBookmarkHandler<HC: HttpClient> {
+    bookmark_scraper: Arc<BookmarkScraper<HC>>,
 }
 
-impl ScrapeBookmarkHandler {
-    pub fn new(bookmark_scraper: Arc<BookmarkScraper>) -> Self {
+impl<HC: HttpClient> ScrapeBookmarkHandler<HC> {
+    pub fn new(bookmark_scraper: Arc<BookmarkScraper<HC>>) -> Self {
         Self { bookmark_scraper }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ScrapeBookmarkCommand> for ScrapeBookmarkHandler {
+impl<HC: HttpClient> Handler<ScrapeBookmarkCommand> for ScrapeBookmarkHandler<HC> {
     type Response = BookmarkScraped;
     type Error = ScrapeBookmarkError;
 

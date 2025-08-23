@@ -7,20 +7,18 @@ pub struct ValidateAccessTokenQuery {
     pub access_token: String,
 }
 
-pub struct ValidateAccessTokenHandler {
-    jwt_manager: Box<dyn JwtManager>,
+pub struct ValidateAccessTokenHandler<JM: JwtManager> {
+    jwt_manager: JM,
 }
 
-impl ValidateAccessTokenHandler {
-    pub fn new(jwt_manager: impl JwtManager) -> Self {
-        Self {
-            jwt_manager: Box::new(jwt_manager),
-        }
+impl<JM: JwtManager> ValidateAccessTokenHandler<JM> {
+    pub fn new(jwt_manager: JM) -> Self {
+        Self { jwt_manager }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ValidateAccessTokenQuery> for ValidateAccessTokenHandler {
+impl<JM: JwtManager> Handler<ValidateAccessTokenQuery> for ValidateAccessTokenHandler<JM> {
     type Response = Claims;
     type Error = ValidateAccessTokenError;
 

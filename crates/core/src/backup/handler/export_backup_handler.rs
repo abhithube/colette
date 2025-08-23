@@ -15,28 +15,32 @@ pub struct ExportBackupCommand {
     pub user_id: UserId,
 }
 
-pub struct ExportBackupHandler {
-    bookmark_repository: Box<dyn BookmarkRepository>,
-    subscription_repository: Box<dyn SubscriptionRepository>,
-    tag_repository: Box<dyn TagRepository>,
+pub struct ExportBackupHandler<
+    BR: BookmarkRepository,
+    SR: SubscriptionRepository,
+    TR: TagRepository,
+> {
+    bookmark_repository: BR,
+    subscription_repository: SR,
+    tag_repository: TR,
 }
 
-impl ExportBackupHandler {
-    pub fn new(
-        bookmark_repository: impl BookmarkRepository,
-        subscription_repository: impl SubscriptionRepository,
-        tag_repository: impl TagRepository,
-    ) -> Self {
+impl<BR: BookmarkRepository, SR: SubscriptionRepository, TR: TagRepository>
+    ExportBackupHandler<BR, SR, TR>
+{
+    pub fn new(bookmark_repository: BR, subscription_repository: SR, tag_repository: TR) -> Self {
         Self {
-            bookmark_repository: Box::new(bookmark_repository),
-            subscription_repository: Box::new(subscription_repository),
-            tag_repository: Box::new(tag_repository),
+            bookmark_repository,
+            subscription_repository,
+            tag_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ExportBackupCommand> for ExportBackupHandler {
+impl<BR: BookmarkRepository, SR: SubscriptionRepository, TR: TagRepository>
+    Handler<ExportBackupCommand> for ExportBackupHandler<BR, SR, TR>
+{
     type Response = Bytes;
     type Error = ExportBackupError;
 

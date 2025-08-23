@@ -5,22 +5,22 @@ use crate::{Handler, auth::OidcConfig};
 #[derive(Debug, Clone)]
 pub struct BuildAuthorizationUrlQuery;
 
-pub struct BuildAuthorizationUrlHandler {
-    oidc_client: Box<dyn OidcClient>,
+pub struct BuildAuthorizationUrlHandler<OC: OidcClient> {
+    oidc_client: OC,
     oidc_config: OidcConfig,
 }
 
-impl BuildAuthorizationUrlHandler {
-    pub fn new(oidc_client: impl OidcClient, oidc_config: OidcConfig) -> Self {
+impl<OC: OidcClient> BuildAuthorizationUrlHandler<OC> {
+    pub fn new(oidc_client: OC, oidc_config: OidcConfig) -> Self {
         Self {
-            oidc_client: Box::new(oidc_client),
+            oidc_client,
             oidc_config,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<BuildAuthorizationUrlQuery> for BuildAuthorizationUrlHandler {
+impl<OC: OidcClient> Handler<BuildAuthorizationUrlQuery> for BuildAuthorizationUrlHandler<OC> {
     type Response = AuthorizationUrlData;
     type Error = BuildAuthorizationUrlError;
 

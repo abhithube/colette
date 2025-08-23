@@ -12,28 +12,26 @@ pub struct RefreshAccessTokenCommand {
     pub refresh_token: String,
 }
 
-pub struct RefreshAccessTokenHandler {
-    user_repository: Box<dyn UserRepository>,
-    jwt_manager: Box<dyn JwtManager>,
+pub struct RefreshAccessTokenHandler<UR: UserRepository, JM: JwtManager> {
+    user_repository: UR,
+    jwt_manager: JM,
     jwt_config: JwtConfig,
 }
 
-impl RefreshAccessTokenHandler {
-    pub fn new(
-        user_repository: impl UserRepository,
-        jwt_manager: impl JwtManager,
-        jwt_config: JwtConfig,
-    ) -> Self {
+impl<UR: UserRepository, JM: JwtManager> RefreshAccessTokenHandler<UR, JM> {
+    pub fn new(user_repository: UR, jwt_manager: JM, jwt_config: JwtConfig) -> Self {
         Self {
-            user_repository: Box::new(user_repository),
-            jwt_manager: Box::new(jwt_manager),
+            user_repository,
+            jwt_manager,
             jwt_config,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<RefreshAccessTokenCommand> for RefreshAccessTokenHandler {
+impl<UR: UserRepository, JM: JwtManager> Handler<RefreshAccessTokenCommand>
+    for RefreshAccessTokenHandler<UR, JM>
+{
     type Response = TokenData;
     type Error = RefreshAccessTokenError;
 

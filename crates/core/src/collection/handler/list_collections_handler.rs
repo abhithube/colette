@@ -13,20 +13,20 @@ pub struct ListCollectionsQuery {
     pub user_id: UserId,
 }
 
-pub struct ListCollectionsHandler {
-    collection_repository: Box<dyn CollectionRepository>,
+pub struct ListCollectionsHandler<CR: CollectionRepository> {
+    collection_repository: CR,
 }
 
-impl ListCollectionsHandler {
-    pub fn new(collection_repository: impl CollectionRepository) -> Self {
+impl<CR: CollectionRepository> ListCollectionsHandler<CR> {
+    pub fn new(collection_repository: CR) -> Self {
         Self {
-            collection_repository: Box::new(collection_repository),
+            collection_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ListCollectionsQuery> for ListCollectionsHandler {
+impl<CR: CollectionRepository> Handler<ListCollectionsQuery> for ListCollectionsHandler<CR> {
     type Response = Paginated<CollectionDto, CollectionCursor>;
     type Error = ListCollectionsError;
 

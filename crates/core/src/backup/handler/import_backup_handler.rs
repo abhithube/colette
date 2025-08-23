@@ -2,9 +2,9 @@ use bytes::Bytes;
 
 use crate::{
     Handler,
+    auth::UserId,
     backup::{Backup, BackupRepository, ImportBackupParams},
     common::RepositoryError,
-    auth::UserId,
 };
 
 #[derive(Debug, Clone)]
@@ -13,20 +13,18 @@ pub struct ImportBackupCommand {
     pub user_id: UserId,
 }
 
-pub struct ImportBackupHandler {
-    backup_repository: Box<dyn BackupRepository>,
+pub struct ImportBackupHandler<BR: BackupRepository> {
+    backup_repository: BR,
 }
 
-impl ImportBackupHandler {
-    pub fn new(backup_repository: impl BackupRepository) -> Self {
-        Self {
-            backup_repository: Box::new(backup_repository),
-        }
+impl<BR: BackupRepository> ImportBackupHandler<BR> {
+    pub fn new(backup_repository: BR) -> Self {
+        Self { backup_repository }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ImportBackupCommand> for ImportBackupHandler {
+impl<BR: BackupRepository> Handler<ImportBackupCommand> for ImportBackupHandler<BR> {
     type Response = ();
     type Error = ImportBackupError;
 

@@ -13,20 +13,18 @@ pub struct CreateJobCommand {
     pub group_identifier: Option<String>,
 }
 
-pub struct CreateJobHandler {
-    job_repository: Box<dyn JobRepository>,
+pub struct CreateJobHandler<JR: JobRepository> {
+    job_repository: JR,
 }
 
-impl CreateJobHandler {
-    pub fn new(job_repository: impl JobRepository) -> Self {
-        Self {
-            job_repository: Box::new(job_repository),
-        }
+impl<JR: JobRepository> CreateJobHandler<JR> {
+    pub fn new(job_repository: JR) -> Self {
+        Self { job_repository }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<CreateJobCommand> for CreateJobHandler {
+impl<JR: JobRepository> Handler<CreateJobCommand> for CreateJobHandler<JR> {
     type Response = JobId;
     type Error = CreateJobError;
 

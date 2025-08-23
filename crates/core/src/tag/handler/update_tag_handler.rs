@@ -12,20 +12,18 @@ pub struct UpdateTagCommand {
     pub user_id: UserId,
 }
 
-pub struct UpdateTagHandler {
-    tag_repository: Box<dyn TagRepository>,
+pub struct UpdateTagHandler<TR: TagRepository> {
+    tag_repository: TR,
 }
 
-impl UpdateTagHandler {
-    pub fn new(tag_repository: impl TagRepository) -> Self {
-        Self {
-            tag_repository: Box::new(tag_repository),
-        }
+impl<TR: TagRepository> UpdateTagHandler<TR> {
+    pub fn new(tag_repository: TR) -> Self {
+        Self { tag_repository }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<UpdateTagCommand> for UpdateTagHandler {
+impl<TR: TagRepository> Handler<UpdateTagCommand> for UpdateTagHandler<TR> {
     type Response = ();
     type Error = UpdateTagError;
 

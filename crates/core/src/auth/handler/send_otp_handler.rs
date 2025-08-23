@@ -19,22 +19,22 @@ pub struct SendOtpCommand {
     pub email: String,
 }
 
-pub struct SendOtpHandler {
-    user_repository: Box<dyn UserRepository>,
-    smtp_client: Box<dyn SmtpClient>,
+pub struct SendOtpHandler<UR: UserRepository, SC: SmtpClient> {
+    user_repository: UR,
+    smtp_client: SC,
 }
 
-impl SendOtpHandler {
-    pub fn new(user_repository: impl UserRepository, smtp_client: impl SmtpClient) -> Self {
+impl<UR: UserRepository, SC: SmtpClient> SendOtpHandler<UR, SC> {
+    pub fn new(user_repository: UR, smtp_client: SC) -> Self {
         Self {
-            user_repository: Box::new(user_repository),
-            smtp_client: Box::new(smtp_client),
+            user_repository,
+            smtp_client,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<SendOtpCommand> for SendOtpHandler {
+impl<UR: UserRepository, SC: SmtpClient> Handler<SendOtpCommand> for SendOtpHandler<UR, SC> {
     type Response = OtpData;
     type Error = SendOtpError;
 

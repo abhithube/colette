@@ -9,20 +9,18 @@ pub struct GetJobQuery {
     pub id: JobId,
 }
 
-pub struct GetJobHandler {
-    job_repository: Box<dyn JobRepository>,
+pub struct GetJobHandler<JR: JobRepository> {
+    job_repository: JR,
 }
 
-impl GetJobHandler {
-    pub fn new(job_repository: impl JobRepository) -> Self {
-        Self {
-            job_repository: Box::new(job_repository),
-        }
+impl<JR: JobRepository> GetJobHandler<JR> {
+    pub fn new(job_repository: JR) -> Self {
+        Self { job_repository }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<GetJobQuery> for GetJobHandler {
+impl<JR: JobRepository> Handler<GetJobQuery> for GetJobHandler<JR> {
     type Response = Job;
     type Error = GetJobError;
 

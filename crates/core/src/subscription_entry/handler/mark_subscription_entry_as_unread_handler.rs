@@ -13,20 +13,22 @@ pub struct MarkSubscriptionEntryAsUnreadCommand {
     pub user_id: UserId,
 }
 
-pub struct MarkSubscriptionEntryAsUnreadHandler {
-    subscription_entry_repository: Box<dyn SubscriptionEntryRepository>,
+pub struct MarkSubscriptionEntryAsUnreadHandler<SER: SubscriptionEntryRepository> {
+    subscription_entry_repository: SER,
 }
 
-impl MarkSubscriptionEntryAsUnreadHandler {
-    pub fn new(subscription_entry_repository: impl SubscriptionEntryRepository) -> Self {
+impl<SER: SubscriptionEntryRepository> MarkSubscriptionEntryAsUnreadHandler<SER> {
+    pub fn new(subscription_entry_repository: SER) -> Self {
         Self {
-            subscription_entry_repository: Box::new(subscription_entry_repository),
+            subscription_entry_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<MarkSubscriptionEntryAsUnreadCommand> for MarkSubscriptionEntryAsUnreadHandler {
+impl<SER: SubscriptionEntryRepository> Handler<MarkSubscriptionEntryAsUnreadCommand>
+    for MarkSubscriptionEntryAsUnreadHandler<SER>
+{
     type Response = ();
     type Error = MarkSubscriptionEntryAsUnreadError;
 

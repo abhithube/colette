@@ -16,20 +16,20 @@ pub struct ExportBookmarksQuery {
     pub user_id: UserId,
 }
 
-pub struct ExportBookmarksHandler {
-    bookmark_repository: Box<dyn BookmarkRepository>,
+pub struct ExportBookmarksHandler<BR: BookmarkRepository> {
+    bookmark_repository: BR,
 }
 
-impl ExportBookmarksHandler {
-    pub fn new(bookmark_repository: impl BookmarkRepository) -> Self {
+impl<BR: BookmarkRepository> ExportBookmarksHandler<BR> {
+    pub fn new(bookmark_repository: BR) -> Self {
         Self {
-            bookmark_repository: Box::new(bookmark_repository),
+            bookmark_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ExportBookmarksQuery> for ExportBookmarksHandler {
+impl<BR: BookmarkRepository> Handler<ExportBookmarksQuery> for ExportBookmarksHandler<BR> {
     type Response = Bytes;
     type Error = ExportBookmarksError;
 

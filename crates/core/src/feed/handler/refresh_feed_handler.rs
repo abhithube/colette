@@ -1,5 +1,6 @@
 use std::{cmp, sync::Arc};
 
+use colette_http::HttpClient;
 use colette_scraper::feed::{FeedScraper, ProcessedFeed};
 use url::Url;
 
@@ -21,70 +22,25 @@ pub struct RefreshFeedCommand {
     pub url: Url,
 }
 
-pub struct RefreshFeedHandler {
-    feed_repository: Box<dyn FeedRepository>,
-    feed_entry_repository: Box<dyn FeedEntryRepository>,
-    feed_scraper: Arc<FeedScraper>,
+pub struct RefreshFeedHandler<FR: FeedRepository, FER: FeedEntryRepository, HC: HttpClient> {
+    feed_repository: FR,
+    feed_entry_repository: FER,
+    feed_scraper: Arc<FeedScraper<HC>>,
 }
 
-impl RefreshFeedHandler {
+impl<FR: FeedRepository, FER: FeedEntryRepository, HC: HttpClient> RefreshFeedHandler<FR, FER, HC> {
     pub fn new(
-        feed_repository: impl FeedRepository,
-        feed_entry_repository: impl FeedEntryRepository,
-        feed_scraper: Arc<FeedScraper>,
+        feed_repository: FR,
+        feed_entry_repository: FER,
+        feed_scraper: Arc<FeedScraper<HC>>,
     ) -> Self {
         Self {
-            feed_repository: Box::new(feed_repository),
-            feed_entry_repository: Box::new(feed_entry_repository),
+            feed_repository,
+            feed_entry_repository,
             feed_scraper,
         }
     }
-}
 
-#[async_trait::async_trait]
-impl Handler<RefreshFeedCommand> for RefreshFeedHandler {
-    type Response = Feed;
-    type Error = RefreshFeedError;
-
-    async fn handle(&self, mut cmd: RefreshFeedCommand) -> Result<Self::Response, Self::Error> {
-        let mut processed = match self.feed_scraper.scrape(&mut cmd.url).await {
-            Ok(processed) => Ok(processed),
-            Err(e) => {
-                self.feed_repository.mark_as_failed(cmd.url.clone()).await?;
-
-                Err(e)
-            }
-        }?;
-
-        processed
-            .entries
-            .sort_by(|a, b| a.published.cmp(&b.published));
-
-        let refresh_interval_min = self
-            .calculate_refresh_interval(cmd.url.clone(), &processed)
-            .await?;
-
-        let is_custom = processed.link == cmd.url;
-        let feed_entry_items = processed.entries.into_iter().map(Into::into).collect();
-
-        let id = self
-            .feed_repository
-            .upsert(FeedUpsertParams {
-                source_url: cmd.url,
-                link: processed.link,
-                title: processed.title,
-                description: processed.description,
-                refresh_interval_min,
-                is_custom,
-                feed_entry_items,
-            })
-            .await?;
-
-        self.get_feed(id).await
-    }
-}
-
-impl RefreshFeedHandler {
     async fn get_feed(&self, id: FeedId) -> Result<Feed, RefreshFeedError> {
         let mut feeds = self
             .feed_repository
@@ -174,6 +130,51 @@ impl RefreshFeedHandler {
             }
             None => Ok(DEFAULT_INTERVAL),
         }
+    }
+}
+
+#[async_trait::async_trait]
+impl<FR: FeedRepository, FER: FeedEntryRepository, HC: HttpClient> Handler<RefreshFeedCommand>
+    for RefreshFeedHandler<FR, FER, HC>
+{
+    type Response = Feed;
+    type Error = RefreshFeedError;
+
+    async fn handle(&self, mut cmd: RefreshFeedCommand) -> Result<Self::Response, Self::Error> {
+        let mut processed = match self.feed_scraper.scrape(&mut cmd.url).await {
+            Ok(processed) => Ok(processed),
+            Err(e) => {
+                self.feed_repository.mark_as_failed(cmd.url.clone()).await?;
+
+                Err(e)
+            }
+        }?;
+
+        processed
+            .entries
+            .sort_by(|a, b| a.published.cmp(&b.published));
+
+        let refresh_interval_min = self
+            .calculate_refresh_interval(cmd.url.clone(), &processed)
+            .await?;
+
+        let is_custom = processed.link == cmd.url;
+        let feed_entry_items = processed.entries.into_iter().map(Into::into).collect();
+
+        let id = self
+            .feed_repository
+            .upsert(FeedUpsertParams {
+                source_url: cmd.url,
+                link: processed.link,
+                title: processed.title,
+                description: processed.description,
+                refresh_interval_min,
+                is_custom,
+                feed_entry_items,
+            })
+            .await?;
+
+        self.get_feed(id).await
     }
 }
 

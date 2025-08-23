@@ -18,20 +18,14 @@ pub trait FeedPlugin: Send + Sync + 'static {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, FeedError>;
 }
 
-pub struct FeedScraper {
-    client: Box<dyn HttpClient>,
+pub struct FeedScraper<HC: HttpClient> {
+    client: HC,
     plugins: HashMap<&'static str, Box<dyn FeedPlugin>>,
 }
 
-impl FeedScraper {
-    pub fn new(
-        client: impl HttpClient,
-        plugins: HashMap<&'static str, Box<dyn FeedPlugin>>,
-    ) -> Self {
-        Self {
-            client: Box::new(client),
-            plugins,
-        }
+impl<HC: HttpClient> FeedScraper<HC> {
+    pub fn new(client: HC, plugins: HashMap<&'static str, Box<dyn FeedPlugin>>) -> Self {
+        Self { client, plugins }
     }
 
     pub async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, FeedError> {

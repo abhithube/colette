@@ -13,20 +13,18 @@ pub struct ListTagsQuery {
     pub user_id: UserId,
 }
 
-pub struct ListTagsHandler {
-    tag_repository: Box<dyn TagRepository>,
+pub struct ListTagsHandler<TR: TagRepository> {
+    tag_repository: TR,
 }
 
-impl ListTagsHandler {
-    pub fn new(tag_repository: impl TagRepository) -> Self {
-        Self {
-            tag_repository: Box::new(tag_repository),
-        }
+impl<TR: TagRepository> ListTagsHandler<TR> {
+    pub fn new(tag_repository: TR) -> Self {
+        Self { tag_repository }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ListTagsQuery> for ListTagsHandler {
+impl<TR: TagRepository> Handler<ListTagsQuery> for ListTagsHandler<TR> {
     type Response = Paginated<TagDto, TagCursor>;
     type Error = ListTagsError;
 

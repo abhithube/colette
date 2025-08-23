@@ -11,20 +11,18 @@ pub struct ValidatePatQuery {
     pub value: String,
 }
 
-pub struct ValidatePatHandler {
-    pat_repository: Box<dyn PatRepository>,
+pub struct ValidatePatHandler<PR: PatRepository> {
+    pat_repository: PR,
 }
 
-impl ValidatePatHandler {
-    pub fn new(pat_repository: impl PatRepository) -> Self {
-        Self {
-            pat_repository: Box::new(pat_repository),
-        }
+impl<PR: PatRepository> ValidatePatHandler<PR> {
+    pub fn new(pat_repository: PR) -> Self {
+        Self { pat_repository }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ValidatePatQuery> for ValidatePatHandler {
+impl<PR: PatRepository> Handler<ValidatePatQuery> for ValidatePatHandler<PR> {
     type Response = UserId;
     type Error = ValidatePatError;
 

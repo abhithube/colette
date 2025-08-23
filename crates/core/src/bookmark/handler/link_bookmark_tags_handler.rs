@@ -13,20 +13,20 @@ pub struct LinkBookmarkTagsCommand {
     pub user_id: UserId,
 }
 
-pub struct LinkBookmarkTagsHandler {
-    bookmark_repository: Box<dyn BookmarkRepository>,
+pub struct LinkBookmarkTagsHandler<BR: BookmarkRepository> {
+    bookmark_repository: BR,
 }
 
-impl LinkBookmarkTagsHandler {
-    pub fn new(bookmark_repository: impl BookmarkRepository) -> Self {
+impl<BR: BookmarkRepository> LinkBookmarkTagsHandler<BR> {
+    pub fn new(bookmark_repository: BR) -> Self {
         Self {
-            bookmark_repository: Box::new(bookmark_repository),
+            bookmark_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<LinkBookmarkTagsCommand> for LinkBookmarkTagsHandler {
+impl<BR: BookmarkRepository> Handler<LinkBookmarkTagsCommand> for LinkBookmarkTagsHandler<BR> {
     type Response = ();
     type Error = LinkBookmarkTagsError;
 

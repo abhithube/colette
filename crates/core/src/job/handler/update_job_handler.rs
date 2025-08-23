@@ -14,20 +14,18 @@ pub struct UpdateJobCommand {
     pub message: Option<Option<String>>,
 }
 
-pub struct UpdateJobHandler {
-    job_repository: Box<dyn JobRepository>,
+pub struct UpdateJobHandler<JR: JobRepository> {
+    job_repository: JR,
 }
 
-impl UpdateJobHandler {
-    pub fn new(job_repository: impl JobRepository) -> Self {
-        Self {
-            job_repository: Box::new(job_repository),
-        }
+impl<JR: JobRepository> UpdateJobHandler<JR> {
+    pub fn new(job_repository: JR) -> Self {
+        Self { job_repository }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<UpdateJobCommand> for UpdateJobHandler {
+impl<JR: JobRepository> Handler<UpdateJobCommand> for UpdateJobHandler<JR> {
     type Response = ();
     type Error = UpdateJobError;
 

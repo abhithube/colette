@@ -10,20 +10,18 @@ pub struct DeletePatCommand {
     pub user_id: UserId,
 }
 
-pub struct DeletePatHandler {
-    user_repository: Box<dyn UserRepository>,
+pub struct DeletePatHandler<UR: UserRepository> {
+    user_repository: UR,
 }
 
-impl DeletePatHandler {
-    pub fn new(user_repository: impl UserRepository) -> Self {
-        Self {
-            user_repository: Box::new(user_repository),
-        }
+impl<UR: UserRepository> DeletePatHandler<UR> {
+    pub fn new(user_repository: UR) -> Self {
+        Self { user_repository }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<DeletePatCommand> for DeletePatHandler {
+impl<UR: UserRepository> Handler<DeletePatCommand> for DeletePatHandler<UR> {
     type Response = ();
     type Error = DeletePatError;
 

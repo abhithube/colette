@@ -10,21 +10,22 @@ use colette_core::{
 };
 use colette_job::{Error, JobError};
 use colette_queue::JobConsumer;
+use colette_repository::PostgresJobRepository;
 use cron::Schedule;
 use serde_json::Value;
 use tower::{Service, ServiceExt, util::BoxService};
 
 pub struct JobWorker {
-    get_job: Arc<GetJobHandler>,
-    update_job: Arc<UpdateJobHandler>,
+    get_job: Arc<GetJobHandler<PostgresJobRepository>>,
+    update_job: Arc<UpdateJobHandler<PostgresJobRepository>>,
     job_consumer: Box<dyn JobConsumer>,
     job_handler: BoxService<Job, (), Error>,
 }
 
 impl JobWorker {
     pub fn new(
-        get_job: Arc<GetJobHandler>,
-        update_job: Arc<UpdateJobHandler>,
+        get_job: Arc<GetJobHandler<PostgresJobRepository>>,
+        update_job: Arc<UpdateJobHandler<PostgresJobRepository>>,
         job_consumer: impl JobConsumer,
         job_handler: BoxService<Job, (), Error>,
     ) -> Self {
@@ -89,9 +90,9 @@ impl JobWorker {
 pub struct CronWorker {
     name: String,
     schedule: Schedule,
-    get_job: Arc<GetJobHandler>,
-    create_job: Arc<CreateJobHandler>,
-    update_job: Arc<UpdateJobHandler>,
+    get_job: Arc<GetJobHandler<PostgresJobRepository>>,
+    create_job: Arc<CreateJobHandler<PostgresJobRepository>>,
+    update_job: Arc<UpdateJobHandler<PostgresJobRepository>>,
     handler: BoxService<Job, (), Error>,
 }
 
@@ -99,9 +100,9 @@ impl CronWorker {
     pub fn new<S: Into<String>>(
         name: S,
         schedule: Schedule,
-        get_job: Arc<GetJobHandler>,
-        create_job: Arc<CreateJobHandler>,
-        update_job: Arc<UpdateJobHandler>,
+        get_job: Arc<GetJobHandler<PostgresJobRepository>>,
+        create_job: Arc<CreateJobHandler<PostgresJobRepository>>,
+        update_job: Arc<UpdateJobHandler<PostgresJobRepository>>,
         handler: BoxService<Job, (), Error>,
     ) -> Self {
         Self {

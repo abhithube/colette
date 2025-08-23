@@ -13,20 +13,20 @@ pub struct ListFeedEntriesQuery {
     pub limit: Option<usize>,
 }
 
-pub struct ListFeedEntriesHandler {
-    feed_entry_repository: Box<dyn FeedEntryRepository>,
+pub struct ListFeedEntriesHandler<FER: FeedEntryRepository> {
+    feed_entry_repository: FER,
 }
 
-impl ListFeedEntriesHandler {
-    pub fn new(feed_entry_repository: impl FeedEntryRepository) -> Self {
+impl<FER: FeedEntryRepository> ListFeedEntriesHandler<FER> {
+    pub fn new(feed_entry_repository: FER) -> Self {
         Self {
-            feed_entry_repository: Box::new(feed_entry_repository),
+            feed_entry_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ListFeedEntriesQuery> for ListFeedEntriesHandler {
+impl<FER: FeedEntryRepository> Handler<ListFeedEntriesQuery> for ListFeedEntriesHandler<FER> {
     type Response = Paginated<FeedEntry, FeedEntryCursor>;
     type Error = ListFeedEntriesError;
 

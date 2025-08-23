@@ -21,28 +21,30 @@ pub struct UpdateBookmarkCommand {
     pub user_id: UserId,
 }
 
-pub struct UpdateBookmarkHandler {
-    bookmark_repository: Box<dyn BookmarkRepository>,
-    job_repository: Box<dyn JobRepository>,
+pub struct UpdateBookmarkHandler<BR: BookmarkRepository, JR: JobRepository> {
+    bookmark_repository: BR,
+    job_repository: JR,
     archive_thumbnail_producer: Box<Mutex<dyn JobProducer>>,
 }
 
-impl UpdateBookmarkHandler {
+impl<BR: BookmarkRepository, JR: JobRepository> UpdateBookmarkHandler<BR, JR> {
     pub fn new(
-        bookmark_repository: impl BookmarkRepository,
-        job_repository: impl JobRepository,
+        bookmark_repository: BR,
+        job_repository: JR,
         archive_thumbnail_producer: impl JobProducer,
     ) -> Self {
         Self {
-            bookmark_repository: Box::new(bookmark_repository),
-            job_repository: Box::new(job_repository),
+            bookmark_repository,
+            job_repository,
             archive_thumbnail_producer: Box::new(Mutex::new(archive_thumbnail_producer)),
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<UpdateBookmarkCommand> for UpdateBookmarkHandler {
+impl<BR: BookmarkRepository, JR: JobRepository> Handler<UpdateBookmarkCommand>
+    for UpdateBookmarkHandler<BR, JR>
+{
     type Response = Bookmark;
     type Error = UpdateBookmarkError;
 

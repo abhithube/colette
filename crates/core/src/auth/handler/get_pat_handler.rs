@@ -10,20 +10,18 @@ pub struct GetPatQuery {
     pub user_id: UserId,
 }
 
-pub struct GetPatHandler {
-    pat_repository: Box<dyn PatRepository>,
+pub struct GetPatHandler<PR: PatRepository> {
+    pat_repository: PR,
 }
 
-impl GetPatHandler {
-    pub fn new(pat_repository: impl PatRepository) -> Self {
-        Self {
-            pat_repository: Box::new(pat_repository),
-        }
+impl<PR: PatRepository> GetPatHandler<PR> {
+    pub fn new(pat_repository: PR) -> Self {
+        Self { pat_repository }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<GetPatQuery> for GetPatHandler {
+impl<PR: PatRepository> Handler<GetPatQuery> for GetPatHandler<PR> {
     type Response = PersonalAccessToken;
     type Error = GetPatError;
 

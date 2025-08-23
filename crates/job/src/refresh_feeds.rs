@@ -10,6 +10,7 @@ use colette_core::{
     job::{CreateJobCommand, CreateJobHandler, Job},
 };
 use colette_queue::JobProducer;
+use colette_repository::{PostgresFeedRepository, PostgresJobRepository};
 use futures::FutureExt;
 use tokio::sync::Mutex;
 use tower::Service;
@@ -17,15 +18,15 @@ use tower::Service;
 use crate::{Error, JobError};
 
 pub struct RefreshFeedsJobHandler {
-    list_feeds: Arc<ListFeedsHandler>,
-    create_job: Arc<CreateJobHandler>,
+    list_feeds: Arc<ListFeedsHandler<PostgresFeedRepository>>,
+    create_job: Arc<CreateJobHandler<PostgresJobRepository>>,
     scrape_feed_producer: Arc<Mutex<dyn JobProducer>>,
 }
 
 impl RefreshFeedsJobHandler {
     pub fn new(
-        list_feeds: Arc<ListFeedsHandler>,
-        create_job: Arc<CreateJobHandler>,
+        list_feeds: Arc<ListFeedsHandler<PostgresFeedRepository>>,
+        create_job: Arc<CreateJobHandler<PostgresJobRepository>>,
         scrape_feed_producer: Arc<Mutex<dyn JobProducer>>,
     ) -> Self {
         Self {

@@ -16,20 +16,22 @@ pub struct ExportSubscriptionsQuery {
     pub user_id: UserId,
 }
 
-pub struct ExportSubscriptionsHandler {
-    subscription_repository: Box<dyn SubscriptionRepository>,
+pub struct ExportSubscriptionsHandler<SR: SubscriptionRepository> {
+    subscription_repository: SR,
 }
 
-impl ExportSubscriptionsHandler {
-    pub fn new(subscription_repository: impl SubscriptionRepository) -> Self {
+impl<SR: SubscriptionRepository> ExportSubscriptionsHandler<SR> {
+    pub fn new(subscription_repository: SR) -> Self {
         Self {
-            subscription_repository: Box::new(subscription_repository),
+            subscription_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Handler<ExportSubscriptionsQuery> for ExportSubscriptionsHandler {
+impl<SR: SubscriptionRepository> Handler<ExportSubscriptionsQuery>
+    for ExportSubscriptionsHandler<SR>
+{
     type Response = Bytes;
     type Error = ExportSubscriptionsError;
 

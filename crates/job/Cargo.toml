@@ -5,7 +5,10 @@ edition = "2024"
 
 [dependencies]
 colette-core.workspace = true
+colette-http.workspace = true
 colette-queue.workspace = true
+colette-repository.workspace = true
+colette-s3.workspace = true
 futures.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
