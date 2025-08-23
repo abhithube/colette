@@ -8,7 +8,6 @@ use crate::{
     auth::UserId,
     bookmark::{BookmarkAuthor, BookmarkError, BookmarkId, BookmarkRepository, BookmarkTitle},
     common::RepositoryError,
-    job::JobRepository,
 };
 
 #[derive(Debug, Clone)]
@@ -21,29 +20,23 @@ pub struct UpdateBookmarkCommand {
     pub user_id: UserId,
 }
 
-pub struct UpdateBookmarkHandler<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> {
+pub struct UpdateBookmarkHandler<BR: BookmarkRepository, JP: JobProducer> {
     bookmark_repository: BR,
-    job_repository: JR,
     archive_thumbnail_producer: Mutex<JP>,
 }
 
-impl<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> UpdateBookmarkHandler<BR, JR, JP> {
-    pub fn new(
-        bookmark_repository: BR,
-        job_repository: JR,
-        archive_thumbnail_producer: JP,
-    ) -> Self {
+impl<BR: BookmarkRepository, JP: JobProducer> UpdateBookmarkHandler<BR, JP> {
+    pub fn new(bookmark_repository: BR, archive_thumbnail_producer: JP) -> Self {
         Self {
             bookmark_repository,
-            job_repository,
             archive_thumbnail_producer: Mutex::new(archive_thumbnail_producer),
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> Handler<UpdateBookmarkCommand>
-    for UpdateBookmarkHandler<BR, JR, JP>
+impl<BR: BookmarkRepository, JP: JobProducer> Handler<UpdateBookmarkCommand>
+    for UpdateBookmarkHandler<BR, JP>
 {
     type Response = Bookmark;
     type Error = UpdateBookmarkError;
@@ -82,31 +75,23 @@ impl<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> Handler<UpdateB
 
         self.bookmark_repository.save(&bookmark).await?;
 
-        // if let Some(thumbnail_url) = new_thumbnail
-        //     && thumbnail_url != bookmark.thumbnail_url
+        // if let Some(thumbnail_url) = cmd.thumbnail_url
+        //     && thumbnail_url != bookmark.thumbnail_url().cloned()
         // {
-        //     let data = serde_json::to_value(&ArchiveThumbnailJobData {
+        //     let data = ArchiveThumbnailJobData {
         //         operation: if let Some(thumbnail_url) = thumbnail_url {
         //             ThumbnailOperation::Upload(thumbnail_url)
         //         } else {
         //             ThumbnailOperation::Delete
         //         },
         //         archived_path: bookmark.archived_path.clone(),
-        //         bookmark_id: bookmark.id,
-        //     })?;
-
-        //     let job_id = self
-        //         .job_repository
-        //         .insert(JobInsertParams {
-        //             job_type: "archive_thumbnail".into(),
-        //             data,
-        //             group_identifier: None,
-        //         })
-        //         .await?;
+        //         bookmark_id: bookmark.id(),
+        //     };
+        //     let job = Job::create("archive_thumbnail", data)?;
 
         //     let mut producer = self.archive_thumbnail_producer.lock().await;
 
-        //     producer.push(job_id.as_inner()).await?;
+        //     producer.push(job).await?;
         // }
 
         Ok(bookmark)
@@ -120,9 +105,6 @@ pub enum UpdateBookmarkError {
 
     #[error(transparent)]
     Queue(#[from] colette_queue::Error),
-
-    #[error(transparent)]
-    Serde(#[from] serde_json::Error),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

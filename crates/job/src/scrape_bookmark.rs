@@ -7,9 +7,9 @@ use std::{
 use colette_core::{
     Handler as _,
     bookmark::{RefreshBookmarkCommand, RefreshBookmarkHandler, ScrapeBookmarkJobData},
-    job::Job,
 };
 use colette_http::ReqwestClient;
+use colette_queue::Job;
 use colette_repository::PostgresBookmarkRepository;
 use futures::FutureExt;
 use tower::Service;

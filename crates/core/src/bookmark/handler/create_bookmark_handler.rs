@@ -1,14 +1,16 @@
 use chrono::{DateTime, Utc};
-use colette_queue::JobProducer;
+use colette_queue::{Job, JobProducer};
 use tokio::sync::Mutex;
 use url::Url;
 
 use crate::{
     Bookmark, Handler,
     auth::UserId,
-    bookmark::{BookmarkAuthor, BookmarkError, BookmarkRepository, BookmarkTitle},
+    bookmark::{
+        ArchiveThumbnailJobData, BookmarkAuthor, BookmarkError, BookmarkRepository, BookmarkTitle,
+        ThumbnailOperation,
+    },
     common::RepositoryError,
-    job::JobRepository,
 };
 
 #[derive(Debug, Clone)]
@@ -21,29 +23,23 @@ pub struct CreateBookmarkCommand {
     pub user_id: UserId,
 }
 
-pub struct CreateBookmarkHandler<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> {
+pub struct CreateBookmarkHandler<BR: BookmarkRepository, JP: JobProducer> {
     bookmark_repository: BR,
-    job_repository: JR,
     archive_thumbnail_producer: Mutex<JP>,
 }
 
-impl<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> CreateBookmarkHandler<BR, JR, JP> {
-    pub fn new(
-        bookmark_repository: BR,
-        job_repository: JR,
-        archive_thumbnail_producer: JP,
-    ) -> Self {
+impl<BR: BookmarkRepository, JP: JobProducer> CreateBookmarkHandler<BR, JP> {
+    pub fn new(bookmark_repository: BR, archive_thumbnail_producer: JP) -> Self {
         Self {
             bookmark_repository,
-            job_repository,
             archive_thumbnail_producer: Mutex::new(archive_thumbnail_producer),
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> Handler<CreateBookmarkCommand>
-    for CreateBookmarkHandler<BR, JR, JP>
+impl<BR: BookmarkRepository, JP: JobProducer> Handler<CreateBookmarkCommand>
+    for CreateBookmarkHandler<BR, JP>
 {
     type Response = Bookmark;
     type Error = CreateBookmarkError;
@@ -71,26 +67,18 @@ impl<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> Handler<CreateB
                 _ => CreateBookmarkError::Repository(e),
             })?;
 
-        // if let Some(thumbnail_url) = cmd.thumbnail_url {
-        //     let data = serde_json::to_value(&ArchiveThumbnailJobData {
-        //         operation: ThumbnailOperation::Upload(thumbnail_url),
-        //         archived_path: None,
-        //         bookmark_id: id,
-        //     })?;
+        if let Some(thumbnail_url) = bookmark.thumbnail_url().cloned() {
+            let data = ArchiveThumbnailJobData {
+                operation: ThumbnailOperation::Upload(thumbnail_url),
+                archived_path: None,
+                bookmark_id: bookmark.id(),
+            };
+            let job = Job::create("archive_thumbnail", data)?;
 
-        //     let job_id = self
-        //         .job_repository
-        //         .insert(JobInsertParams {
-        //             job_type: "archive_thumbnail".into(),
-        //             data,
-        //             group_identifier: None,
-        //         })
-        //         .await?;
+            let mut producer = self.archive_thumbnail_producer.lock().await;
 
-        //     let mut producer = self.archive_thumbnail_producer.lock().await;
-
-        //     producer.push(job_id.as_inner()).await?;
-        // }
+            producer.push(job).await?;
+        }
 
         Ok(bookmark)
     }
@@ -103,9 +91,6 @@ pub enum CreateBookmarkError {
 
     #[error(transparent)]
     Queue(#[from] colette_queue::Error),
-
-    #[error(transparent)]
-    Serde(#[from] serde_json::Error),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

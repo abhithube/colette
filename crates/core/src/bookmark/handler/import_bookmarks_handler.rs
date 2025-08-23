@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use bytes::{Buf, Bytes};
 use chrono::{DateTime, Utc};
 use colette_netscape::Item;
-use colette_queue::JobProducer;
+use colette_queue::{Job, JobProducer};
 use tokio::sync::Mutex;
 use url::Url;
 
@@ -12,7 +12,6 @@ use crate::{
     auth::UserId,
     bookmark::{BookmarkBatchItem, BookmarkRepository, ImportBookmarksParams},
     common::RepositoryError,
-    job::{JobInsertParams, JobRepository},
 };
 
 #[derive(Debug, Clone)]
@@ -21,27 +20,25 @@ pub struct ImportBookmarksCommand {
     pub user_id: UserId,
 }
 
-pub struct ImportBookmarksHandler<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> {
+pub struct ImportBookmarksHandler<BR: BookmarkRepository, JP: JobProducer> {
     bookmark_repository: BR,
-    job_repository: JR,
+
     import_bookmarks_producer: Mutex<JP>,
 }
 
-impl<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer>
-    ImportBookmarksHandler<BR, JR, JP>
-{
-    pub fn new(bookmark_repository: BR, job_repository: JR, import_bookmarks_producer: JP) -> Self {
+impl<BR: BookmarkRepository, JP: JobProducer> ImportBookmarksHandler<BR, JP> {
+    pub fn new(bookmark_repository: BR, import_bookmarks_producer: JP) -> Self {
         Self {
             bookmark_repository,
-            job_repository,
+
             import_bookmarks_producer: Mutex::new(import_bookmarks_producer),
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> Handler<ImportBookmarksCommand>
-    for ImportBookmarksHandler<BR, JR, JP>
+impl<BR: BookmarkRepository, JP: JobProducer> Handler<ImportBookmarksCommand>
+    for ImportBookmarksHandler<BR, JP>
 {
     type Response = ();
     type Error = ImportBookmarksError;
@@ -97,22 +94,14 @@ impl<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> Handler<ImportB
             })
             .await?;
 
-        let data = serde_json::to_value(&ImportBookmarksJobData {
+        let data = ImportBookmarksJobData {
             user_id: cmd.user_id,
-        })?;
-
-        let job_id = self
-            .job_repository
-            .insert(JobInsertParams {
-                job_type: "import_bookmarks".into(),
-                data,
-                group_identifier: None,
-            })
-            .await?;
+        };
+        let job = Job::create("import_bookmarks", data)?;
 
         let mut producer = self.import_bookmarks_producer.lock().await;
 
-        producer.push(job_id.as_inner()).await?;
+        producer.push(job).await?;
 
         Ok(())
     }
@@ -130,9 +119,6 @@ pub enum ImportBookmarksError {
 
     #[error(transparent)]
     Queue(#[from] colette_queue::Error),
-
-    #[error(transparent)]
-    Serde(#[from] serde_json::Error),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

@@ -9,22 +9,18 @@ use colette_core::{
     bookmark::{
         ImportBookmarksJobData, ListBookmarksHandler, ListBookmarksQuery, ScrapeBookmarkJobData,
     },
-    job::{CreateJobCommand, CreateJobHandler, Job},
 };
-use colette_queue::{JobProducer, TokioJobProducer};
-use colette_repository::{
-    PostgresBookmarkRepository, PostgresCollectionRepository, PostgresJobRepository,
-};
+use colette_queue::{Job, JobProducer, TokioJobProducer};
+use colette_repository::{PostgresBookmarkRepository, PostgresCollectionRepository};
 use futures::FutureExt;
 use tokio::sync::Mutex;
 use tower::Service;
 
-use crate::{Error, JobError};
+use crate::Error;
 
 pub struct ImportBookmarksJobHandler {
     list_bookmarks:
         Arc<ListBookmarksHandler<PostgresBookmarkRepository, PostgresCollectionRepository>>,
-    create_job: Arc<CreateJobHandler<PostgresJobRepository>>,
     scrape_bookmark_producer: Arc<Mutex<TokioJobProducer>>,
 }
 
@@ -33,12 +29,10 @@ impl ImportBookmarksJobHandler {
         list_bookmarks: Arc<
             ListBookmarksHandler<PostgresBookmarkRepository, PostgresCollectionRepository>,
         >,
-        create_job: Arc<CreateJobHandler<PostgresJobRepository>>,
         scrape_bookmark_producer: Arc<Mutex<TokioJobProducer>>,
     ) -> Self {
         Self {
             list_bookmarks,
-            create_job,
             scrape_bookmark_producer,
         }
     }
@@ -55,7 +49,6 @@ impl Service<Job> for ImportBookmarksJobHandler {
 
     fn call(&mut self, job: Job) -> Self::Future {
         let list_bookmarks = self.list_bookmarks.clone();
-        let create_job = self.create_job.clone();
         let scrape_bookmark_producer = self.scrape_bookmark_producer.clone();
 
         async move {
@@ -75,23 +68,15 @@ impl Service<Job> for ImportBookmarksJobHandler {
             tracing::debug!("Importing {} bookmarks", bookmarks.items.len());
 
             for bookmark in bookmarks.items {
-                let data = serde_json::to_value(ScrapeBookmarkJobData {
+                let data = ScrapeBookmarkJobData {
                     url: bookmark.link,
                     user_id: input_data.user_id,
-                })?;
-
-                let job_id = create_job
-                    .handle(CreateJobCommand {
-                        data,
-                        job_type: "scrape_bookmark".into(),
-                        group_identifier: Some(job.id.as_inner().into()),
-                    })
-                    .await
-                    .map_err(JobError::CreateJob)?;
+                };
+                let job = Job::create("scrape_bookmark", data)?;
 
                 let mut scrape_bookmark_producer = scrape_bookmark_producer.lock().await;
 
-                scrape_bookmark_producer.push(job_id.as_inner()).await?;
+                scrape_bookmark_producer.push(job).await?;
             }
 
             Ok(())

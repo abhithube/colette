@@ -19,7 +19,6 @@ pub mod common;
 pub mod feed;
 pub mod feed_entry;
 pub mod filter;
-pub mod job;
 pub mod pagination;
 pub mod subscription;
 pub mod subscription_entry;

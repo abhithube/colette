@@ -6,7 +6,6 @@ use crate::{
     auth::UserId,
     bookmark::{BookmarkError, BookmarkId, BookmarkRepository},
     common::RepositoryError,
-    job::JobRepository,
 };
 
 #[derive(Debug, Clone)]
@@ -15,29 +14,23 @@ pub struct DeleteBookmarkCommand {
     pub user_id: UserId,
 }
 
-pub struct DeleteBookmarkHandler<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> {
+pub struct DeleteBookmarkHandler<BR: BookmarkRepository, JP: JobProducer> {
     bookmark_repository: BR,
-    job_repository: JR,
     archive_thumbnail_producer: Mutex<JP>,
 }
 
-impl<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> DeleteBookmarkHandler<BR, JR, JP> {
-    pub fn new(
-        bookmark_repository: BR,
-        job_repository: JR,
-        archive_thumbnail_producer: JP,
-    ) -> Self {
+impl<BR: BookmarkRepository, JP: JobProducer> DeleteBookmarkHandler<BR, JP> {
+    pub fn new(bookmark_repository: BR, archive_thumbnail_producer: JP) -> Self {
         Self {
             bookmark_repository,
-            job_repository,
             archive_thumbnail_producer: Mutex::new(archive_thumbnail_producer),
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> Handler<DeleteBookmarkCommand>
-    for DeleteBookmarkHandler<BR, JR, JP>
+impl<BR: BookmarkRepository, JP: JobProducer> Handler<DeleteBookmarkCommand>
+    for DeleteBookmarkHandler<BR, JP>
 {
     type Response = ();
     type Error = DeleteBookmarkError;
@@ -53,24 +46,16 @@ impl<BR: BookmarkRepository, JR: JobRepository, JP: JobProducer> Handler<DeleteB
                 _ => DeleteBookmarkError::Repository(e),
             })?;
 
-        // let data = serde_json::to_value(&ArchiveThumbnailJobData {
+        // let data = ArchiveThumbnailJobData {
         //     operation: ThumbnailOperation::Delete,
         //     archived_path: bookmark.archived_path,
-        //     bookmark_id: bookmark.id,
-        // })?;
-
-        // let job_id = self
-        //     .job_repository
-        //     .insert(JobInsertParams {
-        //         job_type: "archive_thumbnail".into(),
-        //         data,
-        //         group_identifier: None,
-        //     })
-        //     .await?;
+        //     bookmark_id: cmd.id,
+        // };
+        // let job = Job::create("archive_thumbnail", data)?;
 
         // let mut producer = self.archive_thumbnail_producer.lock().await;
 
-        // producer.push(job_id.as_inner()).await?;
+        // producer.push(job).await?;
 
         Ok(())
     }
@@ -83,9 +68,6 @@ pub enum DeleteBookmarkError {
 
     #[error(transparent)]
     Queue(#[from] colette_queue::Error),
-
-    #[error(transparent)]
-    Serde(#[from] serde_json::Error),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

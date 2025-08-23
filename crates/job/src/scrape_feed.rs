@@ -7,9 +7,9 @@ use std::{
 use colette_core::{
     Handler as _,
     feed::{RefreshFeedCommand, RefreshFeedHandler, ScrapeFeedJobData},
-    job::Job,
 };
 use colette_http::ReqwestClient;
+use colette_queue::Job;
 use colette_repository::{PostgresFeedEntryRepository, PostgresFeedRepository};
 use futures::FutureExt;
 use tower::Service;

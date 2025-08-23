@@ -10,9 +10,9 @@ use colette_core::{
         ArchiveThumbnailCommand, ArchiveThumbnailHandler, ArchiveThumbnailJobData,
         ThumbnailOperation,
     },
-    job::Job,
 };
 use colette_http::ReqwestClient;
+use colette_queue::Job;
 use colette_repository::PostgresBookmarkRepository;
 use colette_s3::S3ClientImpl;
 use futures::FutureExt;

@@ -23,7 +23,6 @@ use colette_core::{
     },
     feed::{DetectFeedsHandler, GetFeedHandler, ListFeedsHandler, RefreshFeedHandler},
     feed_entry::{GetFeedEntryHandler, ListFeedEntriesHandler},
-    job::{CreateJobHandler, GetJobHandler, UpdateJobHandler},
     subscription::{
         CreateSubscriptionHandler, DeleteSubscriptionHandler, ExportSubscriptionsHandler,
         GetSubscriptionHandler, ImportSubscriptionsHandler, LinkSubscriptionTagsHandler,
@@ -47,9 +46,9 @@ use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::TokioQueue;
 use colette_repository::{
     PostgresBackupRepository, PostgresBookmarkRepository, PostgresCollectionRepository,
-    PostgresFeedEntryRepository, PostgresFeedRepository, PostgresJobRepository,
-    PostgresPatRepository, PostgresSubscriptionEntryRepository, PostgresSubscriptionRepository,
-    PostgresTagRepository, PostgresUserRepository,
+    PostgresFeedEntryRepository, PostgresFeedRepository, PostgresPatRepository,
+    PostgresSubscriptionEntryRepository, PostgresSubscriptionRepository, PostgresTagRepository,
+    PostgresUserRepository,
 };
 use colette_s3::S3ClientImpl;
 use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
@@ -94,7 +93,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
     let collection_repository = PostgresCollectionRepository::new(pool.clone());
     let feed_entry_repository = PostgresFeedEntryRepository::new(pool.clone());
-    let job_repository = PostgresJobRepository::new(pool.clone());
     let pat_repository = PostgresPatRepository::new(pool.clone());
     let subscription_repository = PostgresSubscriptionRepository::new(pool.clone());
     let subscription_entry_repository = PostgresSubscriptionEntryRepository::new(pool.clone());
@@ -187,9 +185,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         feed_entry_repository.clone(),
         feed_scraper.clone(),
     ));
-    let get_job_handler = Arc::new(GetJobHandler::new(job_repository.clone()));
-    let create_job_handler = Arc::new(CreateJobHandler::new(job_repository.clone()));
-    let update_job_handler = Arc::new(UpdateJobHandler::new(job_repository.clone()));
 
     let mut api_state = ApiState {
         // Auth
@@ -230,17 +225,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         get_bookmark: Arc::new(GetBookmarkHandler::new(bookmark_repository.clone())),
         create_bookmark: Arc::new(CreateBookmarkHandler::new(
             bookmark_repository.clone(),
-            job_repository.clone(),
             archive_thumbnail_producer.clone(),
         )),
         update_bookmark: Arc::new(UpdateBookmarkHandler::new(
             bookmark_repository.clone(),
-            job_repository.clone(),
             archive_thumbnail_producer.clone(),
         )),
         delete_bookmark: Arc::new(DeleteBookmarkHandler::new(
             bookmark_repository.clone(),
-            job_repository.clone(),
             archive_thumbnail_producer,
         )),
         scrape_bookmark: Arc::new(ScrapeBookmarkHandler::new(bookmark_scraper)),
@@ -248,7 +240,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         link_bookmark_tags: Arc::new(LinkBookmarkTagsHandler::new(bookmark_repository.clone())),
         import_bookmarks: Arc::new(ImportBookmarksHandler::new(
             bookmark_repository.clone(),
-            job_repository,
             import_bookmarks_producer,
         )),
         export_bookmarks: Arc::new(ExportBookmarksHandler::new(bookmark_repository)),
@@ -358,8 +349,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
 
     let mut scrape_feed_worker = JobWorker::new(
-        get_job_handler.clone(),
-        update_job_handler.clone(),
         scrape_feed_consumer,
         ServiceBuilder::new()
             .concurrency_limit(5)
@@ -367,8 +356,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .boxed(),
     );
     let mut scrape_bookmark_worker = JobWorker::new(
-        get_job_handler.clone(),
-        update_job_handler.clone(),
         scrape_bookmark_consumer,
         ServiceBuilder::new()
             .concurrency_limit(5)
@@ -376,8 +363,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .boxed(),
     );
     let mut archive_thumbnail_worker = JobWorker::new(
-        get_job_handler.clone(),
-        update_job_handler.clone(),
         archive_thumbnail_consumer,
         ServiceBuilder::new()
             .concurrency_limit(5)
@@ -385,13 +370,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .boxed(),
     );
     let mut import_bookmarks_worker = JobWorker::new(
-        get_job_handler.clone(),
-        update_job_handler.clone(),
         import_bookmarks_consumer,
         ServiceBuilder::new()
             .service(ImportBookmarksJobHandler::new(
                 list_bookmarks_handler,
-                create_job_handler.clone(),
                 Arc::new(Mutex::new(scrape_bookmark_producer)),
             ))
             .boxed(),
@@ -401,13 +383,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let mut worker = CronWorker::new(
             "refresh_feeds",
             "0 * * * * *".parse().unwrap(),
-            get_job_handler,
-            create_job_handler.clone(),
-            update_job_handler,
             ServiceBuilder::new()
                 .service(RefreshFeedsJobHandler::new(
                     list_feeds_handler,
-                    create_job_handler,
                     Arc::new(Mutex::new(scrape_feed_producer)),
                 ))
                 .boxed(),

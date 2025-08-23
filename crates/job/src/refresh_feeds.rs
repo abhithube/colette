@@ -7,31 +7,27 @@ use std::{
 use colette_core::{
     Handler as _,
     feed::{ListFeedsHandler, ListFeedsQuery, ScrapeFeedJobData},
-    job::{CreateJobCommand, CreateJobHandler, Job},
 };
-use colette_queue::{JobProducer, TokioJobProducer};
-use colette_repository::{PostgresFeedRepository, PostgresJobRepository};
+use colette_queue::{Job, JobProducer, TokioJobProducer};
+use colette_repository::PostgresFeedRepository;
 use futures::FutureExt;
 use tokio::sync::Mutex;
 use tower::Service;
 
-use crate::{Error, JobError};
+use crate::Error;
 
 pub struct RefreshFeedsJobHandler {
     list_feeds: Arc<ListFeedsHandler<PostgresFeedRepository>>,
-    create_job: Arc<CreateJobHandler<PostgresJobRepository>>,
     scrape_feed_producer: Arc<Mutex<TokioJobProducer>>,
 }
 
 impl RefreshFeedsJobHandler {
     pub fn new(
         list_feeds: Arc<ListFeedsHandler<PostgresFeedRepository>>,
-        create_job: Arc<CreateJobHandler<PostgresJobRepository>>,
         scrape_feed_producer: Arc<Mutex<TokioJobProducer>>,
     ) -> Self {
         Self {
             list_feeds,
-            create_job,
             scrape_feed_producer,
         }
     }
@@ -46,9 +42,8 @@ impl Service<Job> for RefreshFeedsJobHandler {
         Poll::Ready(Ok(()))
     }
 
-    fn call(&mut self, job: Job) -> Self::Future {
+    fn call(&mut self, _job: Job) -> Self::Future {
         let list_feeds = self.list_feeds.clone();
-        let create_job = self.create_job.clone();
         let scrape_feed_producer = self.scrape_feed_producer.clone();
 
         async move {
@@ -64,23 +59,15 @@ impl Service<Job> for RefreshFeedsJobHandler {
                 .map_err(|e| Error::Service(e.to_string()))?;
 
             for feed in feeds.items {
-                let data = serde_json::to_value(ScrapeFeedJobData {
+                let data = ScrapeFeedJobData {
                     url: feed.source_url,
-                })?;
-
-                let job_id = create_job
-                    .handle(CreateJobCommand {
-                        data,
-                        job_type: "scrape_feed".into(),
-                        group_identifier: Some(job.id.as_inner().into()),
-                    })
-                    .await
-                    .map_err(JobError::CreateJob)?;
+                };
+                let job = Job::create("scrape_feed", data)?;
 
                 let mut scrape_feed_producer = scrape_feed_producer.lock().await;
 
                 scrape_feed_producer
-                    .push(job_id.as_inner())
+                    .push(job)
                     .await
                     .map_err(|e| Error::Service(e.to_string()))?;
             }

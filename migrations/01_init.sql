@@ -46,21 +46,6 @@ CREATE TABLE personal_access_tokens (
   updated_at TIMESTAMPTZ NOT NULL
 );
 
-CREATE TABLE jobs (
-  id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
-  job_type TEXT NOT NULL,
-  data_json JSONB NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending',
-  group_identifier TEXT,
-  message TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE TRIGGER jobs_updated_at BEFORE
-UPDATE ON jobs FOR EACH ROW
-EXECUTE PROCEDURE set_updated_at ();
-
 CREATE TABLE feeds (
   id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
   source_url TEXT NOT NULL UNIQUE,

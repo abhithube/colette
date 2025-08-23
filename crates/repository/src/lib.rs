@@ -4,7 +4,6 @@ use colette_core::filter::{BooleanOp, DateOp, NumberOp, TextOp};
 pub use collection::PostgresCollectionRepository;
 pub use feed::PostgresFeedRepository;
 pub use feed_entry::PostgresFeedEntryRepository;
-pub use job::PostgresJobRepository;
 pub use pat::PostgresPatRepository;
 use sqlx::{
     Decode, Encode, Postgres, Type,
@@ -23,7 +22,6 @@ mod bookmark;
 mod collection;
 mod feed;
 mod feed_entry;
-mod job;
 mod pat;
 mod subscription;
 mod subscription_entry;
