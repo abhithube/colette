@@ -53,6 +53,12 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
 
+      - name: Setup musl builds
+        if: contains(matrix.target, 'musl')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+
       - name: Build binaries
         run: cargo build --release --target ${{ matrix.target }} -p ${{ env.APP_NAME }}
         env:
