@@ -8,13 +8,3 @@ args = ["run"]
 [tasks.build]
 command = "cargo"
 args = ["build", "--release"]
-
-[tasks.migrate-db]
-install_crate = "refinery_cli"
-command = "refinery"
-args = ["migrate", "-e", "DATABASE_URL"]
-
-[tasks.prepare-db]
-install_crate = "sqlx-cli"
-command = "cargo"
-args = ["sqlx", "prepare", "--workspace"]

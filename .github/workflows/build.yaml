@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     env:
-      app_name: colette-server
+      APP_NAME: colette-server
 
     strategy:
       matrix:
@@ -53,37 +53,27 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Setup musl builds
-        if: contains(matrix.target, 'musl')
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y musl-tools
-          cargo install --locked cross
-
-      - name: Build binaries (musl)
-        if: contains(matrix.target, 'musl')
-        run: cross build --release --target ${{ matrix.target }} -p ${{ env.app_name }}
-
-      - name: Build binaries (non-musl)
-        if: "!contains(matrix.target, 'musl')"
-        run: cargo build --release --target ${{ matrix.target }} -p ${{ env.app_name }}
+      - name: Build binaries
+        run: cargo build --release --target ${{ matrix.target }} -p ${{ env.APP_NAME }}
+        env:
+          SQLX_OFFLINE: true
 
       - name: Package binaries (Windows)
         if: matrix.os == 'windows-latest'
         shell: bash
         run: |
           mkdir -p dist
-          cp target/${{ matrix.target }}/release/${{ env.app_name }}.exe dist/
+          cp target/${{ matrix.target }}/release/${{ env.APP_NAME }}.exe dist/
           cd dist
-          7z a ${{ env.app_name }}-${{ matrix.target }}.zip ${{ env.app_name }}.exe
+          7z a ${{ env.APP_NAME }}-${{ matrix.target }}.zip ${{ env.APP_NAME }}.exe
 
       - name: Package binaries (non-Windows)
         if: matrix.os != 'windows-latest'
         run: |
           mkdir -p dist
-          cp target/${{ matrix.target }}/release/${{ env.app_name }} dist/
+          cp target/${{ matrix.target }}/release/${{ env.APP_NAME }} dist/
           cd dist
-          tar czf ${{ env.app_name }}-${{ matrix.target }}.tar.gz ${{ env.app_name }}
+          tar czf ${{ env.APP_NAME }}-${{ matrix.target }}.tar.gz ${{ env.APP_NAME }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
