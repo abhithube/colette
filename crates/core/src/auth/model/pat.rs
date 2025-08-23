@@ -1,9 +1,10 @@
 use std::fmt;
 
 use chrono::{DateTime, Utc};
+use colette_util::uuid_generate_ts;
 use uuid::Uuid;
 
-use crate::{auth::UserId, common::UuidGenerator, pagination::Cursor};
+use crate::{auth::UserId, pagination::Cursor};
 
 pub const PAT_VALUE_LENGTH: usize = 32;
 pub const PAT_TITLE_MAX_LENGTH: usize = 50;
@@ -29,7 +30,7 @@ impl PersonalAccessToken {
         let now = Utc::now();
 
         Self {
-            id: UuidGenerator::new().with_timestamp(now).generate().into(),
+            id: uuid_generate_ts(now).into(),
             lookup_hash,
             verification_hash,
             title,

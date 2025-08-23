@@ -1,9 +1,10 @@
 use std::fmt;
 
 use chrono::{DateTime, Utc};
+use colette_util::uuid_generate_ts;
 use uuid::Uuid;
 
-use crate::{auth::UserId, bookmark::BookmarkFilter, common::UuidGenerator, pagination::Cursor};
+use crate::{auth::UserId, bookmark::BookmarkFilter, pagination::Cursor};
 
 pub const COLLECTION_TITLE_MAX_LENGTH: usize = 50;
 
@@ -32,7 +33,7 @@ impl Collection {
         let now = Utc::now();
 
         Self {
-            id: UuidGenerator::new().with_timestamp(now).generate().into(),
+            id: uuid_generate_ts(now).into(),
             title,
             filter,
             user_id,

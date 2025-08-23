@@ -1,16 +1,14 @@
 use std::{fmt, str::FromStr};
 
 use chrono::{DateTime, Duration, Utc};
+use colette_util::uuid_generate_ts;
 use email_address::EmailAddress;
 use url::Url;
 use uuid::Uuid;
 
-use crate::{
-    auth::{
-        OtpCode, OtpError, PatError, PatId, PersonalAccessToken, Provider, SocialAccount,
-        SocialAccountError, Sub,
-    },
-    common::UuidGenerator,
+use crate::auth::{
+    OtpCode, OtpError, PatError, PatId, PersonalAccessToken, Provider, SocialAccount,
+    SocialAccountError, Sub,
 };
 
 pub const USER_DISPLAY_NAME_MAX_LENGTH: usize = 50;
@@ -45,7 +43,7 @@ impl User {
         let now = Utc::now();
 
         Ok(Self {
-            id: UuidGenerator::new().with_timestamp(now).generate().into(),
+            id: uuid_generate_ts(now).into(),
             email,
             verified: false,
             display_name,

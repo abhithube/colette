@@ -1,12 +1,12 @@
 use std::fmt;
 
 use chrono::{DateTime, Utc};
+use colette_util::uuid_generate_ts;
 use url::Url;
 use uuid::Uuid;
 
 use crate::{
     auth::UserId,
-    common::UuidGenerator,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
     pagination::Cursor,
     tag::{TagDto, TagId},
@@ -56,7 +56,7 @@ impl Bookmark {
         let now = Utc::now();
 
         Self {
-            id: UuidGenerator::new().with_timestamp(now).generate().into(),
+            id: uuid_generate_ts(now).into(),
             link,
             title,
             thumbnail_url,

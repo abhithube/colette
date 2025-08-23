@@ -1,9 +1,10 @@
 use std::fmt;
 
 use chrono::{DateTime, Utc};
+use colette_util::uuid_generate_ts;
 use uuid::Uuid;
 
-use crate::{auth::UserId, common::UuidGenerator, pagination::Cursor};
+use crate::{auth::UserId, pagination::Cursor};
 
 pub const TAG_TITLE_MAX_LENGTH: usize = 50;
 
@@ -30,7 +31,7 @@ impl Tag {
         let now = Utc::now();
 
         Self {
-            id: UuidGenerator::new().with_timestamp(now).generate().into(),
+            id: uuid_generate_ts(now).into(),
             title,
             user_id,
             created_at: now,
