@@ -1,8 +1,6 @@
 use colette_common::RepositoryError;
-use colette_core::{
-    entry::EntryFilter,
-    pagination::{Paginated, paginate},
-};
+use colette_core::pagination::{Paginated, paginate};
+use colette_crud::EntryFilter;
 use uuid::Uuid;
 
 use crate::{

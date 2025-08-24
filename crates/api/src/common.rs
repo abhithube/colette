@@ -1,4 +1,4 @@
-use std::{ops::Range, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     extract::{FromRequestParts, Request, State},
@@ -10,9 +10,7 @@ use axum_extra::{
     extract::cookie::{Cookie, SameSite},
     headers::{Authorization, HeaderMapExt, authorization::Bearer},
 };
-use chrono::{DateTime, Utc};
 use colette_authentication::UserId;
-use colette_core::filter;
 use colette_crypto::OtpCodeGenerator;
 use colette_handler::*;
 use colette_http::ReqwestClient;
@@ -251,130 +249,6 @@ impl<S: Send + Sync> FromRequestParts<S> for Auth {
 
             ApiError::not_authenticated()
         })
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub(crate) enum TextOp {
-    Equals(String),
-    Contains(String),
-    StartsWith(String),
-    EndsWith(String),
-}
-
-impl From<TextOp> for filter::TextOp {
-    fn from(value: TextOp) -> Self {
-        match value {
-            TextOp::Equals(value) => Self::Equals(value),
-            TextOp::Contains(value) => Self::Contains(value),
-            TextOp::StartsWith(value) => Self::StartsWith(value),
-            TextOp::EndsWith(value) => Self::EndsWith(value),
-        }
-    }
-}
-
-impl From<filter::TextOp> for TextOp {
-    fn from(value: filter::TextOp) -> Self {
-        match value {
-            filter::TextOp::Equals(value) => Self::Equals(value),
-            filter::TextOp::Contains(value) => Self::Contains(value),
-            filter::TextOp::StartsWith(value) => Self::StartsWith(value),
-            filter::TextOp::EndsWith(value) => Self::EndsWith(value),
-        }
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub(crate) enum NumberOp {
-    Equals(f64),
-    GreaterThan(f64),
-    LessThan(f64),
-    Between { start: f64, end: f64 },
-}
-
-impl From<NumberOp> for filter::NumberOp {
-    fn from(value: NumberOp) -> Self {
-        match value {
-            NumberOp::Equals(value) => Self::Equals(value),
-            NumberOp::GreaterThan(value) => Self::GreaterThan(value),
-            NumberOp::LessThan(value) => Self::LessThan(value),
-            NumberOp::Between { start, end } => Self::Between(Range { start, end }),
-        }
-    }
-}
-
-impl From<filter::NumberOp> for NumberOp {
-    fn from(value: filter::NumberOp) -> Self {
-        match value {
-            filter::NumberOp::Equals(value) => Self::Equals(value),
-            filter::NumberOp::GreaterThan(value) => Self::GreaterThan(value),
-            filter::NumberOp::LessThan(value) => Self::LessThan(value),
-            filter::NumberOp::Between(value) => Self::Between {
-                start: value.start,
-                end: value.end,
-            },
-        }
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub(crate) enum BooleanOp {
-    Equals(bool),
-}
-
-impl From<BooleanOp> for filter::BooleanOp {
-    fn from(value: BooleanOp) -> Self {
-        match value {
-            BooleanOp::Equals(value) => Self::Equals(value),
-        }
-    }
-}
-
-impl From<filter::BooleanOp> for BooleanOp {
-    fn from(value: filter::BooleanOp) -> Self {
-        match value {
-            filter::BooleanOp::Equals(value) => Self::Equals(value),
-        }
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub(crate) enum DateOp {
-    Before(DateTime<Utc>),
-    After(DateTime<Utc>),
-    Between {
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
-    },
-    InLast(i64),
-}
-
-impl From<DateOp> for filter::DateOp {
-    fn from(value: DateOp) -> Self {
-        match value {
-            DateOp::Before(value) => Self::Before(value),
-            DateOp::After(value) => Self::After(value),
-            DateOp::Between { start, end } => Self::Between(Range { start, end }),
-            DateOp::InLast(value) => Self::InLast(value),
-        }
-    }
-}
-
-impl From<filter::DateOp> for DateOp {
-    fn from(value: filter::DateOp) -> Self {
-        match value {
-            filter::DateOp::Before(value) => Self::Before(value),
-            filter::DateOp::After(value) => Self::After(value),
-            filter::DateOp::Between(value) => Self::Between {
-                start: value.start,
-                end: value.end,
-            },
-            filter::DateOp::InLast(value) => Self::InLast(value),
-        }
     }
 }
 

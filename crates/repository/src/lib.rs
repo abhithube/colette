@@ -1,6 +1,6 @@
 pub use backup::PostgresBackupRepository;
 pub use bookmark::PostgresBookmarkRepository;
-use colette_core::filter::{BooleanOp, DateOp, NumberOp, TextOp};
+use colette_crud::{BooleanOp, DateOp, NumberOp, TextOp};
 pub use collection::PostgresCollectionRepository;
 pub use entry::PostgresEntryRepository;
 pub use feed::PostgresFeedRepository;

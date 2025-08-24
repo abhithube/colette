@@ -3,13 +3,12 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::collection::CollectionError;
+use colette_crud::CollectionError;
 use colette_handler::{CreateCollectionCommand, CreateCollectionError, Handler as _};
 
 use crate::{
     ApiState,
-    bookmark::BookmarkFilter,
-    collection::COLLECTIONS_TAG,
+    collection::{BookmarkFilter, COLLECTIONS_TAG},
     common::{ApiError, Auth, CreatedResource, Json, NonEmptyString},
 };
 

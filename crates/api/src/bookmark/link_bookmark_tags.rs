@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::bookmark::BookmarkError;
+use colette_crud::BookmarkError;
 use colette_handler::{Handler as _, LinkBookmarkTagsCommand, LinkBookmarkTagsError};
 use uuid::Uuid;
 

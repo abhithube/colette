@@ -1,9 +1,6 @@
 use colette_authentication::UserId;
 use colette_common::RepositoryError;
-use colette_core::{
-    bookmark::{BookmarkError, BookmarkId, BookmarkRepository},
-    tag::TagId,
-};
+use colette_crud::{BookmarkError, BookmarkId, BookmarkRepository, TagId};
 
 use crate::Handler;
 

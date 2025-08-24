@@ -1,5 +1,5 @@
 use colette_common::RepositoryError;
-use colette_core::subscription::SubscriptionError;
+use colette_crud::SubscriptionError;
 use uuid::Uuid;
 
 use crate::{Handler, SubscriptionDto, SubscriptionQueryRepository};

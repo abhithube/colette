@@ -4,10 +4,7 @@ use colette_common::uuid_generate_ts;
 use url::Url;
 use uuid::Uuid;
 
-use crate::{
-    filter::{BooleanOp, DateOp, NumberOp, TextOp},
-    tag::TagId,
-};
+use crate::TagId;
 
 pub const BOOKMARK_TITLE_MAX_LENGTH: usize = 100;
 pub const BOOKMARK_AUTHOR_MAX_LENGTH: usize = 50;
@@ -249,56 +246,6 @@ pub struct ArchiveThumbnailJobData {
 pub enum ThumbnailOperation {
     Upload(Url),
     Delete,
-}
-
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum BookmarkFilter {
-    Text {
-        field: BookmarkTextField,
-        op: TextOp,
-    },
-    Number {
-        field: BookmarkNumberField,
-        op: NumberOp,
-    },
-    Boolean {
-        field: BookmarkBooleanField,
-        op: BooleanOp,
-    },
-    Date {
-        field: BookmarkDateField,
-        op: DateOp,
-    },
-
-    And(Vec<BookmarkFilter>),
-    Or(Vec<BookmarkFilter>),
-    Not(Box<BookmarkFilter>),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum BookmarkTextField {
-    Link,
-    Title,
-    Author,
-    Tag,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum BookmarkNumberField {}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum BookmarkBooleanField {}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum BookmarkDateField {
-    PublishedAt,
-    CreatedAt,
-    UpdatedAt,
 }
 
 #[derive(Debug, thiserror::Error)]

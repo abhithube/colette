@@ -1,8 +1,6 @@
 use colette_common::RepositoryError;
-use colette_core::{
-    bookmark::BookmarkFilter,
-    pagination::{Paginated, paginate},
-};
+use colette_core::pagination::{Paginated, paginate};
+use colette_crud::BookmarkFilter;
 use uuid::Uuid;
 
 use crate::{

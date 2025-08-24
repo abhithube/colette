@@ -1,9 +1,8 @@
 use colette_authentication::UserId;
 use colette_common::RepositoryError;
-use colette_core::{
-    Collection,
-    bookmark::BookmarkFilter,
-    collection::{CollectionError, CollectionId, CollectionRepository, CollectionTitle},
+use colette_crud::{
+    BookmarkFilter, Collection, CollectionError, CollectionId, CollectionRepository,
+    CollectionTitle,
 };
 
 use crate::Handler;

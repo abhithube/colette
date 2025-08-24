@@ -1,10 +1,7 @@
 use colette_authentication::UserId;
 use colette_common::RepositoryError;
 
-use crate::{
-    bookmark::BookmarkFilter,
-    collection::{Collection, CollectionId},
-};
+use crate::{BookmarkFilter, Collection, CollectionId};
 
 #[async_trait::async_trait]
 pub trait CollectionRepository: Sync {

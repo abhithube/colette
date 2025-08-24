@@ -5,6 +5,7 @@ members = [
   "crates/authentication",
   "crates/common",
   "crates/core",
+  "crates/crud",
   "crates/crypto",
   "crates/feed",
   "crates/handler",
@@ -43,6 +44,7 @@ colette-api.path = "crates/api"
 colette-authentication.path = "crates/authentication"
 colette-common.path = "crates/common"
 colette-core.path = "crates/core"
+colette-crud.path = "crates/crud"
 colette-crypto.path = "crates/crypto"
 colette-feed.path = "crates/feed"
 colette-handler.path = "crates/handler"

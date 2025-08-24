@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::entry::EntryError;
+use colette_crud::EntryError;
 use colette_handler::{Handler as _, MarkEntryAsUnreadCommand, MarkEntryAsUnreadError};
 use uuid::Uuid;
 

@@ -4,7 +4,7 @@ use bytes::{Buf, Bytes};
 use chrono::{DateTime, Utc};
 use colette_authentication::UserId;
 use colette_common::RepositoryError;
-use colette_core::bookmark::{BookmarkBatchItem, BookmarkRepository, ImportBookmarksParams};
+use colette_crud::{BookmarkBatchItem, BookmarkRepository, ImportBookmarksParams};
 use colette_netscape::Item;
 use colette_queue::{Job, JobProducer};
 use tokio::sync::Mutex;

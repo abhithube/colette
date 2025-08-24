@@ -1,5 +1,5 @@
 use colette_common::RepositoryError;
-use colette_core::bookmark::BookmarkError;
+use colette_crud::BookmarkError;
 use uuid::Uuid;
 
 use crate::{BookmarkDto, BookmarkQueryRepository, Handler};

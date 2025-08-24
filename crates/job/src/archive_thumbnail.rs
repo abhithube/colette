@@ -4,7 +4,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use colette_core::bookmark::{ArchiveThumbnailJobData, ThumbnailOperation};
+use colette_crud::{ArchiveThumbnailJobData, ThumbnailOperation};
 use colette_handler::{ArchiveThumbnailCommand, ArchiveThumbnailHandler, Handler as _};
 use colette_http::ReqwestClient;
 use colette_queue::Job;

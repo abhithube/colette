@@ -1,5 +1,5 @@
 use colette_common::RepositoryError;
-use colette_core::tag::TagError;
+use colette_crud::TagError;
 use uuid::Uuid;
 
 use crate::{Handler, TagDto, TagQueryRepository};

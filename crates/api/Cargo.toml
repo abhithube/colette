@@ -15,6 +15,7 @@ bytes.workspace = true
 chrono.workspace = true
 colette-authentication.workspace = true
 colette-core.workspace = true
+colette-crud.workspace = true
 colette-crypto.workspace = true
 colette-handler.workspace = true
 colette-http.workspace = true

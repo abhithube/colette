@@ -1,9 +1,8 @@
 use chrono::{DateTime, Utc};
 use colette_authentication::UserId;
 use colette_common::RepositoryError;
-use colette_core::{
-    Subscription,
-    subscription::{ImportSubscriptionsParams, SubscriptionId, SubscriptionRepository},
+use colette_crud::{
+    ImportSubscriptionsParams, Subscription, SubscriptionId, SubscriptionRepository,
 };
 use colette_handler::{SubscriptionDto, SubscriptionQueryParams, SubscriptionQueryRepository};
 use sqlx::{PgPool, types::Json};

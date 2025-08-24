@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 colette-core.workspace = true
+colette-crud.workspace = true
 colette-handler.workspace = true
 colette-http.workspace = true
 colette-queue.workspace = true

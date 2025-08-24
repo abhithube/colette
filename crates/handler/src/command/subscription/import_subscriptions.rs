@@ -3,9 +3,7 @@ use std::collections::{HashMap, HashSet};
 use bytes::{Buf, Bytes};
 use colette_authentication::UserId;
 use colette_common::RepositoryError;
-use colette_core::subscription::{
-    ImportSubscriptionsParams, SubscriptionBatchItem, SubscriptionRepository,
-};
+use colette_crud::{ImportSubscriptionsParams, SubscriptionBatchItem, SubscriptionRepository};
 use colette_opml::Outline;
 use url::Url;
 

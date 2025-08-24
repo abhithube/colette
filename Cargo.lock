@@ -423,6 +423,7 @@ dependencies = [
  "chrono",
  "colette-authentication",
  "colette-core",
+ "colette-crud",
  "colette-crypto",
  "colette-handler",
  "colette-http",
@@ -488,6 +489,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-crud"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "colette-authentication",
+ "colette-common",
+ "serde",
+ "thiserror 2.0.14",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "colette-crypto"
 version = "0.1.0"
 dependencies = [
@@ -512,6 +527,7 @@ dependencies = [
  "colette-authentication",
  "colette-common",
  "colette-core",
+ "colette-crud",
  "colette-crypto",
  "colette-http",
  "colette-jwt",
@@ -551,6 +567,7 @@ name = "colette-job"
 version = "0.1.0"
 dependencies = [
  "colette-core",
+ "colette-crud",
  "colette-handler",
  "colette-http",
  "colette-queue",
@@ -655,6 +672,7 @@ dependencies = [
  "colette-authentication",
  "colette-common",
  "colette-core",
+ "colette-crud",
  "colette-handler",
  "email_address",
  "serde",

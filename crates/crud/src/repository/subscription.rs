@@ -2,7 +2,7 @@ use colette_authentication::UserId;
 use colette_common::RepositoryError;
 use url::Url;
 
-use crate::subscription::{Subscription, SubscriptionId};
+use crate::{Subscription, SubscriptionId};
 
 #[async_trait::async_trait]
 pub trait SubscriptionRepository: Sync {

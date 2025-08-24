@@ -1,12 +1,9 @@
 use chrono::{DateTime, Utc};
 use colette_authentication::UserId;
 use colette_common::RepositoryError;
-use colette_core::{
-    Bookmark,
-    bookmark::{
-        BookmarkDateField, BookmarkFilter, BookmarkId, BookmarkRepository, BookmarkTextField,
-        ImportBookmarksParams,
-    },
+use colette_crud::{
+    Bookmark, BookmarkDateField, BookmarkFilter, BookmarkId, BookmarkRepository, BookmarkTextField,
+    ImportBookmarksParams,
 };
 use colette_handler::{BookmarkDto, BookmarkQueryParams, BookmarkQueryRepository};
 use sqlx::{PgPool, QueryBuilder, types::Json};

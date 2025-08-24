@@ -3,7 +3,7 @@ use colette_authentication::UserId;
 use colette_common::uuid_generate_ts;
 use uuid::Uuid;
 
-use crate::{feed::FeedId, tag::TagId};
+use crate::{TagId, feed::FeedId};
 
 pub const SUBSCRIPTION_TITLE_MAX_LENGTH: usize = 50;
 pub const SUBSCRIPTION_DESCRIPTION_MAX_LENGTH: usize = 500;

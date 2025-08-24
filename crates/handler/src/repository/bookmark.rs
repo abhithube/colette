@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_common::RepositoryError;
-use colette_core::{bookmark::BookmarkFilter, pagination::Cursor};
+use colette_core::pagination::Cursor;
+use colette_crud::BookmarkFilter;
 use url::Url;
 use uuid::Uuid;
 

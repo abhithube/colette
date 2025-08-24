@@ -6,7 +6,7 @@ use axum::{
 };
 use bookmark::BookmarkApi;
 use collection::CollectionApi;
-use common::{ApiError, BooleanOp, DateOp, TextOp, verify_auth_extension};
+use common::{ApiError, verify_auth_extension};
 pub use common::{
     ApiState, Config as ApiConfig, OidcConfig as ApiOidcConfig, S3Config as ApiS3Config,
     ServerConfig as ApiServerConfig,
@@ -63,7 +63,7 @@ const API_PREFIX: &str = "/api";
         (path = "/subscriptions", api = SubscriptionApi),
         (path = "/tags", api = TagApi),
     ),
-    components(schemas(CreatedResource, ApiError, TextOp, BooleanOp, DateOp)),
+    components(schemas(CreatedResource, ApiError)),
     security(("bearerAuth" = [])),
     modifiers(&Security)
 )]

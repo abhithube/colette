@@ -4,7 +4,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::collection::CollectionError;
+use colette_crud::CollectionError;
 use colette_handler::{GetCollectionError, GetCollectionQuery, Handler as _};
 
 use crate::{

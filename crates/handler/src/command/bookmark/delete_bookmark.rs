@@ -1,6 +1,6 @@
 use colette_authentication::UserId;
 use colette_common::RepositoryError;
-use colette_core::bookmark::{BookmarkError, BookmarkId, BookmarkRepository};
+use colette_crud::{BookmarkError, BookmarkId, BookmarkRepository};
 use colette_queue::JobProducer;
 use tokio::sync::Mutex;
 

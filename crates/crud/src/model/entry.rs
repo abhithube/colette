@@ -2,8 +2,6 @@ use chrono::{DateTime, Utc};
 use colette_authentication::UserId;
 use uuid::Uuid;
 
-use crate::filter::{BooleanOp, DateOp, NumberOp, TextOp};
-
 #[derive(Debug, Clone)]
 pub struct Entry {
     id: EntryId,
@@ -78,57 +76,6 @@ impl From<Uuid> for EntryId {
 pub enum ReadStatus {
     Unread,
     Read(DateTime<Utc>),
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum EntryFilter {
-    Text {
-        field: EntryTextField,
-        op: TextOp,
-    },
-    Number {
-        field: EntryNumberField,
-        op: NumberOp,
-    },
-    Boolean {
-        field: EntryBooleanField,
-        op: BooleanOp,
-    },
-    Date {
-        field: EntryDateField,
-        op: DateOp,
-    },
-
-    And(Vec<EntryFilter>),
-    Or(Vec<EntryFilter>),
-    Not(Box<EntryFilter>),
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum EntryTextField {
-    Link,
-    Title,
-    Description,
-    Author,
-    Tag,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum EntryNumberField {}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum EntryBooleanField {
-    HasRead,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum EntryDateField {
-    PublishedAt,
 }
 
 #[derive(Debug, thiserror::Error)]

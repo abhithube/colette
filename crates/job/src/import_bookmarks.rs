@@ -4,7 +4,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use colette_core::bookmark::ScrapeBookmarkJobData;
+use colette_crud::ScrapeBookmarkJobData;
 use colette_handler::{
     Handler as _, ImportBookmarksJobData, ListBookmarksHandler, ListBookmarksQuery,
 };

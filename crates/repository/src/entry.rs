@@ -1,12 +1,9 @@
 use chrono::{DateTime, Utc};
 use colette_authentication::UserId;
 use colette_common::RepositoryError;
-use colette_core::{
-    Entry,
-    entry::{
-        EntryBooleanField, EntryDateField, EntryFilter, EntryId, EntryRepository, EntryTextField,
-        ReadStatus,
-    },
+use colette_crud::{
+    Entry, EntryBooleanField, EntryDateField, EntryFilter, EntryId, EntryRepository,
+    EntryTextField, ReadStatus,
 };
 use colette_handler::{EntryDto, EntryQueryParams, EntryQueryRepository};
 use sqlx::{PgPool, QueryBuilder};

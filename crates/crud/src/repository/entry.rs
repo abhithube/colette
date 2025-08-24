@@ -1,7 +1,7 @@
 use colette_authentication::UserId;
 use colette_common::RepositoryError;
 
-use crate::entry::{Entry, EntryId};
+use crate::{Entry, EntryId};
 
 #[async_trait::async_trait]
 pub trait EntryRepository: Sync {

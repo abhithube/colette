@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
-use colette_core::bookmark::BookmarkError;
+use colette_crud::BookmarkError;
 use colette_handler::{Handler as _, UpdateBookmarkCommand, UpdateBookmarkError};
 use url::Url;
 

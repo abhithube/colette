@@ -1,9 +1,6 @@
 use colette_authentication::UserId;
 use colette_common::RepositoryError;
-use colette_core::{
-    Tag,
-    tag::{TagError, TagRepository, TagTitle},
-};
+use colette_crud::{Tag, TagError, TagRepository, TagTitle};
 
 use crate::Handler;
 

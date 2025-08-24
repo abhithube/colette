@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::subscription::SubscriptionError;
+use colette_crud::SubscriptionError;
 use colette_handler::{DeleteSubscriptionCommand, DeleteSubscriptionError, Handler as _};
 
 use crate::{
