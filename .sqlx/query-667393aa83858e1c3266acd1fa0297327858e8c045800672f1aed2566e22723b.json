@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n  personal_access_tokens (\n    id,\n    lookup_hash,\n    verification_hash,\n    title,\n    preview,\n    user_id,\n    created_at,\n    updated_at\n  )\nVALUES\n  ($1, $2, $3, $4, $5, $6, $7, $8)\nON CONFLICT (id) DO UPDATE\nSET\n  title = EXCLUDED.title,\n  updated_at = EXCLUDED.updated_at\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "667393aa83858e1c3266acd1fa0297327858e8c045800672f1aed2566e22723b"
+}

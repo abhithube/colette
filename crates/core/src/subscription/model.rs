@@ -1,34 +1,12 @@
-use std::fmt;
-
 use chrono::{DateTime, Utc};
 use colette_util::uuid_generate_ts;
-use url::Url;
 use uuid::Uuid;
 
-use crate::{
-    auth::UserId,
-    feed::FeedId,
-    pagination::Cursor,
-    tag::{TagDto, TagId},
-};
+use crate::{auth::UserId, feed::FeedId, tag::TagId};
 
 pub const SUBSCRIPTION_TITLE_MAX_LENGTH: usize = 50;
 pub const SUBSCRIPTION_DESCRIPTION_MAX_LENGTH: usize = 500;
 pub const SUBSCRIPTION_TAG_MAX_COUNT: usize = 20;
-
-#[derive(Debug, Clone)]
-pub struct SubscriptionDto {
-    pub id: Uuid,
-    pub source_url: Url,
-    pub link: Url,
-    pub title: String,
-    pub description: Option<String>,
-    pub feed_id: Uuid,
-    pub tags: Vec<TagDto>,
-    pub unread_count: i64,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
 
 #[derive(Debug, Clone)]
 pub struct Subscription {
@@ -169,12 +147,6 @@ impl From<Uuid> for SubscriptionId {
     }
 }
 
-impl fmt::Display for SubscriptionId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_inner().fmt(f)
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SubscriptionTitle(String);
 
@@ -209,23 +181,6 @@ impl SubscriptionDescription {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct SubscriptionCursor {
-    pub title: String,
-    pub id: Uuid,
-}
-
-impl Cursor for SubscriptionDto {
-    type Data = SubscriptionCursor;
-
-    fn to_cursor(&self) -> Self::Data {
-        Self::Data {
-            title: self.title.clone(),
-            id: self.id,
-        }
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum SubscriptionError {
     #[error("title must be between 1 and {SUBSCRIPTION_TITLE_MAX_LENGTH} characters long")]
@@ -240,5 +195,8 @@ pub enum SubscriptionError {
     TooManyTags,
 
     #[error("subscription not found with ID: {0}")]
-    NotFound(SubscriptionId),
+    NotFound(Uuid),
+
+    #[error("already subscribed to feed with ID: {0}")]
+    Conflict(Uuid),
 }

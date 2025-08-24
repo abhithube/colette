@@ -38,7 +38,7 @@ impl<CR: CollectionRepository> Handler<UpdateCollectionCommand> for UpdateCollec
             .collection_repository
             .find_by_id(cmd.id, cmd.user_id)
             .await?
-            .ok_or_else(|| UpdateCollectionError::NotFound(cmd.id))?;
+            .ok_or(CollectionError::NotFound(cmd.id.as_inner()))?;
 
         if let Some(title) = cmd.title.map(CollectionTitle::new).transpose()? {
             collection.set_title(title);
@@ -55,11 +55,8 @@ impl<CR: CollectionRepository> Handler<UpdateCollectionCommand> for UpdateCollec
 
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateCollectionError {
-    #[error("collection not found with ID: {0}")]
-    NotFound(CollectionId),
-
     #[error(transparent)]
-    Core(#[from] CollectionError),
+    Collection(#[from] CollectionError),
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),

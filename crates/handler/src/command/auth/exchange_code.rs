@@ -8,6 +8,7 @@ use colette_core::{
 };
 use colette_jwt::{Claims, JwtManager};
 use colette_oidc::OidcClient;
+use email_address::EmailAddress;
 
 use crate::Handler;
 
@@ -54,13 +55,13 @@ impl<UR: UserRepository, OC: OidcClient, JM: JwtManager> Handler<ExchangeCodeCom
             .exchange_code(cmd.code, cmd.code_verifier, cmd.nonce)
             .await?;
 
-        let email = claims.email.unwrap();
+        let email = claims
+            .email
+            .unwrap()
+            .parse::<EmailAddress>()
+            .map_err(UserError::InvalidEmail)?;
 
-        let user = match self
-            .user_repository
-            .find_by_email(email.parse().unwrap())
-            .await?
-        {
+        let user = match self.user_repository.find_by_email(email.clone()).await? {
             Some(user) => user,
             None => {
                 let custom_provider =
@@ -69,11 +70,7 @@ impl<UR: UserRepository, OC: OidcClient, JM: JwtManager> Handler<ExchangeCodeCom
 
                 let social_account = SocialAccount::new(Provider::Custom(custom_provider), sub);
 
-                match self
-                    .user_repository
-                    .find_by_email(email.parse().unwrap())
-                    .await?
-                {
+                match self.user_repository.find_by_email(email.clone()).await? {
                     Some(mut user) => {
                         user.add_social_account(social_account)?;
 
@@ -84,7 +81,12 @@ impl<UR: UserRepository, OC: OidcClient, JM: JwtManager> Handler<ExchangeCodeCom
                     None => {
                         let display_name =
                             claims.name.map(DisplayName::new_truncating).transpose()?;
-                        let mut user = User::new(email, display_name, claims.picture)?;
+                        let image_url = claims
+                            .picture
+                            .map(|e| e.parse().map_err(UserError::InvalidImageUrl))
+                            .transpose()?;
+
+                        let mut user = User::new(email, display_name, image_url);
                         user.add_social_account(social_account)?;
 
                         self.user_repository.save(&user).await?;
@@ -96,11 +98,11 @@ impl<UR: UserRepository, OC: OidcClient, JM: JwtManager> Handler<ExchangeCodeCom
         };
 
         let access_token = self.jwt_manager.generate(Claims::new(
-            user.id().to_string(),
+            user.id().as_inner().to_string(),
             self.jwt_config.access_duration,
         ))?;
         let refresh_token = self.jwt_manager.generate(Claims::new(
-            user.id().to_string(),
+            user.id().as_inner().to_string(),
             self.jwt_config.refresh_duration,
         ))?;
 

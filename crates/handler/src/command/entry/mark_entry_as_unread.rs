@@ -32,7 +32,7 @@ impl<ER: EntryRepository> Handler<MarkEntryAsUnreadCommand> for MarkEntryAsUnrea
             .entry_repository
             .find_by_id(cmd.id, cmd.user_id)
             .await?
-            .ok_or_else(|| MarkEntryAsUnreadError::Entry(EntryError::NotFound(cmd.id)))?;
+            .ok_or(EntryError::NotFound(cmd.id.as_inner()))?;
 
         entry.mark_as_unread()?;
 

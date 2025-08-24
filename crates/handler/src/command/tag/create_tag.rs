@@ -29,12 +29,12 @@ impl<TR: TagRepository> Handler<CreateTagCommand> for CreateTagHandler<TR> {
     type Error = CreateTagError;
 
     async fn handle(&self, cmd: CreateTagCommand) -> Result<Self::Response, Self::Error> {
-        let title = TagTitle::new(cmd.title)?;
+        let title = TagTitle::new(cmd.title.clone())?;
 
-        let tag = Tag::new(title.clone(), cmd.user_id);
+        let tag = Tag::new(title, cmd.user_id);
 
         self.tag_repository.save(&tag).await.map_err(|e| match e {
-            RepositoryError::Duplicate => CreateTagError::Tag(TagError::Conflict(title)),
+            RepositoryError::Duplicate => CreateTagError::Tag(TagError::Conflict(cmd.title)),
             _ => CreateTagError::Repository(e),
         })?;
 

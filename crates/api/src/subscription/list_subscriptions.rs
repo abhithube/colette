@@ -4,8 +4,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::subscription::SubscriptionCursor;
-use colette_handler::{Handler as _, ListSubscriptionsQuery};
+use colette_handler::{Handler as _, ListSubscriptionsQuery, SubscriptionCursor};
 use uuid::Uuid;
 
 use crate::{
@@ -40,13 +39,13 @@ pub(super) async fn handler(
         .list_subscriptions
         .handle(ListSubscriptionsQuery {
             tags: if query.filter_by_tags.unwrap_or(query.tags.is_some()) {
-                query.tags.map(|e| e.into_iter().map(Into::into).collect())
+                query.tags
             } else {
                 None
             },
             cursor,
             limit: Some(PAGINATION_LIMIT),
-            user_id,
+            user_id: user_id.as_inner(),
         })
         .await
     {

@@ -50,7 +50,9 @@ impl<SR: SubscriptionRepository> Handler<CreateSubscriptionCommand>
             .save(&subscription)
             .await
             .map_err(|e| match e {
-                RepositoryError::Duplicate => CreateSubscriptionError::Conflict(cmd.feed_id),
+                RepositoryError::Duplicate => CreateSubscriptionError::Subscription(
+                    SubscriptionError::Conflict(cmd.feed_id.as_inner()),
+                ),
                 _ => CreateSubscriptionError::Repository(e),
             })?;
 
@@ -60,9 +62,6 @@ impl<SR: SubscriptionRepository> Handler<CreateSubscriptionCommand>
 
 #[derive(Debug, thiserror::Error)]
 pub enum CreateSubscriptionError {
-    #[error("already subscribed to feed with ID: {0}")]
-    Conflict(FeedId),
-
     #[error(transparent)]
     Subscription(#[from] SubscriptionError),
 

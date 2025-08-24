@@ -93,7 +93,7 @@ impl OidcClient for OidcClientImpl {
             .request_async(&self.http_client)
             .await?;
 
-        let id_token = token_response.id_token().ok_or_else(|| Error::NoIdToken)?;
+        let id_token = token_response.id_token().ok_or(Error::NoIdToken)?;
 
         let claims = id_token.claims(&self.oidc_client.id_token_verifier(), &Nonce::new(nonce))?;
 

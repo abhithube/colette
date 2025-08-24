@@ -1,13 +1,10 @@
 #![feature(bufreader_peek)]
-pub use std::error::Error as StdError;
-
 pub use auth::User;
 pub use backup::Backup;
 pub use bookmark::Bookmark;
 pub use collection::Collection;
 pub use entry::Entry;
 pub use feed::Feed;
-pub use feed_entry::FeedEntry;
 pub use subscription::Subscription;
 pub use tag::Tag;
 
@@ -18,16 +15,8 @@ pub mod collection;
 pub mod common;
 pub mod entry;
 pub mod feed;
-pub mod feed_entry;
 pub mod filter;
 pub mod pagination;
+pub mod pat;
 pub mod subscription;
 pub mod tag;
-
-#[async_trait::async_trait]
-pub trait Handler<C> {
-    type Response;
-    type Error: StdError;
-
-    async fn handle(&self, cmd: C) -> Result<Self::Response, Self::Error>;
-}

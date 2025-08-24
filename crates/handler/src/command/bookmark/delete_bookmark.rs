@@ -41,7 +41,7 @@ impl<BR: BookmarkRepository, JP: JobProducer> Handler<DeleteBookmarkCommand>
             .await
             .map_err(|e| match e {
                 RepositoryError::NotFound => {
-                    DeleteBookmarkError::Bookmark(BookmarkError::NotFound(cmd.id))
+                    DeleteBookmarkError::Bookmark(BookmarkError::NotFound(cmd.id.as_inner()))
                 }
                 _ => DeleteBookmarkError::Repository(e),
             })?;

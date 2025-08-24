@@ -1,21 +1,10 @@
-use std::fmt;
-
 use chrono::{DateTime, Utc};
 use colette_util::uuid_generate_ts;
 use uuid::Uuid;
 
-use crate::{auth::UserId, pagination::Cursor};
+use crate::auth::UserId;
 
 pub const TAG_TITLE_MAX_LENGTH: usize = 50;
-
-#[derive(Debug, Clone)]
-pub struct TagDto {
-    pub id: Uuid,
-    pub title: String,
-    pub user_id: Uuid,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
 
 #[derive(Debug, Clone)]
 pub struct Tag {
@@ -102,12 +91,6 @@ impl From<Uuid> for TagId {
     }
 }
 
-impl fmt::Display for TagId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_inner().fmt(f)
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TagTitle(String);
 
@@ -125,35 +108,14 @@ impl TagTitle {
     }
 }
 
-impl fmt::Display for TagTitle {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_inner().fmt(f)
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct TagCursor {
-    pub title: String,
-}
-
-impl Cursor for TagDto {
-    type Data = TagCursor;
-
-    fn to_cursor(&self) -> Self::Data {
-        Self::Data {
-            title: self.title.clone(),
-        }
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum TagError {
     #[error("title must be between 1 and {TAG_TITLE_MAX_LENGTH} characters long")]
     InvalidTitleLength,
 
     #[error("tag already exists with title: {0}")]
-    Conflict(TagTitle),
+    Conflict(String),
 
     #[error("tag not found with ID: {0}")]
-    NotFound(TagId),
+    NotFound(Uuid),
 }

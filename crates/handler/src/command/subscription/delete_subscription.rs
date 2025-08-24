@@ -36,9 +36,9 @@ impl<SR: SubscriptionRepository> Handler<DeleteSubscriptionCommand>
             .delete_by_id(cmd.id, cmd.user_id)
             .await
             .map_err(|e| match e {
-                RepositoryError::NotFound => {
-                    DeleteSubscriptionError::Subscription(SubscriptionError::NotFound(cmd.id))
-                }
+                RepositoryError::NotFound => DeleteSubscriptionError::Subscription(
+                    SubscriptionError::NotFound(cmd.id.as_inner()),
+                ),
                 _ => DeleteSubscriptionError::Repository(e),
             })?;
 

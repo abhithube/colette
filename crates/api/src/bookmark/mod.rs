@@ -1,6 +1,7 @@
 use axum::{Router, routing};
 use chrono::{DateTime, Utc};
 use colette_core::bookmark;
+use colette_handler::BookmarkDto;
 use url::Url;
 use utoipa::OpenApi;
 use uuid::Uuid;
@@ -76,8 +77,8 @@ struct Bookmark {
     updated_at: DateTime<Utc>,
 }
 
-impl From<bookmark::BookmarkDto> for Bookmark {
-    fn from(value: bookmark::BookmarkDto) -> Self {
+impl From<BookmarkDto> for Bookmark {
+    fn from(value: BookmarkDto) -> Self {
         Self {
             id: value.id,
             link: value.link,

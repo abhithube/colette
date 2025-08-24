@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  id,\n  title,\n  user_id,\n  created_at,\n  updated_at\nFROM\n  tags\nWHERE\n  user_id = $1\n  AND (\n    $2::UUID IS NULL\n    OR id = $2\n  )\n  AND (\n    $3::TEXT IS NULL\n    OR title > $3\n  )\nORDER BY\n  title ASC\nLIMIT\n  $4\n",
+  "query": "SELECT\n  id,\n  title,\n  preview,\n  created_at,\n  updated_at\nFROM\n  personal_access_tokens\nWHERE\n  user_id = $1\n  AND (\n    $2::UUID IS NULL\n    OR id = $2\n  )\n  AND (\n    $3::TIMESTAMPTZ IS NULL\n    OR created_at > $3\n  )\nORDER BY\n  created_at ASC\nLIMIT\n  $4\n",
   "describe": {
     "columns": [
       {
@@ -15,8 +15,8 @@
       },
       {
         "ordinal": 2,
-        "name": "user_id",
-        "type_info": "Uuid"
+        "name": "preview",
+        "type_info": "Text"
       },
       {
         "ordinal": 3,
@@ -33,7 +33,7 @@
       "Left": [
         "Uuid",
         "Uuid",
-        "Text",
+        "Timestamptz",
         "Int8"
       ]
     },
@@ -45,5 +45,5 @@
       false
     ]
   },
-  "hash": "4f061f8e751f4b61355a8eeada37ddc0f4a6f8eb68b67a7a3ad13061db937a2c"
+  "hash": "c2e4d306142414c4721045d3b876fd1c17a8315afe25b43f5958c3aec2d0ea59"
 }

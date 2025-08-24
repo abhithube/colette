@@ -4,6 +4,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use colette_core::collection::CollectionError;
 use colette_handler::{GetCollectionError, GetCollectionQuery, Handler as _};
 
 use crate::{
@@ -30,14 +31,16 @@ pub(super) async fn handler(
     match state
         .get_collection
         .handle(GetCollectionQuery {
-            id: id.into(),
-            user_id,
+            id,
+            user_id: user_id.as_inner(),
         })
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            GetCollectionError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            GetCollectionError::Collection(CollectionError::NotFound(_)) => {
+                Err(ErrResponse::NotFound(e.into()))
+            }
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

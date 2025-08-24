@@ -1,49 +1,50 @@
 use colette_core::{
-    auth::UserId,
     common::RepositoryError,
     pagination::{Paginated, paginate},
-    subscription::{
-        SubscriptionCursor, SubscriptionDto, SubscriptionFindParams, SubscriptionRepository,
-    },
-    tag::TagId,
 };
+use uuid::Uuid;
 
-use crate::Handler;
+use crate::{
+    Handler, SubscriptionCursor, SubscriptionDto, SubscriptionQueryParams,
+    SubscriptionQueryRepository,
+};
 
 #[derive(Debug, Clone)]
 pub struct ListSubscriptionsQuery {
-    pub tags: Option<Vec<TagId>>,
+    pub tags: Option<Vec<Uuid>>,
     pub cursor: Option<SubscriptionCursor>,
     pub limit: Option<usize>,
-    pub user_id: UserId,
+    pub user_id: Uuid,
 }
 
-pub struct ListSubscriptionsHandler<SR: SubscriptionRepository> {
-    subscription_repository: SR,
+pub struct ListSubscriptionsHandler<SQR: SubscriptionQueryRepository> {
+    subscription_query_repository: SQR,
 }
 
-impl<SR: SubscriptionRepository> ListSubscriptionsHandler<SR> {
-    pub fn new(subscription_repository: SR) -> Self {
+impl<SQR: SubscriptionQueryRepository> ListSubscriptionsHandler<SQR> {
+    pub fn new(subscription_query_repository: SQR) -> Self {
         Self {
-            subscription_repository,
+            subscription_query_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<SR: SubscriptionRepository> Handler<ListSubscriptionsQuery> for ListSubscriptionsHandler<SR> {
+impl<SQR: SubscriptionQueryRepository> Handler<ListSubscriptionsQuery>
+    for ListSubscriptionsHandler<SQR>
+{
     type Response = Paginated<SubscriptionDto, SubscriptionCursor>;
     type Error = ListSubscriptionsError;
 
     async fn handle(&self, query: ListSubscriptionsQuery) -> Result<Self::Response, Self::Error> {
         let subscriptions = self
-            .subscription_repository
-            .find(SubscriptionFindParams {
+            .subscription_query_repository
+            .query(SubscriptionQueryParams {
                 user_id: query.user_id,
                 tags: query.tags,
                 cursor: query.cursor.map(|e| (e.title, e.id)),
                 limit: query.limit.map(|e| e + 1),
-                id: None,
+                ..Default::default()
             })
             .await?;
 

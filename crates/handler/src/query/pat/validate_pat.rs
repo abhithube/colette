@@ -1,6 +1,7 @@
 use colette_core::{
-    auth::{LookupHash, PatError, PatRepository, UserId},
+    auth::UserId,
     common::RepositoryError,
+    pat::{LookupHash, PatError, PatRepository},
 };
 use colette_util::{CryptoError, argon2_verify, hex_encode, sha256_hash};
 
@@ -33,7 +34,7 @@ impl<PR: PatRepository> Handler<ValidatePatQuery> for ValidatePatHandler<PR> {
             .pat_repository
             .find_by_lookup_hash(&lookup_hash)
             .await?
-            .ok_or_else(|| ValidatePatError::InvalidPat)?;
+            .ok_or(ValidatePatError::InvalidPat)?;
 
         let valid = argon2_verify(lookup_hash.as_inner(), pat.verification_hash().as_inner())?;
         if !valid {

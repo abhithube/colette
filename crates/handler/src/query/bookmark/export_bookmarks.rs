@@ -1,35 +1,31 @@
 use std::collections::HashMap;
 
 use bytes::Bytes;
-use colette_core::{
-    auth::UserId,
-    bookmark::{BookmarkFindParams, BookmarkRepository},
-    common::RepositoryError,
-};
+use colette_core::common::RepositoryError;
 use colette_netscape::{Item, Netscape};
 use uuid::Uuid;
 
-use crate::Handler;
+use crate::{BookmarkQueryParams, BookmarkQueryRepository, Handler};
 
 #[derive(Debug, Clone)]
 pub struct ExportBookmarksQuery {
-    pub user_id: UserId,
+    pub user_id: Uuid,
 }
 
-pub struct ExportBookmarksHandler<BR: BookmarkRepository> {
-    bookmark_repository: BR,
+pub struct ExportBookmarksHandler<BQR: BookmarkQueryRepository> {
+    bookmark_query_repository: BQR,
 }
 
-impl<BR: BookmarkRepository> ExportBookmarksHandler<BR> {
-    pub fn new(bookmark_repository: BR) -> Self {
+impl<BQR: BookmarkQueryRepository> ExportBookmarksHandler<BQR> {
+    pub fn new(bookmark_query_repository: BQR) -> Self {
         Self {
-            bookmark_repository,
+            bookmark_query_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<BR: BookmarkRepository> Handler<ExportBookmarksQuery> for ExportBookmarksHandler<BR> {
+impl<BQR: BookmarkQueryRepository> Handler<ExportBookmarksQuery> for ExportBookmarksHandler<BQR> {
     type Response = Bytes;
     type Error = ExportBookmarksError;
 
@@ -38,14 +34,10 @@ impl<BR: BookmarkRepository> Handler<ExportBookmarksQuery> for ExportBookmarksHa
         let mut item_map = HashMap::<Uuid, Item>::new();
 
         let bookmarks = self
-            .bookmark_repository
-            .find(BookmarkFindParams {
+            .bookmark_query_repository
+            .query(BookmarkQueryParams {
                 user_id: query.user_id,
-                id: None,
-                filter: None,
-                tags: None,
-                cursor: None,
-                limit: None,
+                ..Default::default()
             })
             .await?;
 

@@ -1,22 +1,10 @@
-use std::fmt;
-
 use chrono::{DateTime, Utc};
 use colette_util::uuid_generate_ts;
 use uuid::Uuid;
 
-use crate::{auth::UserId, bookmark::BookmarkFilter, pagination::Cursor};
+use crate::{auth::UserId, bookmark::BookmarkFilter};
 
 pub const COLLECTION_TITLE_MAX_LENGTH: usize = 50;
-
-#[derive(Debug, Clone)]
-pub struct CollectionDto {
-    pub id: Uuid,
-    pub title: String,
-    pub filter: BookmarkFilter,
-    pub user_id: Uuid,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
 
 #[derive(Debug, Clone)]
 pub struct Collection {
@@ -119,12 +107,6 @@ impl From<Uuid> for CollectionId {
     }
 }
 
-impl fmt::Display for CollectionId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_inner().fmt(f)
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CollectionTitle(String);
 
@@ -142,21 +124,6 @@ impl CollectionTitle {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct CollectionCursor {
-    pub title: String,
-}
-
-impl Cursor for CollectionDto {
-    type Data = CollectionCursor;
-
-    fn to_cursor(&self) -> Self::Data {
-        Self::Data {
-            title: self.title.clone(),
-        }
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum CollectionError {
     #[error("title must be between 1 and {COLLECTION_TITLE_MAX_LENGTH} characters long")]
@@ -166,5 +133,5 @@ pub enum CollectionError {
     Conflict(String),
 
     #[error("collection not found with ID: {0}")]
-    NotFound(CollectionId),
+    NotFound(Uuid),
 }

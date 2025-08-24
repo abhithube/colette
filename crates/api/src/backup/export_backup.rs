@@ -26,7 +26,9 @@ pub(super) async fn handler(
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .export_backup
-        .handle(ExportBackupCommand { user_id })
+        .handle(ExportBackupCommand {
+            user_id: user_id.as_inner(),
+        })
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),

@@ -201,193 +201,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiError'
-  /auth/pats:
-    get:
-      tags:
-      - Auth
-      description: List user PATs
-      operationId: listPats
-      parameters:
-      - name: cursor
-        in: query
-        description: Pagination cursor
-        required: false
-        schema:
-          type: string
-      responses:
-        '200':
-          description: Paginated list of PATs
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Paginated_PersonalAccessToken'
-        '401':
-          description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        default:
-          description: Unknown error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-    post:
-      tags:
-      - Auth
-      description: Create a PAT
-      operationId: createPat
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatCreate'
-        required: true
-      responses:
-        '201':
-          description: Created API key
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PatCreated'
-        '401':
-          description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '422':
-          description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        default:
-          description: Unknown error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-  /auth/pats/{id}:
-    get:
-      tags:
-      - Auth
-      description: Get a PAT by ID
-      operationId: getPat
-      parameters:
-      - name: id
-        in: path
-        description: Unique identifier of the resource
-        required: true
-        schema:
-          type: string
-          format: uuid
-      responses:
-        '200':
-          description: PAT by ID
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PersonalAccessToken'
-        '401':
-          description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '404':
-          description: PAT not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        default:
-          description: Unknown error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-    delete:
-      tags:
-      - Auth
-      description: Delete a PAT by ID
-      operationId: deletePat
-      parameters:
-      - name: id
-        in: path
-        description: Unique identifier of the resource
-        required: true
-        schema:
-          type: string
-          format: uuid
-      responses:
-        '204':
-          description: Successfully deleted API key
-        '401':
-          description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '404':
-          description: API key not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        default:
-          description: Unknown error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-    patch:
-      tags:
-      - Auth
-      description: Update a PAT by ID
-      operationId: updatePat
-      parameters:
-      - name: id
-        in: path
-        description: Unique identifier of the resource
-        required: true
-        schema:
-          type: string
-          format: uuid
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatUpdate'
-        required: true
-      responses:
-        '204':
-          description: Successfully updated PAT
-        '401':
-          description: User not authenticated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '404':
-          description: PAT not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        '422':
-          description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
-        default:
-          description: Unknown error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiError'
   /backups/import:
     post:
       tags:
@@ -1242,6 +1055,193 @@ paths:
                 $ref: '#/components/schemas/ApiError'
         '502':
           description: Failed to fetch data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /pats:
+    get:
+      tags:
+      - Personal Access Tokens
+      description: List user PATs
+      operationId: listPats
+      parameters:
+      - name: cursor
+        in: query
+        description: Pagination cursor
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Paginated list of PATs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Paginated_PersonalAccessToken'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    post:
+      tags:
+      - Personal Access Tokens
+      description: Create a PAT
+      operationId: createPat
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatCreate'
+        required: true
+      responses:
+        '201':
+          description: Created API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatCreated'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /pats/{id}:
+    get:
+      tags:
+      - Personal Access Tokens
+      description: Get a PAT by ID
+      operationId: getPat
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier of the resource
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: PAT by ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalAccessToken'
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: PAT not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    delete:
+      tags:
+      - Personal Access Tokens
+      description: Delete a PAT by ID
+      operationId: deletePat
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier of the resource
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Successfully deleted API key
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: API key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+    patch:
+      tags:
+      - Personal Access Tokens
+      description: Update a PAT by ID
+      operationId: updatePat
+      parameters:
+      - name: id
+        in: path
+        description: Unique identifier of the resource
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatUpdate'
+        required: true
+      responses:
+        '204':
+          description: Successfully updated PAT
+        '401':
+          description: User not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: PAT not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Invalid input
           content:
             application/json:
               schema:
@@ -2552,8 +2552,6 @@ components:
             description: PAT, used for long-lived token access to the API
             required:
             - id
-            - lookupHash
-            - verificationHash
             - title
             - preview
             - createdAt
@@ -2562,10 +2560,6 @@ components:
               id:
                 type: string
                 format: uuid
-              lookupHash:
-                type: string
-              verificationHash:
-                type: string
               title:
                 type: string
               preview:
@@ -2726,8 +2720,6 @@ components:
       description: PAT, used for long-lived token access to the API
       required:
       - id
-      - lookupHash
-      - verificationHash
       - title
       - preview
       - createdAt
@@ -2736,10 +2728,6 @@ components:
         id:
           type: string
           format: uuid
-        lookupHash:
-          type: string
-        verificationHash:
-          type: string
         title:
           type: string
         preview:
@@ -2973,7 +2961,6 @@ components:
       - verified
       - displayName
       - imageUrl
-      - personalAccessTokens
       - createdAt
       - updatedAt
       properties:
@@ -2999,11 +2986,6 @@ components:
           - 'null'
           format: uri
           description: Profile image URL of the user
-        personalAccessTokens:
-          type: array
-          items:
-            $ref: '#/components/schemas/PersonalAccessToken'
-          description: Generated PATs
         createdAt:
           type: string
           format: date-time

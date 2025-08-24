@@ -120,12 +120,6 @@ impl Sub {
     }
 }
 
-impl fmt::Display for Sub {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.as_inner())
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum SocialAccountError {
     #[error("provider cannot be empty")]

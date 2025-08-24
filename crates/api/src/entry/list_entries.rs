@@ -4,8 +4,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::entry::EntryCursor;
-use colette_handler::{Handler as _, ListEntriesQuery};
+use colette_handler::{EntryCursor, Handler as _, ListEntriesQuery};
 use uuid::Uuid;
 
 use crate::{
@@ -39,13 +38,13 @@ pub(super) async fn handler(
     match state
         .list_entries
         .handle(ListEntriesQuery {
-            collection_id: query.collection_id.map(Into::into),
-            subscription_id: query.subscription_id.map(Into::into),
+            collection_id: query.collection_id,
+            subscription_id: query.subscription_id,
             has_read: query.has_read,
-            tags: query.tags.map(|e| e.into_iter().map(Into::into).collect()),
+            tags: query.tags,
             cursor,
             limit: Some(PAGINATION_LIMIT),
-            user_id,
+            user_id: user_id.as_inner(),
         })
         .await
     {

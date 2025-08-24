@@ -3,9 +3,10 @@ use colette_core::{
     Collection,
     auth::UserId,
     bookmark::BookmarkFilter,
-    collection::{CollectionDto, CollectionFindParams, CollectionId, CollectionRepository},
+    collection::{CollectionId, CollectionRepository},
     common::RepositoryError,
 };
+use colette_handler::{CollectionDto, CollectionQueryParams, CollectionQueryRepository};
 use sqlx::{PgPool, types::Json};
 use uuid::Uuid;
 
@@ -22,25 +23,6 @@ impl PostgresCollectionRepository {
 
 #[async_trait::async_trait]
 impl CollectionRepository for PostgresCollectionRepository {
-    async fn find(
-        &self,
-        params: CollectionFindParams,
-    ) -> Result<Vec<CollectionDto>, RepositoryError> {
-        let collections = sqlx::query_file_as!(
-            CollectionRow,
-            "queries/collections/find.sql",
-            params.user_id.as_inner(),
-            params.id.map(|e| e.as_inner()),
-            params.cursor,
-            params.limit.map(|e| e as i64)
-        )
-        .map(Into::into)
-        .fetch_all(&self.pool)
-        .await?;
-
-        Ok(collections)
-    }
-
     async fn find_by_id(
         &self,
         id: CollectionId,
@@ -86,7 +68,11 @@ impl CollectionRepository for PostgresCollectionRepository {
             user_id.as_inner()
         )
         .execute(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => RepositoryError::NotFound,
+            _ => RepositoryError::Unknown(e),
+        })?;
 
         Ok(())
     }
@@ -114,11 +100,32 @@ impl From<CollectionByIdRow> for Collection {
     }
 }
 
+#[async_trait::async_trait]
+impl CollectionQueryRepository for PostgresCollectionRepository {
+    async fn query(
+        &self,
+        params: CollectionQueryParams,
+    ) -> Result<Vec<CollectionDto>, RepositoryError> {
+        let collections = sqlx::query_file_as!(
+            CollectionRow,
+            "queries/collections/find.sql",
+            params.user_id,
+            params.id,
+            params.cursor,
+            params.limit.map(|e| e as i64)
+        )
+        .map(Into::into)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(collections)
+    }
+}
+
 struct CollectionRow {
     id: Uuid,
     title: String,
     filter_json: Json<BookmarkFilter>,
-    user_id: Uuid,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
@@ -129,7 +136,6 @@ impl From<CollectionRow> for CollectionDto {
             id: value.id,
             title: value.title,
             filter: value.filter_json.0,
-            user_id: value.user_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
         }

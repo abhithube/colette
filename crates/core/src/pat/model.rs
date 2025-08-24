@@ -1,10 +1,8 @@
-use std::fmt;
-
 use chrono::{DateTime, Utc};
 use colette_util::uuid_generate_ts;
 use uuid::Uuid;
 
-use crate::{auth::UserId, pagination::Cursor};
+use crate::auth::UserId;
 
 pub const PAT_VALUE_LENGTH: usize = 32;
 pub const PAT_TITLE_MAX_LENGTH: usize = 50;
@@ -16,6 +14,7 @@ pub struct PersonalAccessToken {
     verification_hash: VerificationHash,
     title: PatTitle,
     preview: PatPreview,
+    user_id: UserId,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
@@ -26,6 +25,7 @@ impl PersonalAccessToken {
         verification_hash: VerificationHash,
         title: PatTitle,
         preview: PatPreview,
+        user_id: UserId,
     ) -> Self {
         let now = Utc::now();
 
@@ -35,6 +35,7 @@ impl PersonalAccessToken {
             verification_hash,
             title,
             preview,
+            user_id,
             created_at: now,
             updated_at: now,
         }
@@ -67,6 +68,10 @@ impl PersonalAccessToken {
         &self.preview
     }
 
+    pub fn user_id(&self) -> UserId {
+        self.user_id
+    }
+
     pub fn created_at(&self) -> DateTime<Utc> {
         self.created_at
     }
@@ -82,6 +87,7 @@ impl PersonalAccessToken {
         verification_hash: String,
         title: String,
         preview: String,
+        user_id: Uuid,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
     ) -> Self {
@@ -91,6 +97,7 @@ impl PersonalAccessToken {
             verification_hash: VerificationHash(verification_hash),
             title: PatTitle(title),
             preview: PatPreview(preview),
+            user_id: user_id.into(),
             created_at,
             updated_at,
         }
@@ -230,27 +237,6 @@ impl From<Uuid> for PatId {
     }
 }
 
-impl fmt::Display for PatId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_inner().fmt(f)
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct PatCursor {
-    pub created_at: DateTime<Utc>,
-}
-
-impl Cursor for PersonalAccessToken {
-    type Data = PatCursor;
-
-    fn to_cursor(&self) -> Self::Data {
-        Self::Data {
-            created_at: self.created_at,
-        }
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum PatError {
     #[error("PAT title must be between 1 and {PAT_TITLE_MAX_LENGTH} characters long")]
@@ -266,5 +252,5 @@ pub enum PatError {
     EmptyVerificationHash,
 
     #[error("PAT not found with ID: {0}")]
-    NotFound(PatId),
+    NotFound(Uuid),
 }

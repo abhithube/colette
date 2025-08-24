@@ -47,39 +47,12 @@ SELECT
     ),
     '[]'::JSONB
   ) AS "social_accounts!: Json<Vec<SocialAccountRow>>",
-  coalesce(
-    jsonb_agg(
-      jsonb_build_object(
-        'id',
-        pat.id,
-        'lookup_hash',
-        pat.lookup_hash,
-        'verification_hash',
-        pat.verification_hash,
-        'title',
-        pat.title,
-        'preview',
-        pat.preview,
-        'created_at',
-        pat.created_at,
-        'updated_at',
-        pat.updated_at
-      )
-      ORDER BY
-        pat.created_at ASC
-    ) FILTER (
-      WHERE
-        pat.id IS NOT NULL
-    ),
-    '[]'::JSONB
-  ) AS "personal_access_tokens!: Json<Vec<PersonalAccessTokenRow>>",
   u.created_at,
   u.updated_at
 FROM
   users u
   LEFT JOIN otp_codes oc ON oc.user_id = u.id
   LEFT JOIN social_accounts sa ON sa.user_id = u.id
-  LEFT JOIN personal_access_tokens pat ON pat.user_id = u.id
 WHERE
   (
     $1::UUID IS NULL

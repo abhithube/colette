@@ -32,7 +32,7 @@ impl<ER: EntryRepository> Handler<MarkEntryAsReadCommand> for MarkEntryAsReadHan
             .entry_repository
             .find_by_id(cmd.id, cmd.user_id)
             .await?
-            .ok_or_else(|| MarkEntryAsReadError::Entry(EntryError::NotFound(cmd.id)))?;
+            .ok_or(EntryError::NotFound(cmd.id.as_inner()))?;
 
         entry.mark_as_read()?;
 

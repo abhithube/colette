@@ -1,7 +1,4 @@
-use std::{
-    fmt::{self, Display},
-    str::FromStr,
-};
+use std::{fmt, str::FromStr};
 
 use chrono::{DateTime, Utc};
 use url::Url;
@@ -41,12 +38,6 @@ impl From<Uuid> for FeedId {
     }
 }
 
-impl fmt::Display for FeedId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_inner().fmt(f)
-    }
-}
-
 #[derive(Debug, Clone, Default)]
 pub enum FeedStatus {
     #[default]
@@ -56,7 +47,7 @@ pub enum FeedStatus {
     Failed,
 }
 
-impl Display for FeedStatus {
+impl fmt::Display for FeedStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let value = match self {
             Self::Pending => "pending",
@@ -110,4 +101,7 @@ pub struct ScrapeFeedJobData {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum FeedError {}
+pub enum FeedError {
+    #[error("feed not found with ID: {0}")]
+    NotFound(Uuid),
+}

@@ -3,29 +3,18 @@ use colette_core::{
     Bookmark,
     auth::UserId,
     bookmark::{
-        BookmarkDateField, BookmarkDto, BookmarkFilter, BookmarkFindParams, BookmarkId,
-        BookmarkRepository, BookmarkTextField, ImportBookmarksParams,
+        BookmarkDateField, BookmarkFilter, BookmarkId, BookmarkRepository, BookmarkTextField,
+        ImportBookmarksParams,
     },
     common::RepositoryError,
 };
+use colette_handler::{BookmarkDto, BookmarkQueryParams, BookmarkQueryRepository};
 use sqlx::{PgPool, QueryBuilder, types::Json};
 use uuid::Uuid;
 
 use crate::{DbUrl, ToColumn, ToSql, tag::TagRow};
 
 const BASE_QUERY: &str = include_str!("../queries/bookmarks/find.sql");
-
-#[allow(dead_code)]
-fn validate_base_query() {
-    let _ = sqlx::query_file!(
-        "queries/bookmarks/find.sql",
-        Option::<Uuid>::None,
-        Option::<Uuid>::None,
-        Option::<&[Uuid]>::None,
-        Option::<DateTime<Utc>>::None,
-        1
-    );
-}
 
 #[derive(Debug, Clone)]
 pub struct PostgresBookmarkRepository {
@@ -40,31 +29,6 @@ impl PostgresBookmarkRepository {
 
 #[async_trait::async_trait]
 impl BookmarkRepository for PostgresBookmarkRepository {
-    async fn find(&self, params: BookmarkFindParams) -> Result<Vec<BookmarkDto>, RepositoryError> {
-        let mut qb = QueryBuilder::new(format!(
-            r#"WITH results AS ({BASE_QUERY}) SELECT * FROM results WHERE TRUE"#
-        ));
-        if let Some(filter) = params.filter {
-            qb.push(format!(" {}", filter.to_sql()));
-        }
-
-        let rows = qb
-            .build_query_as::<BookmarkRow>()
-            .bind(params.user_id.as_inner())
-            .bind(params.id.map(|e| e.as_inner()))
-            .bind(
-                params
-                    .tags
-                    .map(|e| e.iter().map(|e| e.as_inner()).collect::<Vec<_>>()),
-            )
-            .bind(params.cursor)
-            .bind(params.limit.map(|e| e as i64))
-            .fetch_all(&self.pool)
-            .await?;
-
-        Ok(rows.into_iter().map(Into::into).collect())
-    }
-
     async fn find_by_id(
         &self,
         id: BookmarkId,
@@ -114,7 +78,11 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             user_id.as_inner()
         )
         .execute(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => RepositoryError::NotFound,
+            _ => RepositoryError::Unknown(e),
+        })?;
 
         Ok(())
     }
@@ -222,6 +190,33 @@ impl From<BookmarkByIdRow> for Bookmark {
     }
 }
 
+#[async_trait::async_trait]
+impl BookmarkQueryRepository for PostgresBookmarkRepository {
+    async fn query(
+        &self,
+        params: BookmarkQueryParams,
+    ) -> Result<Vec<BookmarkDto>, RepositoryError> {
+        let mut qb = QueryBuilder::new(format!(
+            r#"WITH results AS ({BASE_QUERY}) SELECT * FROM results WHERE TRUE"#
+        ));
+        if let Some(filter) = params.filter {
+            qb.push(format!(" {}", filter.to_sql()));
+        }
+
+        let rows = qb
+            .build_query_as::<BookmarkRow>()
+            .bind(params.user_id)
+            .bind(params.id)
+            .bind(params.tags)
+            .bind(params.cursor)
+            .bind(params.limit.map(|e| e as i64))
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
+    }
+}
+
 #[derive(sqlx::FromRow)]
 struct BookmarkRow {
     id: Uuid,
@@ -308,4 +303,16 @@ impl ToSql for BookmarkFilter {
             BookmarkFilter::Not(filter) => format!("NOT {}", (*filter).to_sql()),
         }
     }
+}
+
+#[allow(dead_code)]
+fn validate_base_query() {
+    let _ = sqlx::query_file!(
+        "queries/bookmarks/find.sql",
+        Option::<Uuid>::None,
+        Option::<Uuid>::None,
+        Option::<&[Uuid]>::None,
+        Option::<DateTime<Utc>>::None,
+        1
+    );
 }

@@ -1,8 +1,10 @@
 pub use command::*;
 pub use query::*;
+pub use repository::*;
 
 mod command;
 mod query;
+mod repository;
 
 #[async_trait::async_trait]
 pub trait Handler<C> {

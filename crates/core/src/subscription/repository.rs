@@ -1,20 +1,13 @@
 use url::Url;
-use uuid::Uuid;
 
 use crate::{
     auth::UserId,
     common::RepositoryError,
-    subscription::{Subscription, SubscriptionDto, SubscriptionId},
-    tag::TagId,
+    subscription::{Subscription, SubscriptionId},
 };
 
 #[async_trait::async_trait]
 pub trait SubscriptionRepository: Send + Sync + 'static {
-    async fn find(
-        &self,
-        params: SubscriptionFindParams,
-    ) -> Result<Vec<SubscriptionDto>, RepositoryError>;
-
     async fn find_by_id(
         &self,
         id: SubscriptionId,
@@ -30,15 +23,6 @@ pub trait SubscriptionRepository: Send + Sync + 'static {
     ) -> Result<(), RepositoryError>;
 
     async fn import(&self, params: ImportSubscriptionsParams) -> Result<(), RepositoryError>;
-}
-
-#[derive(Debug, Clone)]
-pub struct SubscriptionFindParams {
-    pub user_id: UserId,
-    pub id: Option<SubscriptionId>,
-    pub tags: Option<Vec<TagId>>,
-    pub cursor: Option<(String, Uuid)>,
-    pub limit: Option<usize>,
 }
 
 #[derive(Debug, Clone)]

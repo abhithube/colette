@@ -1,47 +1,39 @@
-use colette_core::{
-    auth::UserId,
-    common::RepositoryError,
-    tag::{TagDto, TagError, TagFindParams, TagId, TagRepository},
-};
+use colette_core::{common::RepositoryError, tag::TagError};
+use uuid::Uuid;
 
-use crate::Handler;
+use crate::{Handler, TagDto, TagQueryRepository};
 
 #[derive(Debug, Clone)]
 pub struct GetTagQuery {
-    pub id: TagId,
-    pub user_id: UserId,
+    pub id: Uuid,
+    pub user_id: Uuid,
 }
 
-pub struct GetTagHandler<TR: TagRepository> {
-    tag_repository: TR,
+pub struct GetTagHandler<TQR: TagQueryRepository> {
+    tag_query_repository: TQR,
 }
 
-impl<TR: TagRepository> GetTagHandler<TR> {
-    pub fn new(tag_repository: TR) -> Self {
-        Self { tag_repository }
+impl<TQR: TagQueryRepository> GetTagHandler<TQR> {
+    pub fn new(tag_query_repository: TQR) -> Self {
+        Self {
+            tag_query_repository,
+        }
     }
 }
 
 #[async_trait::async_trait]
-impl<TR: TagRepository> Handler<GetTagQuery> for GetTagHandler<TR> {
+impl<TQR: TagQueryRepository> Handler<GetTagQuery> for GetTagHandler<TQR> {
     type Response = TagDto;
     type Error = GetTagError;
 
     async fn handle(&self, query: GetTagQuery) -> Result<Self::Response, Self::Error> {
-        let mut tags = self
-            .tag_repository
-            .find(TagFindParams {
-                user_id: query.user_id,
-                id: Some(query.id),
-                cursor: None,
-                limit: None,
-            })
-            .await?;
-        if tags.is_empty() {
-            return Err(GetTagError::Tag(TagError::NotFound(query.id)));
-        }
+        let tag = self
+            .tag_query_repository
+            .query_by_id(query.id, query.user_id)
+            .await?
+            .ok_or(TagError::NotFound(query.id))?;
 
-        Ok(tags.swap_remove(0))
+        Ok(tag)
     }
 }
 

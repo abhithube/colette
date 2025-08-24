@@ -35,7 +35,7 @@ impl<CR: CollectionRepository> Handler<DeleteCollectionCommand> for DeleteCollec
             .await
             .map_err(|e| match e {
                 RepositoryError::NotFound => {
-                    DeleteCollectionError::Collection(CollectionError::NotFound(cmd.id))
+                    DeleteCollectionError::Collection(CollectionError::NotFound(cmd.id.as_inner()))
                 }
                 _ => DeleteCollectionError::Repository(e),
             })?;

@@ -1,7 +1,5 @@
 SELECT
   id,
-  lookup_hash,
-  verification_hash,
   title,
   preview,
   created_at,

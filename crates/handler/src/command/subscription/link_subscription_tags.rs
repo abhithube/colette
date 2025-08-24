@@ -42,9 +42,7 @@ impl<SR: SubscriptionRepository> Handler<LinkSubscriptionTagsCommand>
             .subscription_repository
             .find_by_id(cmd.id, cmd.user_id)
             .await?
-            .ok_or_else(|| {
-                LinkSubscriptionTagsError::Subscription(SubscriptionError::NotFound(cmd.id))
-            })?;
+            .ok_or(SubscriptionError::NotFound(cmd.id.as_inner()))?;
 
         subscription.set_tags(cmd.tag_ids)?;
 

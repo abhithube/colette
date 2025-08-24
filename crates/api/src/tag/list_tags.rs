@@ -4,8 +4,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::tag::TagCursor;
-use colette_handler::{Handler as _, ListTagsQuery};
+use colette_handler::{Handler as _, ListTagsQuery, TagCursor};
 
 use crate::{
     ApiState,
@@ -40,7 +39,7 @@ pub(super) async fn handler(
         .handle(ListTagsQuery {
             cursor,
             limit: Some(PAGINATION_LIMIT),
-            user_id,
+            user_id: user_id.as_inner(),
         })
         .await
     {

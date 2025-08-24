@@ -31,8 +31,8 @@ pub(super) async fn handler(
     match state
         .get_subscription
         .handle(GetSubscriptionQuery {
-            id: id.into(),
-            user_id,
+            id,
+            user_id: user_id.as_inner(),
         })
         .await
     {

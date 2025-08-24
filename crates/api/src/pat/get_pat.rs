@@ -1,51 +1,45 @@
 use axum::{
+    Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::auth::{PatError, UserError};
-use colette_handler::{Handler as _, UpdatePatCommand, UpdatePatError};
+use colette_core::pat::PatError;
+use colette_handler::{GetPatError, GetPatQuery, Handler as _};
 
 use crate::{
     ApiState,
-    auth::AUTH_TAG,
-    common::{ApiError, Auth, Id, Json, Path},
+    common::{ApiError, Auth, Id, Path},
+    pat::{PERSONAL_ACCESS_TOKENS_TAG, PersonalAccessToken},
 };
 
 #[utoipa::path(
-    patch,
-    path = "/pats/{id}",
+    get,
+    path = "/{id}",
     params(Id),
-    request_body = PatUpdate,
     responses(OkResponse, ErrResponse),
-    operation_id = "updatePat",
-    description = "Update a PAT by ID",
-    tag = AUTH_TAG
+    operation_id = "getPat",
+    description = "Get a PAT by ID",
+    tag = PERSONAL_ACCESS_TOKENS_TAG
 )]
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     Auth { user_id }: Auth,
-    Json(body): Json<PatUpdate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .update_pat
-        .handle(UpdatePatCommand {
-            id: id.into(),
-            title: body.title,
-            user_id,
+        .get_pat
+        .handle(GetPatQuery {
+            id,
+            user_id: user_id.as_inner(),
         })
         .await
     {
-        Ok(_) => Ok(OkResponse),
+        Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            UpdatePatError::User(e) => match e {
-                UserError::Pat(e) => match e {
-                    PatError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
-                    PatError::InvalidTitleLength => Err(ErrResponse::UnprocessableEntity(e.into())),
-                    _ => Err(ErrResponse::InternalServerError(e.into())),
-                },
+            GetPatError::Pat(e) => match e {
+                PatError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
                 _ => Err(ErrResponse::InternalServerError(e.into())),
             },
             _ => Err(ErrResponse::InternalServerError(e.into())),
@@ -53,22 +47,13 @@ pub(super) async fn handler(
     }
 }
 
-/// Details regarding the existing PAT to update
-#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub(super) struct PatUpdate {
-    /// Human-readable name for the PAT to update, cannot be empty
-    #[schema(min_length = 1, nullable = false)]
-    title: Option<String>,
-}
-
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::NO_CONTENT, description = "Successfully updated PAT")]
-pub(super) struct OkResponse;
+#[response(status = StatusCode::OK, description = "PAT by ID")]
+pub(super) struct OkResponse(PersonalAccessToken);
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {
-        StatusCode::NO_CONTENT.into_response()
+        (StatusCode::OK, Json(self.0)).into_response()
     }
 }
 
@@ -80,9 +65,6 @@ pub(super) enum ErrResponse {
 
     #[response(status = StatusCode::NOT_FOUND, description = "PAT not found")]
     NotFound(ApiError),
-
-    #[response(status = StatusCode::UNPROCESSABLE_ENTITY, description = "Invalid input")]
-    UnprocessableEntity(ApiError),
 
     #[response(status = "default", description = "Unknown error")]
     InternalServerError(ApiError),

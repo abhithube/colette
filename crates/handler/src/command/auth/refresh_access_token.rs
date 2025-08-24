@@ -48,11 +48,11 @@ impl<UR: UserRepository, JM: JwtManager> Handler<RefreshAccessTokenCommand>
         }?;
 
         let access_token = self.jwt_manager.generate(Claims::new(
-            user.id().to_string(),
+            user.id().as_inner().to_string(),
             self.jwt_config.access_duration,
         ))?;
         let refresh_token = self.jwt_manager.generate(Claims::new(
-            user.id().to_string(),
+            user.id().as_inner().to_string(),
             self.jwt_config.refresh_duration,
         ))?;
 

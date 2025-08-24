@@ -3,8 +3,9 @@ use colette_core::{
     Tag,
     auth::UserId,
     common::RepositoryError,
-    tag::{TagDto, TagFindParams, TagId, TagRepository},
+    tag::{TagId, TagRepository},
 };
+use colette_handler::{TagDto, TagQueryParams, TagQueryRepository};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -21,22 +22,6 @@ impl PostgresTagRepository {
 
 #[async_trait::async_trait]
 impl TagRepository for PostgresTagRepository {
-    async fn find(&self, params: TagFindParams) -> Result<Vec<TagDto>, RepositoryError> {
-        let tags = sqlx::query_file_as!(
-            TagRow,
-            "queries/tags/find.sql",
-            params.user_id.as_inner(),
-            params.id.map(|e| e.as_inner()),
-            params.cursor,
-            params.limit.map(|e| e as i64)
-        )
-        .map(Into::into)
-        .fetch_all(&self.pool)
-        .await?;
-
-        Ok(tags)
-    }
-
     async fn find_by_id(&self, id: TagId, user_id: UserId) -> Result<Option<Tag>, RepositoryError> {
         let tag = sqlx::query_file_as!(
             TagByIdRow,
@@ -108,11 +93,29 @@ impl From<TagByIdRow> for Tag {
     }
 }
 
+#[async_trait::async_trait]
+impl TagQueryRepository for PostgresTagRepository {
+    async fn query(&self, params: TagQueryParams) -> Result<Vec<TagDto>, RepositoryError> {
+        let tags = sqlx::query_file_as!(
+            TagRow,
+            "queries/tags/find.sql",
+            params.user_id,
+            params.id,
+            params.cursor,
+            params.limit.map(|e| e as i64)
+        )
+        .map(Into::into)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(tags)
+    }
+}
+
 #[derive(Debug, serde::Deserialize)]
 pub(crate) struct TagRow {
     id: Uuid,
     title: String,
-    user_id: Uuid,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
@@ -122,7 +125,6 @@ impl From<TagRow> for TagDto {
         Self {
             id: value.id,
             title: value.title,
-            user_id: value.user_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
         }

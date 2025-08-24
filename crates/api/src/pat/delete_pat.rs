@@ -1,26 +1,25 @@
 use axum::{
-    Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::auth::PatError;
-use colette_handler::{GetPatError, GetPatQuery, Handler as _};
+use colette_core::pat::PatError;
+use colette_handler::{DeletePatCommand, DeletePatError, Handler as _};
 
 use crate::{
     ApiState,
-    auth::{AUTH_TAG, PersonalAccessToken},
     common::{ApiError, Auth, Id, Path},
+    pat::PERSONAL_ACCESS_TOKENS_TAG,
 };
 
 #[utoipa::path(
-    get,
-    path = "/pats/{id}",
+    delete,
+    path = "/{id}",
     params(Id),
     responses(OkResponse, ErrResponse),
-    operation_id = "getPat",
-    description = "Get a PAT by ID",
-    tag = AUTH_TAG
+    operation_id = "deletePat",
+    description = "Delete a PAT by ID",
+    tag = PERSONAL_ACCESS_TOKENS_TAG
 )]
 #[axum::debug_handler]
 pub(super) async fn handler(
@@ -29,16 +28,16 @@ pub(super) async fn handler(
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .get_pat
-        .handle(GetPatQuery {
+        .delete_pat
+        .handle(DeletePatCommand {
             id: id.into(),
             user_id,
         })
         .await
     {
-        Ok(data) => Ok(OkResponse(data.into())),
+        Ok(()) => Ok(OkResponse),
         Err(e) => match e {
-            GetPatError::Pat(e) => match e {
+            DeletePatError::Pat(e) => match e {
                 PatError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
                 _ => Err(ErrResponse::InternalServerError(e.into())),
             },
@@ -48,12 +47,12 @@ pub(super) async fn handler(
 }
 
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::OK, description = "PAT by ID")]
-pub(super) struct OkResponse(PersonalAccessToken);
+#[response(status = StatusCode::NO_CONTENT, description = "Successfully deleted API key")]
+pub(super) struct OkResponse;
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {
-        (StatusCode::OK, Json(self.0)).into_response()
+        StatusCode::NO_CONTENT.into_response()
     }
 }
 
@@ -63,7 +62,7 @@ pub(super) enum ErrResponse {
     #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
     Unauthorized(ApiError),
 
-    #[response(status = StatusCode::NOT_FOUND, description = "PAT not found")]
+    #[response(status = StatusCode::NOT_FOUND, description = "API key not found")]
     NotFound(ApiError),
 
     #[response(status = "default", description = "Unknown error")]

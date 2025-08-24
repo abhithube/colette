@@ -8,7 +8,7 @@ use email_address::EmailAddress;
 use sqlx::{PgPool, types::Json};
 use uuid::Uuid;
 
-use crate::{DbUrl, pat::PersonalAccessTokenRow};
+use crate::DbUrl;
 
 #[derive(Debug, Clone)]
 pub struct PostgresUserRepository {
@@ -97,27 +97,9 @@ impl UserRepository for PostgresUserRepository {
 
         for sa in data.social_accounts() {
             sa_providers.push(sa.provider().to_string());
-            sa_subs.push(sa.sub().to_string());
+            sa_subs.push(sa.sub().as_inner().to_owned());
             sa_created_ats.push(sa.created_at());
             sa_updated_ats.push(sa.updated_at());
-        }
-
-        let mut pat_ids = Vec::<Uuid>::new();
-        let mut pat_lookup_hashes = Vec::<String>::new();
-        let mut pat_verification_hashes = Vec::<String>::new();
-        let mut pat_titles = Vec::<String>::new();
-        let mut pat_previews = Vec::<String>::new();
-        let mut pat_created_ats = Vec::<DateTime<Utc>>::new();
-        let mut pat_updated_ats = Vec::<DateTime<Utc>>::new();
-
-        for pat in data.personal_access_tokens() {
-            pat_ids.push(pat.id().as_inner());
-            pat_lookup_hashes.push(pat.lookup_hash().as_inner().to_owned());
-            pat_verification_hashes.push(pat.verification_hash().as_inner().to_owned());
-            pat_titles.push(pat.title().as_inner().to_owned());
-            pat_previews.push(pat.preview().as_inner().to_owned());
-            pat_created_ats.push(pat.created_at());
-            pat_updated_ats.push(pat.updated_at());
         }
 
         sqlx::query_file!(
@@ -138,13 +120,6 @@ impl UserRepository for PostgresUserRepository {
             &sa_subs,
             &sa_created_ats,
             &sa_updated_ats,
-            &pat_ids,
-            &pat_lookup_hashes,
-            &pat_verification_hashes,
-            &pat_titles,
-            &pat_previews,
-            &pat_created_ats,
-            &pat_updated_ats
         )
         .execute(&self.pool)
         .await?;
@@ -160,7 +135,6 @@ struct UserRow {
     display_name: Option<String>,
     image_url: Option<DbUrl>,
     social_accounts: Json<Vec<SocialAccountRow>>,
-    personal_access_tokens: Json<Vec<PersonalAccessTokenRow>>,
     otp_codes: Json<Vec<OtpCodeRow>>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
@@ -177,12 +151,6 @@ impl From<UserRow> for User {
             value.otp_codes.0.into_iter().map(Into::into).collect(),
             value
                 .social_accounts
-                .0
-                .into_iter()
-                .map(Into::into)
-                .collect(),
-            value
-                .personal_access_tokens
                 .0
                 .into_iter()
                 .map(Into::into)

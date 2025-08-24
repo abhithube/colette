@@ -4,24 +4,23 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::auth::PatCursor;
-use colette_handler::{Handler as _, ListPatsQuery};
+use colette_handler::{Handler as _, ListPatsQuery, PatCursor};
 
 use crate::{
     ApiState,
-    auth::{AUTH_TAG, PersonalAccessToken},
     common::{ApiError, Auth, Query},
     pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
+    pat::{PERSONAL_ACCESS_TOKENS_TAG, PersonalAccessToken},
 };
 
 #[utoipa::path(
     get,
-    path = "/pats",
+    path = "",
     params(PatListQuery),
     responses(OkResponse, ErrResponse),
     operation_id = "listPats",
     description = "List user PATs",
-    tag = AUTH_TAG
+    tag = PERSONAL_ACCESS_TOKENS_TAG
 )]
 #[axum::debug_handler]
 pub(super) async fn handler(
@@ -40,7 +39,7 @@ pub(super) async fn handler(
         .handle(ListPatsQuery {
             cursor,
             limit: Some(PAGINATION_LIMIT),
-            user_id,
+            user_id: user_id.as_inner(),
         })
         .await
     {

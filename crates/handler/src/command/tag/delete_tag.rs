@@ -32,7 +32,9 @@ impl<TR: TagRepository> Handler<DeleteTagCommand> for DeleteTagHandler<TR> {
             .delete_by_id(cmd.id, cmd.user_id)
             .await
             .map_err(|e| match e {
-                RepositoryError::NotFound => DeleteTagError::Tag(TagError::NotFound(cmd.id)),
+                RepositoryError::NotFound => {
+                    DeleteTagError::Tag(TagError::NotFound(cmd.id.as_inner()))
+                }
                 _ => DeleteTagError::Repository(e),
             })?;
 

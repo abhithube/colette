@@ -36,7 +36,7 @@ impl<BR: BookmarkRepository> Handler<LinkBookmarkTagsCommand> for LinkBookmarkTa
             .bookmark_repository
             .find_by_id(cmd.id, cmd.user_id)
             .await?
-            .ok_or_else(|| LinkBookmarkTagsError::Bookmark(BookmarkError::NotFound(cmd.id)))?;
+            .ok_or(BookmarkError::NotFound(cmd.id.as_inner()))?;
 
         bookmark.set_tags(cmd.tag_ids)?;
 

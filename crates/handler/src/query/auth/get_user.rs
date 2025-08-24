@@ -31,7 +31,7 @@ impl<UR: UserRepository> Handler<GetUserQuery> for GetUserHandler<UR> {
             .user_repository
             .find_by_id(query.id)
             .await?
-            .ok_or_else(|| GetUserError::NotAuthenticated)?;
+            .ok_or(GetUserError::NotAuthenticated)?;
 
         Ok(user)
     }

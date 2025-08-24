@@ -3,15 +3,12 @@ use url::Url;
 
 use crate::{
     auth::UserId,
-    bookmark::{Bookmark, BookmarkDto, BookmarkFilter, BookmarkId},
+    bookmark::{Bookmark, BookmarkId},
     common::RepositoryError,
-    tag::TagId,
 };
 
 #[async_trait::async_trait]
 pub trait BookmarkRepository: Send + Sync + 'static {
-    async fn find(&self, params: BookmarkFindParams) -> Result<Vec<BookmarkDto>, RepositoryError>;
-
     async fn find_by_id(
         &self,
         id: BookmarkId,
@@ -29,16 +26,6 @@ pub trait BookmarkRepository: Send + Sync + 'static {
     ) -> Result<(), RepositoryError>;
 
     async fn import(&self, params: ImportBookmarksParams) -> Result<(), RepositoryError>;
-}
-
-#[derive(Debug, Clone)]
-pub struct BookmarkFindParams {
-    pub user_id: UserId,
-    pub id: Option<BookmarkId>,
-    pub filter: Option<BookmarkFilter>,
-    pub tags: Option<Vec<TagId>>,
-    pub cursor: Option<DateTime<Utc>>,
-    pub limit: Option<usize>,
 }
 
 #[derive(Debug, Clone)]

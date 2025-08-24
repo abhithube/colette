@@ -1,87 +1,81 @@
 use bytes::Bytes;
-use colette_core::{
-    auth::UserId,
-    backup::Backup,
-    bookmark::{BookmarkFindParams, BookmarkRepository},
-    common::RepositoryError,
-    subscription::{SubscriptionFindParams, SubscriptionRepository},
-    tag::{TagFindParams, TagRepository},
-};
+use colette_core::{backup::Backup, common::RepositoryError};
+use uuid::Uuid;
 
-use crate::Handler;
+use crate::{
+    BookmarkQueryParams, BookmarkQueryRepository, Handler, SubscriptionQueryParams,
+    SubscriptionQueryRepository, TagQueryParams, TagQueryRepository,
+};
 
 #[derive(Debug, Clone)]
 pub struct ExportBackupCommand {
-    pub user_id: UserId,
+    pub user_id: Uuid,
 }
 
 pub struct ExportBackupHandler<
-    BR: BookmarkRepository,
-    SR: SubscriptionRepository,
-    TR: TagRepository,
+    BQR: BookmarkQueryRepository,
+    SQR: SubscriptionQueryRepository,
+    TQR: TagQueryRepository,
 > {
-    bookmark_repository: BR,
-    subscription_repository: SR,
-    tag_repository: TR,
+    bookmark_query_repository: BQR,
+    subscription_query_repository: SQR,
+    tag_query_repository: TQR,
 }
 
-impl<BR: BookmarkRepository, SR: SubscriptionRepository, TR: TagRepository>
-    ExportBackupHandler<BR, SR, TR>
+impl<BQR: BookmarkQueryRepository, SQR: SubscriptionQueryRepository, TQR: TagQueryRepository>
+    ExportBackupHandler<BQR, SQR, TQR>
 {
-    pub fn new(bookmark_repository: BR, subscription_repository: SR, tag_repository: TR) -> Self {
+    pub fn new(
+        bookmark_query_repository: BQR,
+        subscription_query_repository: SQR,
+        tag_query_repository: TQR,
+    ) -> Self {
         Self {
-            bookmark_repository,
-            subscription_repository,
-            tag_repository,
+            bookmark_query_repository,
+            subscription_query_repository,
+            tag_query_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<BR: BookmarkRepository, SR: SubscriptionRepository, TR: TagRepository>
-    Handler<ExportBackupCommand> for ExportBackupHandler<BR, SR, TR>
+impl<BQR: BookmarkQueryRepository, SQR: SubscriptionQueryRepository, TQR: TagQueryRepository>
+    Handler<ExportBackupCommand> for ExportBackupHandler<BQR, SQR, TQR>
 {
     type Response = Bytes;
     type Error = ExportBackupError;
 
     async fn handle(&self, cmd: ExportBackupCommand) -> Result<Self::Response, Self::Error> {
         let subscriptions = self
-            .subscription_repository
-            .find(SubscriptionFindParams {
+            .subscription_query_repository
+            .query(SubscriptionQueryParams {
                 user_id: cmd.user_id,
-                id: None,
-                tags: None,
-                cursor: None,
-                limit: None,
+                ..Default::default()
             })
             .await?;
 
         let bookmarks = self
-            .bookmark_repository
-            .find(BookmarkFindParams {
+            .bookmark_query_repository
+            .query(BookmarkQueryParams {
                 user_id: cmd.user_id,
-                id: None,
-                filter: None,
-                tags: None,
-                cursor: None,
-                limit: None,
+                ..Default::default()
             })
             .await?;
 
         let tags = self
-            .tag_repository
-            .find(TagFindParams {
+            .tag_query_repository
+            .query(TagQueryParams {
                 user_id: cmd.user_id,
-                id: None,
-                cursor: None,
-                limit: None,
+                ..Default::default()
             })
             .await?;
 
         let backup = Backup {
-            subscriptions: subscriptions.into_iter().map(Into::into).collect(),
-            bookmarks: bookmarks.into_iter().map(Into::into).collect(),
-            tags: tags.into_iter().map(Into::into).collect(),
+            subscriptions: Vec::new(),
+            bookmarks: Vec::new(),
+            tags: Vec::new(), // subscriptions: subscriptions.into_iter().map(Into::into).collect(),
+                              // bookmarks: bookmarks.into_iter().map(Into::into).collect(),
+                              // tags: tags.into_iter().map(Into::into).collect(),
         };
 
         let raw = serde_json::to_vec_pretty(&backup)?;

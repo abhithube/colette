@@ -1,27 +1,10 @@
-use std::fmt;
-
 use chrono::{DateTime, Utc};
-use url::Url;
 use uuid::Uuid;
 
 use crate::{
     auth::UserId,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
-    pagination::Cursor,
 };
-
-#[derive(Debug, Clone)]
-pub struct EntryDto {
-    pub id: Uuid,
-    pub link: Url,
-    pub title: String,
-    pub published_at: DateTime<Utc>,
-    pub description: Option<String>,
-    pub author: Option<String>,
-    pub thumbnail_url: Option<Url>,
-    pub read_status: ReadStatus,
-    pub feed_id: Uuid,
-}
 
 #[derive(Debug, Clone)]
 pub struct Entry {
@@ -46,13 +29,13 @@ impl Entry {
 
                 Ok(())
             }
-            ReadStatus::Read(_) => Err(EntryError::AlreadyRead(self.id)),
+            ReadStatus::Read(_) => Err(EntryError::AlreadyRead(self.id.0)),
         }
     }
 
     pub fn mark_as_unread(&mut self) -> Result<(), EntryError> {
         match self.read_status {
-            ReadStatus::Unread => Err(EntryError::AlreadyUnread(self.id)),
+            ReadStatus::Unread => Err(EntryError::AlreadyUnread(self.id.0)),
             ReadStatus::Read(_) => {
                 self.read_status = ReadStatus::Unread;
 
@@ -93,33 +76,10 @@ impl From<Uuid> for EntryId {
     }
 }
 
-impl fmt::Display for EntryId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_inner().fmt(f)
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum ReadStatus {
     Unread,
     Read(DateTime<Utc>),
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct EntryCursor {
-    pub published_at: DateTime<Utc>,
-    pub id: Uuid,
-}
-
-impl Cursor for EntryDto {
-    type Data = EntryCursor;
-
-    fn to_cursor(&self) -> Self::Data {
-        Self::Data {
-            published_at: self.published_at,
-            id: self.id,
-        }
-    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -176,11 +136,11 @@ pub enum EntryDateField {
 #[derive(Debug, thiserror::Error)]
 pub enum EntryError {
     #[error("entry not found with ID: {0}")]
-    NotFound(EntryId),
+    NotFound(Uuid),
 
     #[error("entry {0} already marked as read")]
-    AlreadyRead(EntryId),
+    AlreadyRead(Uuid),
 
     #[error("entry {0} already marked as unread")]
-    AlreadyUnread(EntryId),
+    AlreadyUnread(Uuid),
 }

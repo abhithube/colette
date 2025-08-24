@@ -1,42 +1,43 @@
 use colette_core::{
-    auth::UserId,
     common::RepositoryError,
     pagination::{Paginated, paginate},
-    tag::{TagCursor, TagDto, TagFindParams, TagRepository},
 };
+use uuid::Uuid;
 
-use crate::Handler;
+use crate::{Handler, TagCursor, TagDto, TagQueryParams, TagQueryRepository};
 
 #[derive(Debug, Clone)]
 pub struct ListTagsQuery {
     pub cursor: Option<TagCursor>,
     pub limit: Option<usize>,
-    pub user_id: UserId,
+    pub user_id: Uuid,
 }
 
-pub struct ListTagsHandler<TR: TagRepository> {
-    tag_repository: TR,
+pub struct ListTagsHandler<TQR: TagQueryRepository> {
+    tag_query_repository: TQR,
 }
 
-impl<TR: TagRepository> ListTagsHandler<TR> {
-    pub fn new(tag_repository: TR) -> Self {
-        Self { tag_repository }
+impl<TQR: TagQueryRepository> ListTagsHandler<TQR> {
+    pub fn new(tag_query_repository: TQR) -> Self {
+        Self {
+            tag_query_repository,
+        }
     }
 }
 
 #[async_trait::async_trait]
-impl<TR: TagRepository> Handler<ListTagsQuery> for ListTagsHandler<TR> {
+impl<TQR: TagQueryRepository> Handler<ListTagsQuery> for ListTagsHandler<TQR> {
     type Response = Paginated<TagDto, TagCursor>;
     type Error = ListTagsError;
 
     async fn handle(&self, query: ListTagsQuery) -> Result<Self::Response, Self::Error> {
         let tags = self
-            .tag_repository
-            .find(TagFindParams {
+            .tag_query_repository
+            .query(TagQueryParams {
                 user_id: query.user_id,
-                id: None,
                 cursor: query.cursor.map(|e| e.title),
                 limit: query.limit.map(|e| e + 1),
+                ..Default::default()
             })
             .await?;
 

@@ -169,12 +169,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             jwt_config.clone(),
         )),
         validate_access_token: Arc::new(ValidateAccessTokenHandler::new(jwt_manager.clone())),
-        list_pats: Arc::new(ListPatsHandler::new(pat_repository.clone())),
-        get_pat: Arc::new(GetPatHandler::new(pat_repository.clone())),
-        create_pat: Arc::new(CreatePatHandler::new(user_repository.clone())),
-        update_pat: Arc::new(UpdatePatHandler::new(user_repository.clone())),
-        delete_pat: Arc::new(DeletePatHandler::new(user_repository.clone())),
-        validate_pat: Arc::new(ValidatePatHandler::new(pat_repository)),
 
         // Backup
         import_backup: Arc::new(ImportBackupHandler::new(PostgresBackupRepository::new(
@@ -218,9 +212,26 @@ async fn main() -> Result<(), Box<dyn Error>> {
         update_collection: Arc::new(UpdateCollectionHandler::new(collection_repository.clone())),
         delete_collection: Arc::new(DeleteCollectionHandler::new(collection_repository.clone())),
 
+        // Entries
+        list_entries: Arc::new(ListEntriesHandler::new(
+            entry_repository.clone(),
+            collection_repository,
+        )),
+        get_entry: Arc::new(GetEntryHandler::new(entry_repository.clone())),
+        mark_entry_as_read: Arc::new(MarkEntryAsReadHandler::new(entry_repository.clone())),
+        mark_entry_as_unread: Arc::new(MarkEntryAsUnreadHandler::new(entry_repository)),
+
         // Feeds
         detect_feeds: Arc::new(DetectFeedsHandler::new(http_client, feed_scraper)),
         refresh_feed: refresh_feed_handler.clone(),
+
+        // Personal access tokens
+        list_pats: Arc::new(ListPatsHandler::new(pat_repository.clone())),
+        get_pat: Arc::new(GetPatHandler::new(pat_repository.clone())),
+        create_pat: Arc::new(CreatePatHandler::new(pat_repository.clone())),
+        update_pat: Arc::new(UpdatePatHandler::new(pat_repository.clone())),
+        delete_pat: Arc::new(DeletePatHandler::new(pat_repository.clone())),
+        validate_pat: Arc::new(ValidatePatHandler::new(pat_repository)),
 
         // Subscriptions
         list_subscriptions: Arc::new(ListSubscriptionsHandler::new(
@@ -243,15 +254,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             subscription_repository.clone(),
         )),
         export_subscriptions: Arc::new(ExportSubscriptionsHandler::new(subscription_repository)),
-
-        // Entries
-        list_entries: Arc::new(ListEntriesHandler::new(
-            entry_repository.clone(),
-            collection_repository,
-        )),
-        get_entry: Arc::new(GetEntryHandler::new(entry_repository.clone())),
-        mark_entry_as_read: Arc::new(MarkEntryAsReadHandler::new(entry_repository.clone())),
-        mark_entry_as_unread: Arc::new(MarkEntryAsUnreadHandler::new(entry_repository)),
 
         // Tags
         list_tags: Arc::new(ListTagsHandler::new(tag_repository.clone())),

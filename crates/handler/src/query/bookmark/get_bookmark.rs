@@ -1,53 +1,37 @@
-use colette_core::{
-    auth::UserId,
-    bookmark::{BookmarkDto, BookmarkError, BookmarkFindParams, BookmarkId, BookmarkRepository},
-    common::RepositoryError,
-};
+use colette_core::{bookmark::BookmarkError, common::RepositoryError};
+use uuid::Uuid;
 
-use crate::Handler;
+use crate::{BookmarkDto, BookmarkQueryRepository, Handler};
 
 #[derive(Debug, Clone)]
 pub struct GetBookmarkQuery {
-    pub id: BookmarkId,
-    pub user_id: UserId,
+    pub id: Uuid,
+    pub user_id: Uuid,
 }
 
-pub struct GetBookmarkHandler<BR: BookmarkRepository> {
-    bookmark_repository: BR,
+pub struct GetBookmarkHandler<BQR: BookmarkQueryRepository> {
+    bookmark_query_repository: BQR,
 }
 
-impl<BR: BookmarkRepository> GetBookmarkHandler<BR> {
-    pub fn new(bookmark_repository: BR) -> Self {
+impl<BQR: BookmarkQueryRepository> GetBookmarkHandler<BQR> {
+    pub fn new(bookmark_query_repository: BQR) -> Self {
         Self {
-            bookmark_repository,
+            bookmark_query_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<BR: BookmarkRepository> Handler<GetBookmarkQuery> for GetBookmarkHandler<BR> {
+impl<BQR: BookmarkQueryRepository> Handler<GetBookmarkQuery> for GetBookmarkHandler<BQR> {
     type Response = BookmarkDto;
     type Error = GetBookmarkError;
 
     async fn handle(&self, query: GetBookmarkQuery) -> Result<Self::Response, Self::Error> {
-        let mut bookmarks = self
-            .bookmark_repository
-            .find(BookmarkFindParams {
-                user_id: query.user_id,
-                id: Some(query.id),
-                filter: None,
-                tags: None,
-                cursor: None,
-                limit: None,
-            })
-            .await?;
-        if bookmarks.is_empty() {
-            return Err(GetBookmarkError::Bookmark(BookmarkError::NotFound(
-                query.id,
-            )));
-        }
-
-        let bookmark = bookmarks.swap_remove(0);
+        let bookmark = self
+            .bookmark_query_repository
+            .query_by_id(query.id, query.user_id)
+            .await?
+            .ok_or(BookmarkError::NotFound(query.id))?;
 
         Ok(bookmark)
     }

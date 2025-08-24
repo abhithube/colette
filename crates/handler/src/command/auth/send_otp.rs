@@ -5,6 +5,7 @@ use colette_core::{
     common::RepositoryError,
 };
 use colette_smtp::{SmtpClient, SmtpEmail};
+use email_address::EmailAddress;
 
 use crate::Handler;
 
@@ -40,13 +41,14 @@ impl<UR: UserRepository, SC: SmtpClient> Handler<SendOtpCommand> for SendOtpHand
     type Error = SendOtpError;
 
     async fn handle(&self, cmd: SendOtpCommand) -> Result<Self::Response, Self::Error> {
-        let mut user = match self
-            .user_repository
-            .find_by_email(cmd.email.parse().map_err(UserError::InvalidEmail)?)
-            .await?
-        {
+        let email = cmd
+            .email
+            .parse::<EmailAddress>()
+            .map_err(UserError::InvalidEmail)?;
+
+        let mut user = match self.user_repository.find_by_email(email.clone()).await? {
             Some(user) => user,
-            None => User::new(cmd.email, None, None)?,
+            None => User::new(email, None, None),
         };
 
         user.check_otp_rate_limit()?;

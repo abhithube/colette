@@ -38,18 +38,18 @@ impl<UR: UserRepository, JM: JwtManager> Handler<VerifyOtpCommand> for VerifyOtp
             .user_repository
             .find_by_email(cmd.email.parse().map_err(UserError::InvalidEmail)?)
             .await?
-            .ok_or_else(|| LoginUserError::NotAuthenticated)?;
+            .ok_or(LoginUserError::NotAuthenticated)?;
 
         user.use_otp_code(cmd.code)?;
 
         self.user_repository.save(&user).await?;
 
         let access_token = self.jwt_manager.generate(Claims::new(
-            user.id().to_string(),
+            user.id().as_inner().to_string(),
             self.jwt_config.access_duration,
         ))?;
         let refresh_token = self.jwt_manager.generate(Claims::new(
-            user.id().to_string(),
+            user.id().as_inner().to_string(),
             self.jwt_config.refresh_duration,
         ))?;
 

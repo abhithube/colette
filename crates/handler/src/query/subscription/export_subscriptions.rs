@@ -1,36 +1,32 @@
 use std::collections::HashMap;
 
 use bytes::Bytes;
-use colette_core::{
-    auth::UserId,
-    common::RepositoryError,
-    subscription::{SubscriptionFindParams, SubscriptionRepository},
-};
+use colette_core::common::RepositoryError;
 use colette_opml::{Body, Opml, Outline, OutlineType};
 use uuid::Uuid;
 
-use crate::Handler;
+use crate::{Handler, SubscriptionQueryParams, SubscriptionQueryRepository};
 
 #[derive(Debug, Clone)]
 pub struct ExportSubscriptionsQuery {
-    pub user_id: UserId,
+    pub user_id: Uuid,
 }
 
-pub struct ExportSubscriptionsHandler<SR: SubscriptionRepository> {
-    subscription_repository: SR,
+pub struct ExportSubscriptionsHandler<SQR: SubscriptionQueryRepository> {
+    subscription_query_repository: SQR,
 }
 
-impl<SR: SubscriptionRepository> ExportSubscriptionsHandler<SR> {
-    pub fn new(subscription_repository: SR) -> Self {
+impl<SQR: SubscriptionQueryRepository> ExportSubscriptionsHandler<SQR> {
+    pub fn new(subscription_query_repository: SQR) -> Self {
         Self {
-            subscription_repository,
+            subscription_query_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<SR: SubscriptionRepository> Handler<ExportSubscriptionsQuery>
-    for ExportSubscriptionsHandler<SR>
+impl<SQR: SubscriptionQueryRepository> Handler<ExportSubscriptionsQuery>
+    for ExportSubscriptionsHandler<SQR>
 {
     type Response = Bytes;
     type Error = ExportSubscriptionsError;
@@ -40,13 +36,10 @@ impl<SR: SubscriptionRepository> Handler<ExportSubscriptionsQuery>
         let mut outline_map = HashMap::<Uuid, Outline>::new();
 
         let subscriptions = self
-            .subscription_repository
-            .find(SubscriptionFindParams {
+            .subscription_query_repository
+            .query(SubscriptionQueryParams {
                 user_id: query.user_id,
-                id: None,
-                tags: None,
-                cursor: None,
-                limit: None,
+                ..Default::default()
             })
             .await?;
 

@@ -3,11 +3,9 @@ use colette_core::{
     Subscription,
     auth::UserId,
     common::RepositoryError,
-    subscription::{
-        ImportSubscriptionsParams, SubscriptionDto, SubscriptionFindParams, SubscriptionId,
-        SubscriptionRepository,
-    },
+    subscription::{ImportSubscriptionsParams, SubscriptionId, SubscriptionRepository},
 };
+use colette_handler::{SubscriptionDto, SubscriptionQueryParams, SubscriptionQueryRepository};
 use sqlx::{PgPool, types::Json};
 use uuid::Uuid;
 
@@ -26,36 +24,6 @@ impl PostgresSubscriptionRepository {
 
 #[async_trait::async_trait]
 impl SubscriptionRepository for PostgresSubscriptionRepository {
-    async fn find(
-        &self,
-        params: SubscriptionFindParams,
-    ) -> Result<Vec<SubscriptionDto>, RepositoryError> {
-        let (cursor_title, cursor_id) = if let Some((title, id)) = params.cursor {
-            (Some(title), Some(id))
-        } else {
-            (None, None)
-        };
-        let tags = params
-            .tags
-            .map(|e| e.iter().map(|e| e.as_inner()).collect::<Vec<_>>());
-
-        let subscriptions = sqlx::query_file_as!(
-            SubscriptionRow,
-            "queries/subscriptions/find.sql",
-            params.user_id.as_inner(),
-            params.id.map(|e| e.as_inner()),
-            tags.as_deref(),
-            cursor_title,
-            cursor_id,
-            params.limit.map(|e| e as i64)
-        )
-        .map(Into::into)
-        .fetch_all(&self.pool)
-        .await?;
-
-        Ok(subscriptions)
-    }
-
     async fn find_by_id(
         &self,
         id: SubscriptionId,
@@ -107,7 +75,11 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             user_id.as_inner()
         )
         .execute(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => RepositoryError::NotFound,
+            _ => RepositoryError::Unknown(e),
+        })?;
 
         Ok(())
     }
@@ -157,6 +129,62 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
     }
 }
 
+struct SubscriptionByIdRow {
+    id: Uuid,
+    title: String,
+    description: Option<String>,
+    feed_id: Uuid,
+    tags: Vec<Uuid>,
+    user_id: Uuid,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl From<SubscriptionByIdRow> for Subscription {
+    fn from(value: SubscriptionByIdRow) -> Self {
+        Self::from_unchecked(
+            value.id,
+            value.title,
+            value.description,
+            value.feed_id,
+            value.tags,
+            value.user_id,
+            value.created_at,
+            value.updated_at,
+        )
+    }
+}
+
+#[async_trait::async_trait]
+impl SubscriptionQueryRepository for PostgresSubscriptionRepository {
+    async fn query(
+        &self,
+        params: SubscriptionQueryParams,
+    ) -> Result<Vec<SubscriptionDto>, RepositoryError> {
+        let (cursor_title, cursor_id) = if let Some((title, id)) = params.cursor {
+            (Some(title), Some(id))
+        } else {
+            (None, None)
+        };
+
+        let subscriptions = sqlx::query_file_as!(
+            SubscriptionRow,
+            "queries/subscriptions/find.sql",
+            params.user_id,
+            params.id,
+            params.tags.as_deref(),
+            cursor_title,
+            cursor_id,
+            params.limit.map(|e| e as i64)
+        )
+        .map(Into::into)
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(subscriptions)
+    }
+}
+
 struct SubscriptionRow {
     id: Uuid,
     source_url: DbUrl,
@@ -184,31 +212,5 @@ impl From<SubscriptionRow> for SubscriptionDto {
             created_at: value.created_at,
             updated_at: value.updated_at,
         }
-    }
-}
-
-struct SubscriptionByIdRow {
-    id: Uuid,
-    title: String,
-    description: Option<String>,
-    feed_id: Uuid,
-    tags: Vec<Uuid>,
-    user_id: Uuid,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
-}
-
-impl From<SubscriptionByIdRow> for Subscription {
-    fn from(value: SubscriptionByIdRow) -> Self {
-        Self::from_unchecked(
-            value.id,
-            value.title,
-            value.description,
-            value.feed_id,
-            value.tags,
-            value.user_id,
-            value.created_at,
-            value.updated_at,
-        )
     }
 }

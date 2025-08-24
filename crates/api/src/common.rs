@@ -73,12 +73,6 @@ pub struct ApiState {
     pub refresh_access_token:
         Arc<RefreshAccessTokenHandler<PostgresUserRepository, JwtManagerImpl>>,
     pub validate_access_token: Arc<ValidateAccessTokenHandler<JwtManagerImpl>>,
-    pub list_pats: Arc<ListPatsHandler<PostgresPatRepository>>,
-    pub get_pat: Arc<GetPatHandler<PostgresPatRepository>>,
-    pub create_pat: Arc<CreatePatHandler<PostgresUserRepository>>,
-    pub update_pat: Arc<UpdatePatHandler<PostgresUserRepository>>,
-    pub delete_pat: Arc<DeletePatHandler<PostgresUserRepository>>,
-    pub validate_pat: Arc<ValidatePatHandler<PostgresPatRepository>>,
 
     // Backup
     pub import_backup: Arc<ImportBackupHandler<PostgresBackupRepository>>,
@@ -112,10 +106,25 @@ pub struct ApiState {
     pub update_collection: Arc<UpdateCollectionHandler<PostgresCollectionRepository>>,
     pub delete_collection: Arc<DeleteCollectionHandler<PostgresCollectionRepository>>,
 
+    // Entries
+    pub list_entries:
+        Arc<ListEntriesHandler<PostgresEntryRepository, PostgresCollectionRepository>>,
+    pub get_entry: Arc<GetEntryHandler<PostgresEntryRepository>>,
+    pub mark_entry_as_read: Arc<MarkEntryAsReadHandler<PostgresEntryRepository>>,
+    pub mark_entry_as_unread: Arc<MarkEntryAsUnreadHandler<PostgresEntryRepository>>,
+
     // Feeds
     pub detect_feeds: Arc<DetectFeedsHandler<ReqwestClient>>,
     pub refresh_feed:
         Arc<RefreshFeedHandler<PostgresFeedRepository, PostgresFeedEntryRepository, ReqwestClient>>,
+
+    // Personal access tokens
+    pub list_pats: Arc<ListPatsHandler<PostgresPatRepository>>,
+    pub get_pat: Arc<GetPatHandler<PostgresPatRepository>>,
+    pub create_pat: Arc<CreatePatHandler<PostgresPatRepository>>,
+    pub update_pat: Arc<UpdatePatHandler<PostgresPatRepository>>,
+    pub delete_pat: Arc<DeletePatHandler<PostgresPatRepository>>,
+    pub validate_pat: Arc<ValidatePatHandler<PostgresPatRepository>>,
 
     // Subscriptions
     pub list_subscriptions: Arc<ListSubscriptionsHandler<PostgresSubscriptionRepository>>,
@@ -126,13 +135,6 @@ pub struct ApiState {
     pub link_subscription_tags: Arc<LinkSubscriptionTagsHandler<PostgresSubscriptionRepository>>,
     pub import_subscriptions: Arc<ImportSubscriptionsHandler<PostgresSubscriptionRepository>>,
     pub export_subscriptions: Arc<ExportSubscriptionsHandler<PostgresSubscriptionRepository>>,
-
-    // Entries
-    pub list_entries:
-        Arc<ListEntriesHandler<PostgresEntryRepository, PostgresCollectionRepository>>,
-    pub get_entry: Arc<GetEntryHandler<PostgresEntryRepository>>,
-    pub mark_entry_as_read: Arc<MarkEntryAsReadHandler<PostgresEntryRepository>>,
-    pub mark_entry_as_unread: Arc<MarkEntryAsUnreadHandler<PostgresEntryRepository>>,
 
     // Tags
     pub list_tags: Arc<ListTagsHandler<PostgresTagRepository>>,

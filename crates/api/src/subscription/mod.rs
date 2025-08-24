@@ -1,6 +1,6 @@
 use axum::{Router, routing};
 use chrono::{DateTime, Utc};
-use colette_core::subscription;
+use colette_handler::SubscriptionDto;
 use url::Url;
 use utoipa::OpenApi;
 use uuid::Uuid;
@@ -67,8 +67,8 @@ struct Subscription {
     updated_at: DateTime<Utc>,
 }
 
-impl From<subscription::SubscriptionDto> for Subscription {
-    fn from(value: subscription::SubscriptionDto) -> Self {
+impl From<SubscriptionDto> for Subscription {
+    fn from(value: SubscriptionDto) -> Self {
         Self {
             id: value.id,
             source_url: value.source_url,

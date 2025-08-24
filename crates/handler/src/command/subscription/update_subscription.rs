@@ -42,9 +42,7 @@ impl<SR: SubscriptionRepository> Handler<UpdateSubscriptionCommand>
             .subscription_repository
             .find_by_id(cmd.id, cmd.user_id)
             .await?
-            .ok_or_else(|| {
-                UpdateSubscriptionError::Subscription(SubscriptionError::NotFound(cmd.id))
-            })?;
+            .ok_or(SubscriptionError::NotFound(cmd.id.as_inner()))?;
 
         if let Some(title) = cmd.title.map(SubscriptionTitle::new).transpose()? {
             subscription.set_title(title);

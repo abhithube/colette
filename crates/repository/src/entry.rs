@@ -4,31 +4,17 @@ use colette_core::{
     auth::UserId,
     common::RepositoryError,
     entry::{
-        EntryBooleanField, EntryDateField, EntryDto, EntryFilter, EntryFindParams, EntryId,
-        EntryRepository, EntryTextField, ReadStatus,
+        EntryBooleanField, EntryDateField, EntryFilter, EntryId, EntryRepository, EntryTextField,
+        ReadStatus,
     },
 };
+use colette_handler::{EntryDto, EntryQueryParams, EntryQueryRepository};
 use sqlx::{PgPool, QueryBuilder};
 use uuid::Uuid;
 
 use crate::{DbUrl, ToColumn, ToSql};
 
 const BASE_QUERY: &str = include_str!("../queries/entries/find.sql");
-
-#[allow(dead_code)]
-fn validate_base_query() {
-    let _ = sqlx::query_file!(
-        "queries/entries/find.sql",
-        Uuid::now_v7(),
-        Option::<Uuid>::None,
-        Option::<Uuid>::None,
-        Option::<bool>::None,
-        Option::<&[Uuid]>::None,
-        Option::<DateTime<Utc>>::None,
-        Option::<Uuid>::None,
-        1
-    );
-}
 
 #[derive(Debug, Clone)]
 pub struct PostgresEntryRepository {
@@ -43,41 +29,6 @@ impl PostgresEntryRepository {
 
 #[async_trait::async_trait]
 impl EntryRepository for PostgresEntryRepository {
-    async fn find(&self, params: EntryFindParams) -> Result<Vec<EntryDto>, RepositoryError> {
-        let (cursor_published_at, cursor_id) = if let Some((published_at, id)) = params.cursor {
-            (Some(published_at), Some(id))
-        } else {
-            (None, None)
-        };
-
-        let mut qb = QueryBuilder::new(format!(
-            r#"WITH results AS ({BASE_QUERY}) SELECT * FROM results WHERE TRUE"#
-        ));
-
-        if let Some(filter) = params.filter {
-            qb.push(format!(" {}", filter.to_sql()));
-        }
-
-        let rows = qb
-            .build_query_as::<EntryRow>()
-            .bind(params.user_id.as_inner())
-            .bind(params.id.map(|e| e.as_inner()))
-            .bind(params.subscription_id.map(|e| e.as_inner()))
-            .bind(params.has_read)
-            .bind(
-                params
-                    .tags
-                    .map(|e| e.iter().map(|e| e.as_inner()).collect::<Vec<_>>()),
-            )
-            .bind(cursor_published_at)
-            .bind(cursor_id)
-            .bind(params.limit.map(|e| e as i64))
-            .fetch_all(&self.pool)
-            .await?;
-
-        Ok(rows.into_iter().map(Into::into).collect())
-    }
-
     async fn find_by_id(
         &self,
         id: EntryId,
@@ -124,6 +75,61 @@ impl EntryRepository for PostgresEntryRepository {
 }
 
 #[derive(sqlx::FromRow)]
+struct EntryByIdRow {
+    id: Uuid,
+    read_at: Option<DateTime<Utc>>,
+    user_id: Uuid,
+}
+
+impl From<EntryByIdRow> for Entry {
+    fn from(value: EntryByIdRow) -> Self {
+        Self::from_unchecked(
+            value.id,
+            if let Some(read_at) = value.read_at {
+                ReadStatus::Read(read_at)
+            } else {
+                ReadStatus::Unread
+            },
+            value.user_id,
+        )
+    }
+}
+
+#[async_trait::async_trait]
+impl EntryQueryRepository for PostgresEntryRepository {
+    async fn query(&self, params: EntryQueryParams) -> Result<Vec<EntryDto>, RepositoryError> {
+        let (cursor_published_at, cursor_id) = if let Some((published_at, id)) = params.cursor {
+            (Some(published_at), Some(id))
+        } else {
+            (None, None)
+        };
+
+        let mut qb = QueryBuilder::new(format!(
+            r#"WITH results AS ({BASE_QUERY}) SELECT * FROM results WHERE TRUE"#
+        ));
+
+        if let Some(filter) = params.filter {
+            qb.push(format!(" {}", filter.to_sql()));
+        }
+
+        let rows = qb
+            .build_query_as::<EntryRow>()
+            .bind(params.user_id)
+            .bind(params.id)
+            .bind(params.subscription_id)
+            .bind(params.has_read)
+            .bind(params.tags)
+            .bind(cursor_published_at)
+            .bind(cursor_id)
+            .bind(params.limit.map(|e| e as i64))
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
+    }
+}
+
+#[derive(sqlx::FromRow)]
 struct EntryRow {
     id: Uuid,
     link: DbUrl,
@@ -153,27 +159,6 @@ impl From<EntryRow> for EntryDto {
             },
             feed_id: value.feed_id,
         }
-    }
-}
-
-#[derive(sqlx::FromRow)]
-struct EntryByIdRow {
-    id: Uuid,
-    read_at: Option<DateTime<Utc>>,
-    user_id: Uuid,
-}
-
-impl From<EntryByIdRow> for Entry {
-    fn from(value: EntryByIdRow) -> Self {
-        Self::from_unchecked(
-            value.id,
-            if let Some(read_at) = value.read_at {
-                ReadStatus::Read(read_at)
-            } else {
-                ReadStatus::Unread
-            },
-            value.user_id,
-        )
     }
 }
 
@@ -240,4 +225,19 @@ impl ToSql for EntryFilter {
             EntryFilter::Not(filter) => format!("NOT {}", (*filter).to_sql()),
         }
     }
+}
+
+#[allow(dead_code)]
+fn validate_base_query() {
+    let _ = sqlx::query_file!(
+        "queries/entries/find.sql",
+        Uuid::now_v7(),
+        Option::<Uuid>::None,
+        Option::<Uuid>::None,
+        Option::<bool>::None,
+        Option::<&[Uuid]>::None,
+        Option::<DateTime<Utc>>::None,
+        Option::<Uuid>::None,
+        1
+    );
 }

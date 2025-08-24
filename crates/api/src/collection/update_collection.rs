@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use colette_core::collection::CollectionError;
 use colette_handler::{Handler as _, UpdateCollectionCommand, UpdateCollectionError};
 
 use crate::{
@@ -41,7 +42,9 @@ pub(super) async fn handler(
     {
         Ok(_) => Ok(OkResponse),
         Err(e) => match e {
-            UpdateCollectionError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            UpdateCollectionError::Collection(CollectionError::NotFound(_)) => {
+                Err(ErrResponse::NotFound(e.into()))
+            }
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

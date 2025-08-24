@@ -47,7 +47,7 @@ impl<BR: BookmarkRepository, JP: JobProducer> Handler<UpdateBookmarkCommand>
             .bookmark_repository
             .find_by_id(cmd.id, cmd.user_id)
             .await?
-            .ok_or_else(|| UpdateBookmarkError::Bookmark(BookmarkError::NotFound(cmd.id)))?;
+            .ok_or(BookmarkError::NotFound(cmd.id.as_inner()))?;
 
         if let Some(title) = cmd.title.map(BookmarkTitle::new).transpose()? {
             bookmark.set_title(title);

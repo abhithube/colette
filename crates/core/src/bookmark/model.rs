@@ -1,5 +1,3 @@
-use std::fmt;
-
 use chrono::{DateTime, Utc};
 use colette_util::uuid_generate_ts;
 use url::Url;
@@ -8,27 +6,12 @@ use uuid::Uuid;
 use crate::{
     auth::UserId,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
-    pagination::Cursor,
-    tag::{TagDto, TagId},
+    tag::TagId,
 };
 
 pub const BOOKMARK_TITLE_MAX_LENGTH: usize = 100;
 pub const BOOKMARK_AUTHOR_MAX_LENGTH: usize = 50;
 pub const BOOKMARK_TAG_MAX_COUNT: usize = 20;
-
-#[derive(Debug, Clone)]
-pub struct BookmarkDto {
-    pub id: Uuid,
-    pub link: Url,
-    pub title: String,
-    pub thumbnail_url: Option<Url>,
-    pub published_at: Option<DateTime<Utc>>,
-    pub author: Option<String>,
-    pub archived_path: Option<String>,
-    pub tags: Vec<TagDto>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
 
 #[derive(Debug, Clone)]
 pub struct Bookmark {
@@ -215,12 +198,6 @@ impl From<Uuid> for BookmarkId {
     }
 }
 
-impl fmt::Display for BookmarkId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_inner().fmt(f)
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BookmarkTitle(String);
 
@@ -252,21 +229,6 @@ impl BookmarkAuthor {
 
     pub fn as_inner(&self) -> &str {
         &self.0
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct BookmarkCursor {
-    pub created_at: DateTime<Utc>,
-}
-
-impl Cursor for BookmarkDto {
-    type Data = BookmarkCursor;
-
-    fn to_cursor(&self) -> Self::Data {
-        Self::Data {
-            created_at: self.created_at,
-        }
     }
 }
 
@@ -351,7 +313,7 @@ pub enum BookmarkError {
     Conflict(Url),
 
     #[error("bookmark not found with ID: {0}")]
-    NotFound(BookmarkId),
+    NotFound(Uuid),
 
     #[error("bookmark cannot have more than {BOOKMARK_TAG_MAX_COUNT} tags")]
     TooManyTags,

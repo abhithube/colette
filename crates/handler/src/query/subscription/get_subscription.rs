@@ -1,55 +1,41 @@
-use colette_core::{
-    auth::UserId,
-    common::RepositoryError,
-    subscription::{
-        SubscriptionDto, SubscriptionError, SubscriptionFindParams, SubscriptionId,
-        SubscriptionRepository,
-    },
-};
+use colette_core::{common::RepositoryError, subscription::SubscriptionError};
+use uuid::Uuid;
 
-use crate::Handler;
+use crate::{Handler, SubscriptionDto, SubscriptionQueryRepository};
 
 #[derive(Debug, Clone)]
 pub struct GetSubscriptionQuery {
-    pub id: SubscriptionId,
-    pub user_id: UserId,
+    pub id: Uuid,
+    pub user_id: Uuid,
 }
 
-pub struct GetSubscriptionHandler<SR: SubscriptionRepository> {
-    subscription_repository: SR,
+pub struct GetSubscriptionHandler<SQR: SubscriptionQueryRepository> {
+    subscription_query_repository: SQR,
 }
 
-impl<SR: SubscriptionRepository> GetSubscriptionHandler<SR> {
-    pub fn new(subscription_repository: SR) -> Self {
+impl<SQR: SubscriptionQueryRepository> GetSubscriptionHandler<SQR> {
+    pub fn new(subscription_query_repository: SQR) -> Self {
         Self {
-            subscription_repository,
+            subscription_query_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<SR: SubscriptionRepository> Handler<GetSubscriptionQuery> for GetSubscriptionHandler<SR> {
+impl<SQR: SubscriptionQueryRepository> Handler<GetSubscriptionQuery>
+    for GetSubscriptionHandler<SQR>
+{
     type Response = SubscriptionDto;
     type Error = GetSubscriptionError;
 
     async fn handle(&self, query: GetSubscriptionQuery) -> Result<Self::Response, Self::Error> {
-        let mut subscriptions = self
-            .subscription_repository
-            .find(SubscriptionFindParams {
-                user_id: query.user_id,
-                id: Some(query.id),
-                tags: None,
-                cursor: None,
-                limit: None,
-            })
-            .await?;
-        if subscriptions.is_empty() {
-            return Err(GetSubscriptionError::Subscription(
-                SubscriptionError::NotFound(query.id),
-            ));
-        }
+        let subscription = self
+            .subscription_query_repository
+            .query_by_id(query.id, query.user_id)
+            .await?
+            .ok_or(SubscriptionError::NotFound(query.id))?;
 
-        Ok(subscriptions.swap_remove(0))
+        Ok(subscription)
     }
 }
 

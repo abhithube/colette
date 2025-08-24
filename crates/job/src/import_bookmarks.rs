@@ -58,7 +58,7 @@ impl Service<Job> for ImportBookmarksJobHandler {
                     tags: None,
                     cursor: None,
                     limit: None,
-                    user_id: input_data.user_id,
+                    user_id: input_data.user_id.as_inner(),
                 })
                 .await
                 .map_err(|e| Error::Service(e.to_string()))?;

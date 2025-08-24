@@ -33,16 +33,18 @@ impl<TR: TagRepository> Handler<UpdateTagCommand> for UpdateTagHandler<TR> {
             .tag_repository
             .find_by_id(cmd.id, cmd.user_id)
             .await?
-            .ok_or(UpdateTagError::Tag(TagError::NotFound(cmd.id)))?;
+            .ok_or(TagError::NotFound(cmd.id.as_inner()))?;
 
-        let title = cmd.title.map(TagTitle::new).transpose()?;
+        let title = cmd.title.clone().map(TagTitle::new).transpose()?;
 
-        if let Some(title) = title.clone() {
+        if let Some(title) = title {
             tag.set_title(title);
         }
 
         self.tag_repository.save(&tag).await.map_err(|e| match e {
-            RepositoryError::Duplicate => UpdateTagError::Tag(TagError::Conflict(title.unwrap())),
+            RepositoryError::Duplicate => {
+                UpdateTagError::Tag(TagError::Conflict(cmd.title.unwrap()))
+            }
             _ => UpdateTagError::Repository(e),
         })?;
 
@@ -52,9 +54,6 @@ impl<TR: TagRepository> Handler<UpdateTagCommand> for UpdateTagHandler<TR> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateTagError {
-    #[error("tag already exists with title: {0}")]
-    Conflict(TagTitle),
-
     #[error(transparent)]
     Tag(#[from] TagError),
 

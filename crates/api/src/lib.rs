@@ -27,7 +27,7 @@ use utoipa::{
 };
 use utoipa_scalar::{Scalar, Servable};
 
-use crate::{backup::BackupApi, common::CreatedResource};
+use crate::{backup::BackupApi, common::CreatedResource, pat::PersonalAccessTokensApi};
 
 mod auth;
 mod backup;
@@ -38,6 +38,7 @@ pub mod config;
 mod entry;
 mod feed;
 mod pagination;
+mod pat;
 mod subscription;
 mod tag;
 
@@ -58,6 +59,7 @@ const API_PREFIX: &str = "/api";
         (path = "/config", api = ConfigApi),
         (path = "/entries", api = EntryApi),
         (path = "/feeds", api = FeedApi),
+        (path = "/pats", api = PersonalAccessTokensApi),
         (path = "/subscriptions", api = SubscriptionApi),
         (path = "/tags", api = TagApi),
     ),
@@ -111,6 +113,7 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<Url>>) -> Rout
         .nest("/bookmarks", BookmarkApi::router())
         .nest("/collections", CollectionApi::router())
         .nest("/entries", EntryApi::router())
+        .nest("/pats", PersonalAccessTokensApi::router())
         .nest("/subscriptions", SubscriptionApi::router())
         .nest("/tags", TagApi::router())
         .layer(middleware::from_fn_with_state(

@@ -9,18 +9,18 @@ use uuid::Uuid;
 
 use crate::{
     ApiState,
-    auth::AUTH_TAG,
     common::{ApiError, Auth, Json},
+    pat::PERSONAL_ACCESS_TOKENS_TAG,
 };
 
 #[utoipa::path(
   post,
-  path = "/pats",
+  path = "",
   request_body = PatCreate,
   responses(OkResponse, ErrResponse),
   operation_id = "createPat",
   description = "Create a PAT",
-  tag = AUTH_TAG
+  tag = PERSONAL_ACCESS_TOKENS_TAG
 )]
 #[axum::debug_handler]
 pub(super) async fn handler(

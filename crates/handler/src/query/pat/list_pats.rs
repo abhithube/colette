@@ -1,41 +1,43 @@
 use colette_core::{
-    auth::{PatCursor, PatFindParams, PatRepository, PersonalAccessToken, UserId},
     common::RepositoryError,
     pagination::{Paginated, paginate},
 };
+use uuid::Uuid;
 
-use crate::Handler;
+use crate::{Handler, PatCursor, PatQueryParams, PatQueryRepository, PersonalAccessTokenDto};
 
 #[derive(Debug, Clone)]
 pub struct ListPatsQuery {
     pub cursor: Option<PatCursor>,
     pub limit: Option<usize>,
-    pub user_id: UserId,
+    pub user_id: Uuid,
 }
 
-pub struct ListPatsHandler<PR: PatRepository> {
-    pat_repository: PR,
+pub struct ListPatsHandler<PQR: PatQueryRepository> {
+    pat_query_repository: PQR,
 }
 
-impl<PR: PatRepository> ListPatsHandler<PR> {
-    pub fn new(pat_repository: PR) -> Self {
-        Self { pat_repository }
+impl<PQR: PatQueryRepository> ListPatsHandler<PQR> {
+    pub fn new(pat_query_repository: PQR) -> Self {
+        Self {
+            pat_query_repository,
+        }
     }
 }
 
 #[async_trait::async_trait]
-impl<PR: PatRepository> Handler<ListPatsQuery> for ListPatsHandler<PR> {
-    type Response = Paginated<PersonalAccessToken, PatCursor>;
+impl<PQR: PatQueryRepository> Handler<ListPatsQuery> for ListPatsHandler<PQR> {
+    type Response = Paginated<PersonalAccessTokenDto, PatCursor>;
     type Error = ListPatsError;
 
     async fn handle(&self, query: ListPatsQuery) -> Result<Self::Response, Self::Error> {
         let pats = self
-            .pat_repository
-            .find(PatFindParams {
+            .pat_query_repository
+            .query(PatQueryParams {
                 user_id: query.user_id,
                 cursor: query.cursor.map(|e| e.created_at),
                 limit: query.limit.map(|e| e + 1),
-                id: None,
+                ..Default::default()
             })
             .await?;
 

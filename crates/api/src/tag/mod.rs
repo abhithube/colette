@@ -1,6 +1,6 @@
 use axum::{Router, routing};
 use chrono::{DateTime, Utc};
-use colette_core::tag::TagDto;
+use colette_handler::TagDto;
 use utoipa::OpenApi;
 use uuid::Uuid;
 

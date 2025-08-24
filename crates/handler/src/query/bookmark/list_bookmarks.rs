@@ -1,42 +1,41 @@
 use colette_core::{
-    auth::UserId,
-    bookmark::{
-        BookmarkCursor, BookmarkDto, BookmarkFilter, BookmarkFindParams, BookmarkRepository,
-    },
-    collection::{CollectionFindParams, CollectionId, CollectionRepository},
+    bookmark::BookmarkFilter,
     common::RepositoryError,
     pagination::{Paginated, paginate},
-    tag::TagId,
 };
+use uuid::Uuid;
 
-use crate::Handler;
+use crate::{
+    BookmarkCursor, BookmarkDto, BookmarkQueryParams, BookmarkQueryRepository,
+    CollectionQueryRepository, Handler,
+};
 
 #[derive(Debug, Clone)]
 pub struct ListBookmarksQuery {
-    pub collection_id: Option<CollectionId>,
-    pub tags: Option<Vec<TagId>>,
+    pub collection_id: Option<Uuid>,
+    pub tags: Option<Vec<Uuid>>,
     pub cursor: Option<BookmarkCursor>,
     pub limit: Option<usize>,
-    pub user_id: UserId,
+    pub user_id: Uuid,
 }
 
-pub struct ListBookmarksHandler<BR: BookmarkRepository, CR: CollectionRepository> {
-    bookmark_repository: BR,
-    collection_repository: CR,
+pub struct ListBookmarksHandler<BQR: BookmarkQueryRepository, CQR: CollectionQueryRepository> {
+    bookmark_query_repository: BQR,
+    collection_query_repository: CQR,
 }
 
-impl<BR: BookmarkRepository, CR: CollectionRepository> ListBookmarksHandler<BR, CR> {
-    pub fn new(bookmark_repository: BR, collection_repository: CR) -> Self {
+impl<BQR: BookmarkQueryRepository, CQR: CollectionQueryRepository> ListBookmarksHandler<BQR, CQR> {
+    pub fn new(bookmark_query_repository: BQR, collection_query_repository: CQR) -> Self {
         Self {
-            bookmark_repository,
-            collection_repository,
+            bookmark_query_repository,
+            collection_query_repository,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<BR: BookmarkRepository, CR: CollectionRepository> Handler<ListBookmarksQuery>
-    for ListBookmarksHandler<BR, CR>
+impl<BQR: BookmarkQueryRepository, CQR: CollectionQueryRepository> Handler<ListBookmarksQuery>
+    for ListBookmarksHandler<BQR, CQR>
 {
     type Response = Paginated<BookmarkDto, BookmarkCursor>;
     type Error = ListBookmarksError;
@@ -44,31 +43,26 @@ impl<BR: BookmarkRepository, CR: CollectionRepository> Handler<ListBookmarksQuer
     async fn handle(&self, query: ListBookmarksQuery) -> Result<Self::Response, Self::Error> {
         let mut filter = Option::<BookmarkFilter>::None;
         if let Some(collection_id) = query.collection_id {
-            let mut collections = self
-                .collection_repository
-                .find(CollectionFindParams {
-                    user_id: query.user_id,
-                    id: Some(collection_id),
-                    cursor: None,
-                    limit: None,
-                })
-                .await?;
-            if collections.is_empty() {
+            let Some(collection) = self
+                .collection_query_repository
+                .query_by_id(collection_id, query.user_id)
+                .await?
+            else {
                 return Ok(Paginated::default());
-            }
+            };
 
-            filter = Some(collections.swap_remove(0).filter);
+            filter = Some(collection.filter);
         }
 
         let bookmarks = self
-            .bookmark_repository
-            .find(BookmarkFindParams {
+            .bookmark_query_repository
+            .query(BookmarkQueryParams {
                 user_id: query.user_id,
                 filter,
                 tags: query.tags,
                 cursor: query.cursor.map(|e| e.created_at),
                 limit: query.limit.map(|e| e + 1),
-                id: None,
+                ..Default::default()
             })
             .await?;
 

@@ -4,8 +4,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::collection::CollectionCursor;
-use colette_handler::{Handler as _, ListCollectionsQuery};
+use colette_handler::{CollectionCursor, Handler as _, ListCollectionsQuery};
 
 use crate::{
     ApiState,
@@ -40,7 +39,7 @@ pub(super) async fn handler(
         .handle(ListCollectionsQuery {
             cursor,
             limit: Some(PAGINATION_LIMIT),
-            user_id,
+            user_id: user_id.as_inner(),
         })
         .await
     {

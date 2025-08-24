@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use colette_core::subscription::SubscriptionError;
 use colette_handler::{CreateSubscriptionCommand, CreateSubscriptionError, Handler as _};
 use uuid::Uuid;
 
@@ -41,7 +42,9 @@ pub(super) async fn handler(
             id: data.id().as_inner(),
         })),
         Err(e) => match e {
-            CreateSubscriptionError::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
+            CreateSubscriptionError::Subscription(SubscriptionError::Conflict(_)) => {
+                Err(ErrResponse::Conflict(e.into()))
+            }
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }

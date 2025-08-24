@@ -1,15 +1,10 @@
-use std::{fmt, str::FromStr};
-
 use chrono::{DateTime, Duration, Utc};
 use colette_util::uuid_generate_ts;
 use email_address::EmailAddress;
 use url::Url;
 use uuid::Uuid;
 
-use crate::auth::{
-    OtpCode, OtpError, PatError, PatId, PersonalAccessToken, Provider, SocialAccount,
-    SocialAccountError, Sub,
-};
+use crate::auth::{OtpCode, OtpError, Provider, SocialAccount, SocialAccountError};
 
 pub const USER_DISPLAY_NAME_MAX_LENGTH: usize = 50;
 pub const OTP_CODE_MAX_ATTEMPTS: i8 = 5;
@@ -26,23 +21,19 @@ pub struct User {
     image_url: Option<Url>,
     social_accounts: Vec<SocialAccount>,
     otp_codes: Vec<OtpCode>,
-    personal_access_tokens: Vec<PersonalAccessToken>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
 
 impl User {
     pub fn new(
-        email: String,
+        email: EmailAddress,
         display_name: Option<DisplayName>,
-        image_url: Option<String>,
-    ) -> Result<Self, UserError> {
-        let email = email.parse()?;
-        let image_url = image_url.as_deref().map(FromStr::from_str).transpose()?;
-
+        image_url: Option<Url>,
+    ) -> Self {
         let now = Utc::now();
 
-        Ok(Self {
+        Self {
             id: uuid_generate_ts(now).into(),
             email,
             verified: false,
@@ -50,10 +41,9 @@ impl User {
             image_url,
             social_accounts: Vec::new(),
             otp_codes: Vec::new(),
-            personal_access_tokens: Vec::new(),
             created_at: now,
             updated_at: now,
-        })
+        }
     }
 
     pub fn id(&self) -> UserId {
@@ -135,7 +125,7 @@ impl User {
             .otp_codes
             .iter_mut()
             .find(|e| e.code() == code)
-            .ok_or(UserError::Otp(OtpError::InvalidOtpCode))?;
+            .ok_or(OtpError::InvalidOtpCode)?;
 
         opt_code.use_up()?;
 
@@ -156,46 +146,11 @@ impl User {
         {
             return Err(UserError::DuplicateAccount(
                 value.provider().to_owned(),
-                value.sub().to_owned(),
+                value.sub().as_inner().to_owned(),
             ));
         }
 
         self.social_accounts.push(value);
-
-        Ok(())
-    }
-
-    pub fn personal_access_tokens(&self) -> &[PersonalAccessToken] {
-        &self.personal_access_tokens
-    }
-
-    pub fn get_personal_access_token(&mut self, id: PatId) -> Option<&mut PersonalAccessToken> {
-        self.personal_access_tokens
-            .iter_mut()
-            .find(|e| e.id() == id)
-    }
-
-    pub fn add_personal_access_token(
-        &mut self,
-        value: PersonalAccessToken,
-    ) -> Result<(), UserError> {
-        if self.personal_access_tokens.len() == PAT_MAX_COUNT {
-            return Err(UserError::TooManyPats);
-        }
-
-        self.personal_access_tokens.push(value);
-
-        Ok(())
-    }
-
-    pub fn remove_personal_access_token(&mut self, id: PatId) -> Result<(), UserError> {
-        let index = self
-            .personal_access_tokens
-            .iter()
-            .position(|e| e.id() == id)
-            .ok_or(UserError::Pat(PatError::NotFound(id)))?;
-
-        self.personal_access_tokens.remove(index);
 
         Ok(())
     }
@@ -217,7 +172,6 @@ impl User {
         image_url: Option<Url>,
         otp_codes: Vec<OtpCode>,
         social_accounts: Vec<SocialAccount>,
-        personal_access_tokens: Vec<PersonalAccessToken>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
     ) -> Self {
@@ -229,7 +183,6 @@ impl User {
             image_url,
             otp_codes,
             social_accounts,
-            personal_access_tokens,
             created_at,
             updated_at,
         }
@@ -248,12 +201,6 @@ impl UserId {
 impl From<Uuid> for UserId {
     fn from(value: Uuid) -> Self {
         Self(value)
-    }
-}
-
-impl fmt::Display for UserId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_inner().fmt(f)
     }
 }
 
@@ -300,7 +247,7 @@ pub enum UserError {
     InvalidDisplayNameLength,
 
     #[error("already connected to provider {0} with sub {1}")]
-    DuplicateAccount(Provider, Sub),
+    DuplicateAccount(Provider, String),
 
     #[error("created too many OTP codes")]
     TooManyOtpCodes,
@@ -316,7 +263,4 @@ pub enum UserError {
 
     #[error(transparent)]
     SocialAccount(#[from] SocialAccountError),
-
-    #[error(transparent)]
-    Pat(#[from] PatError),
 }

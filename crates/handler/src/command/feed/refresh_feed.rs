@@ -2,14 +2,13 @@ use std::{cmp, sync::Arc};
 
 use colette_core::{
     common::RepositoryError,
-    feed::{Feed, FeedFindParams, FeedId, FeedRepository, FeedUpsertParams},
-    feed_entry::{FeedEntryFindParams, FeedEntryRepository},
+    feed::{Feed, FeedError, FeedFindParams, FeedId, FeedRepository, FeedUpsertParams},
 };
 use colette_http::HttpClient;
 use colette_scraper::feed::{FeedScraper, ProcessedFeed};
 use url::Url;
 
-use crate::Handler;
+use crate::{FeedEntryQueryParams, FeedEntryQueryRepository, Handler};
 
 pub const DEFAULT_INTERVAL: u32 = 60;
 const MIN_INTERVAL: u32 = 5;
@@ -22,21 +21,23 @@ pub struct RefreshFeedCommand {
     pub url: Url,
 }
 
-pub struct RefreshFeedHandler<FR: FeedRepository, FER: FeedEntryRepository, HC: HttpClient> {
+pub struct RefreshFeedHandler<FR: FeedRepository, FEQR: FeedEntryQueryRepository, HC: HttpClient> {
     feed_repository: FR,
-    feed_entry_repository: FER,
+    feed_entry_query_repository: FEQR,
     feed_scraper: Arc<FeedScraper<HC>>,
 }
 
-impl<FR: FeedRepository, FER: FeedEntryRepository, HC: HttpClient> RefreshFeedHandler<FR, FER, HC> {
+impl<FR: FeedRepository, FEQR: FeedEntryQueryRepository, HC: HttpClient>
+    RefreshFeedHandler<FR, FEQR, HC>
+{
     pub fn new(
         feed_repository: FR,
-        feed_entry_repository: FER,
+        feed_entry_query_repository: FEQR,
         feed_scraper: Arc<FeedScraper<HC>>,
     ) -> Self {
         Self {
             feed_repository,
-            feed_entry_repository,
+            feed_entry_query_repository,
             feed_scraper,
         }
     }
@@ -50,7 +51,7 @@ impl<FR: FeedRepository, FER: FeedEntryRepository, HC: HttpClient> RefreshFeedHa
             })
             .await?;
         if feeds.is_empty() {
-            return Err(RefreshFeedError::NotFound(id));
+            return Err(RefreshFeedError::Feed(FeedError::NotFound(id.as_inner())));
         }
 
         Ok(feeds.swap_remove(0))
@@ -64,10 +65,10 @@ impl<FR: FeedRepository, FER: FeedEntryRepository, HC: HttpClient> RefreshFeedHa
         match self.feed_repository.find_by_source_url(source_url).await? {
             Some(feed) => {
                 let latest_entries = self
-                    .feed_entry_repository
-                    .find(FeedEntryFindParams {
+                    .feed_entry_query_repository
+                    .query(FeedEntryQueryParams {
                         limit: Some(1),
-                        feed_id: Some(feed.id),
+                        feed_id: Some(feed.id.as_inner()),
                         ..Default::default()
                     })
                     .await?;
@@ -88,9 +89,9 @@ impl<FR: FeedRepository, FER: FeedEntryRepository, HC: HttpClient> RefreshFeedHa
 
                     if dates.len() < SAMPLE_SIZE {
                         let entries = self
-                            .feed_entry_repository
-                            .find(FeedEntryFindParams {
-                                feed_id: Some(feed.id),
+                            .feed_entry_query_repository
+                            .query(FeedEntryQueryParams {
+                                feed_id: Some(feed.id.as_inner()),
                                 limit: Some(SAMPLE_SIZE - dates.len()),
                                 ..Default::default()
                             })
@@ -134,8 +135,8 @@ impl<FR: FeedRepository, FER: FeedEntryRepository, HC: HttpClient> RefreshFeedHa
 }
 
 #[async_trait::async_trait]
-impl<FR: FeedRepository, FER: FeedEntryRepository, HC: HttpClient> Handler<RefreshFeedCommand>
-    for RefreshFeedHandler<FR, FER, HC>
+impl<FR: FeedRepository, FEQR: FeedEntryQueryRepository, HC: HttpClient> Handler<RefreshFeedCommand>
+    for RefreshFeedHandler<FR, FEQR, HC>
 {
     type Response = Feed;
     type Error = RefreshFeedError;
@@ -180,17 +181,8 @@ impl<FR: FeedRepository, FER: FeedEntryRepository, HC: HttpClient> Handler<Refre
 
 #[derive(Debug, thiserror::Error)]
 pub enum RefreshFeedError {
-    #[error("feed not found with ID: {0}")]
-    NotFound(FeedId),
-
     #[error(transparent)]
-    Http(#[from] colette_http::Error),
-
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
-
-    #[error(transparent)]
-    Utf(#[from] std::str::Utf8Error),
+    Feed(#[from] FeedError),
 
     #[error(transparent)]
     Scraper(#[from] colette_scraper::feed::FeedError),
