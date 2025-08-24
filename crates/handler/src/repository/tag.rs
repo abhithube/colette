@@ -27,7 +27,7 @@ impl Cursor for TagDto {
 }
 
 #[async_trait::async_trait]
-pub trait TagQueryRepository: Send + Sync + 'static {
+pub trait TagQueryRepository: Sync {
     async fn query(&self, params: TagQueryParams) -> Result<Vec<TagDto>, RepositoryError>;
 
     async fn query_by_id(

@@ -28,7 +28,7 @@ impl Cursor for CollectionDto {
 }
 
 #[async_trait::async_trait]
-pub trait CollectionQueryRepository: Send + Sync + 'static {
+pub trait CollectionQueryRepository: Sync {
     async fn query(
         &self,
         params: CollectionQueryParams,

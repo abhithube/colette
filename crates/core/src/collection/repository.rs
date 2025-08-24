@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[async_trait::async_trait]
-pub trait CollectionRepository: Send + Sync + 'static {
+pub trait CollectionRepository: Sync {
     async fn find_by_id(
         &self,
         id: CollectionId,

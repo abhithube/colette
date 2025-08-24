@@ -6,7 +6,7 @@ use url::Url;
 use crate::feed::{Feed, FeedId};
 
 #[async_trait::async_trait]
-pub trait FeedRepository: Send + Sync + 'static {
+pub trait FeedRepository: Sync {
     async fn find(&self, params: FeedFindParams) -> Result<Vec<Feed>, RepositoryError>;
 
     async fn find_by_source_url(&self, source_url: Url) -> Result<Option<Feed>, RepositoryError>;

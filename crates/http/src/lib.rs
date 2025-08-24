@@ -4,7 +4,7 @@ use http_body_util::BodyExt;
 use reqwest::{Body, Client, Url};
 
 #[async_trait::async_trait]
-pub trait HttpClient: Send + Sync + 'static {
+pub trait HttpClient: Send + Sync {
     async fn send(&self, request: Request<Bytes>) -> Result<Response<Body>, Error>;
 
     async fn get(&self, url: &Url) -> Result<Bytes, Error> {

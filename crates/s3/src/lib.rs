@@ -5,7 +5,7 @@ use s3::{
 };
 
 #[async_trait::async_trait]
-pub trait S3Client: Send + Sync + 'static {
+pub trait S3Client: Sync {
     async fn get_object(&self, path: &str) -> Result<Vec<u8>, Error>;
 
     async fn exists_object(&self, path: &str) -> Result<bool, Error>;

@@ -6,7 +6,7 @@ use url::Url;
 use crate::bookmark::{Bookmark, BookmarkId};
 
 #[async_trait::async_trait]
-pub trait BookmarkRepository: Send + Sync + 'static {
+pub trait BookmarkRepository: Sync {
     async fn find_by_id(
         &self,
         id: BookmarkId,

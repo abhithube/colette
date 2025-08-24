@@ -38,7 +38,7 @@ impl Cursor for EntryDto {
 }
 
 #[async_trait::async_trait]
-pub trait EntryQueryRepository: Send + Sync + 'static {
+pub trait EntryQueryRepository: Sync {
     async fn query(&self, params: EntryQueryParams) -> Result<Vec<EntryDto>, RepositoryError>;
 
     async fn query_by_id(

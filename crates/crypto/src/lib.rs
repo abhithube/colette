@@ -1,4 +1,4 @@
-pub trait CodeGenerator: Send + Sync + 'static {
+pub trait CodeGenerator: Sync {
     fn generate(&self, len: usize) -> Vec<u8>;
 }
 

@@ -4,7 +4,7 @@ use colette_common::RepositoryError;
 use crate::entry::{Entry, EntryId};
 
 #[async_trait::async_trait]
-pub trait EntryRepository: Send + Sync + 'static {
+pub trait EntryRepository: Sync {
     async fn find_by_id(
         &self,
         id: EntryId,

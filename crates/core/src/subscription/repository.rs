@@ -5,7 +5,7 @@ use url::Url;
 use crate::subscription::{Subscription, SubscriptionId};
 
 #[async_trait::async_trait]
-pub trait SubscriptionRepository: Send + Sync + 'static {
+pub trait SubscriptionRepository: Sync {
     async fn find_by_id(
         &self,
         id: SubscriptionId,

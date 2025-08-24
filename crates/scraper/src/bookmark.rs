@@ -18,7 +18,7 @@ const RFC3339_WITH_MILLI: &str = "%Y-%m-%dT%H:%M:%S%.3f%z";
 const RFC3339_WITH_MICRO: &str = "%Y-%m-%dT%H:%M:%S%.6f%z";
 
 #[async_trait::async_trait]
-pub trait BookmarkPlugin: Send + Sync + 'static {
+pub trait BookmarkPlugin: Send + Sync {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, BookmarkError>;
 }
 

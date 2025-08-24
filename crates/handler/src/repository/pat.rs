@@ -28,7 +28,7 @@ impl Cursor for PersonalAccessTokenDto {
 }
 
 #[async_trait::async_trait]
-pub trait PatQueryRepository: Send + Sync + 'static {
+pub trait PatQueryRepository: Sync {
     async fn query(
         &self,
         params: PatQueryParams,

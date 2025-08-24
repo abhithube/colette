@@ -4,7 +4,7 @@ use colette_common::RepositoryError;
 use crate::backup::Backup;
 
 #[async_trait::async_trait]
-pub trait BackupRepository: Send + Sync + 'static {
+pub trait BackupRepository: Sync {
     async fn import(&self, params: ImportBackupParams) -> Result<(), RepositoryError>;
 }
 

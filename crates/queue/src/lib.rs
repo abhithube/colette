@@ -32,12 +32,12 @@ impl Job {
 }
 
 #[async_trait::async_trait]
-pub trait JobProducer: Send + Sync + 'static {
+pub trait JobProducer: Send + Sync {
     async fn push(&mut self, job: Job) -> Result<(), Error>;
 }
 
 #[async_trait::async_trait]
-pub trait JobConsumer: Send + Sync + 'static {
+pub trait JobConsumer: Sync {
     async fn pop(&mut self) -> Result<Option<Job>, Error>;
 }
 

@@ -3,7 +3,7 @@ use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-pub trait JwtManager: Send + Sync + 'static {
+pub trait JwtManager: Sync {
     fn generate(&self, claims: Claims) -> Result<String, Error>;
 
     fn verify(&self, token: &str) -> Result<Claims, Error>;

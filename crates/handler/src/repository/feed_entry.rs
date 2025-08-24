@@ -16,7 +16,7 @@ pub struct FeedEntryDto {
 }
 
 #[async_trait::async_trait]
-pub trait FeedEntryQueryRepository: Send + Sync + 'static {
+pub trait FeedEntryQueryRepository: Sync {
     async fn query(
         &self,
         params: FeedEntryQueryParams,

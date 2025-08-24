@@ -14,7 +14,7 @@ use url::Url;
 const RFC2822_WITHOUT_COMMA: &str = "%a %d %b %Y %H:%M:%S %z";
 
 #[async_trait::async_trait]
-pub trait FeedPlugin: Send + Sync + 'static {
+pub trait FeedPlugin: Send + Sync {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, FeedError>;
 }
 

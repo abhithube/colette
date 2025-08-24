@@ -9,7 +9,7 @@ use lettre::{
 };
 
 #[async_trait::async_trait]
-pub trait SmtpClient: Send + Sync + 'static {
+pub trait SmtpClient: Sync {
     async fn send(&self, email: SmtpEmail) -> Result<(), Error>;
 }
 

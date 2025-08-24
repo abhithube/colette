@@ -3,7 +3,7 @@ use colette_common::RepositoryError;
 use crate::{LookupHash, PatByLookupHash, PatId, PersonalAccessToken, UserId};
 
 #[async_trait::async_trait]
-pub trait PatRepository: Send + Sync + 'static {
+pub trait PatRepository: Sync {
     async fn find_by_id(
         &self,
         id: PatId,

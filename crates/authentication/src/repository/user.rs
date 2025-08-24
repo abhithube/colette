@@ -4,7 +4,7 @@ use email_address::EmailAddress;
 use crate::{User, UserId};
 
 #[async_trait::async_trait]
-pub trait UserRepository: Send + Sync + 'static {
+pub trait UserRepository: Sync {
     async fn find_by_id(&self, id: UserId) -> Result<Option<User>, RepositoryError>;
 
     async fn find_by_email(&self, email: EmailAddress) -> Result<Option<User>, RepositoryError>;

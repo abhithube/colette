@@ -11,7 +11,7 @@ use reqwest::Client as ReqwestClient;
 use url::{ParseError, Url};
 
 #[async_trait::async_trait]
-pub trait OidcClient: Send + Sync + 'static {
+pub trait OidcClient: Sync {
     fn build_authorization_url(&self, scopes: Vec<String>) -> AuthorizationUrlData;
 
     async fn exchange_code(

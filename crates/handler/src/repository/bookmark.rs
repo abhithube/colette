@@ -36,7 +36,7 @@ impl Cursor for BookmarkDto {
 }
 
 #[async_trait::async_trait]
-pub trait BookmarkQueryRepository: Send + Sync + 'static {
+pub trait BookmarkQueryRepository: Sync {
     async fn query(&self, params: BookmarkQueryParams)
     -> Result<Vec<BookmarkDto>, RepositoryError>;
 
