@@ -1,10 +1,10 @@
 use chrono::{DateTime, Utc};
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
 use colette_core::{
     Collection,
-    auth::UserId,
     bookmark::BookmarkFilter,
     collection::{CollectionId, CollectionRepository},
-    common::RepositoryError,
 };
 use colette_handler::{CollectionDto, CollectionQueryParams, CollectionQueryRepository};
 use sqlx::{PgPool, types::Json};

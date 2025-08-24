@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
 use colette_core::{
     Entry,
-    auth::UserId,
-    common::RepositoryError,
     entry::{
         EntryBooleanField, EntryDateField, EntryFilter, EntryId, EntryRepository, EntryTextField,
         ReadStatus,

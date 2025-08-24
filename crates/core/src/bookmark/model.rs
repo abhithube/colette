@@ -1,10 +1,10 @@
 use chrono::{DateTime, Utc};
-use colette_util::uuid_generate_ts;
+use colette_authentication::UserId;
+use colette_common::uuid_generate_ts;
 use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    auth::UserId,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
     tag::TagId,
 };

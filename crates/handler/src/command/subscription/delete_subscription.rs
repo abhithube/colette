@@ -1,8 +1,6 @@
-use colette_core::{
-    auth::UserId,
-    common::RepositoryError,
-    subscription::{SubscriptionError, SubscriptionId, SubscriptionRepository},
-};
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
+use colette_core::subscription::{SubscriptionError, SubscriptionId, SubscriptionRepository};
 
 use crate::Handler;
 

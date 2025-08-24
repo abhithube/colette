@@ -1,8 +1,8 @@
 use std::{cmp, sync::Arc};
 
-use colette_core::{
-    common::RepositoryError,
-    feed::{Feed, FeedError, FeedFindParams, FeedId, FeedRepository, FeedUpsertParams},
+use colette_common::RepositoryError;
+use colette_core::feed::{
+    Feed, FeedError, FeedFindParams, FeedId, FeedRepository, FeedUpsertParams,
 };
 use colette_http::HttpClient;
 use colette_scraper::feed::{FeedScraper, ProcessedFeed};

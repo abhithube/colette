@@ -1,7 +1,6 @@
-use colette_core::auth::OidcConfig;
 use colette_oidc::{AuthorizationUrlData, OidcClient};
 
-use crate::Handler;
+use crate::{Handler, OidcConfig};
 
 #[derive(Debug, Clone)]
 pub struct BuildAuthorizationUrlQuery;

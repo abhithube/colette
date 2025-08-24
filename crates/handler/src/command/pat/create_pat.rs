@@ -1,12 +1,9 @@
 use chrono::{DateTime, Utc};
-use colette_core::{
-    auth::UserId,
-    common::RepositoryError,
-    pat::{
-        LookupHash, PatError, PatId, PatPreview, PatRepository, PatTitle, PatValue,
-        PersonalAccessToken, VerificationHash,
-    },
+use colette_authentication::{
+    LookupHash, PatError, PatId, PatPreview, PatRepository, PatTitle, PatValue,
+    PersonalAccessToken, UserId, VerificationHash,
 };
+use colette_common::RepositoryError;
 use colette_util::{
     CryptoError, argon2_hash, base64_encode, hex_encode, random_generate, sha256_hash,
 };

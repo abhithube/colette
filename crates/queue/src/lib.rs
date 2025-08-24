@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_util::uuid_generate_ts;
+use colette_common::uuid_generate_ts;
 use serde::Serialize;
 use serde_json::Value;
 use tokio::sync::mpsc::{self, error::SendError, Receiver, Sender};

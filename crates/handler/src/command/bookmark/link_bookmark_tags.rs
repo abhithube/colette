@@ -1,7 +1,7 @@
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
 use colette_core::{
-    auth::UserId,
     bookmark::{BookmarkError, BookmarkId, BookmarkRepository},
-    common::RepositoryError,
     tag::TagId,
 };
 

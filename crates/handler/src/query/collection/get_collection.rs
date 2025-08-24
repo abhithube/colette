@@ -1,4 +1,5 @@
-use colette_core::{collection::CollectionError, common::RepositoryError};
+use colette_common::RepositoryError;
+use colette_core::collection::CollectionError;
 use uuid::Uuid;
 
 use crate::{CollectionDto, CollectionQueryRepository, Handler};

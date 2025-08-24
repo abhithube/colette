@@ -1,10 +1,8 @@
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
 use url::Url;
 
-use crate::{
-    auth::UserId,
-    common::RepositoryError,
-    subscription::{Subscription, SubscriptionId},
-};
+use crate::subscription::{Subscription, SubscriptionId};
 
 #[async_trait::async_trait]
 pub trait SubscriptionRepository: Send + Sync + 'static {

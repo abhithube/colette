@@ -1,7 +1,7 @@
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
 use colette_core::{
     Tag,
-    auth::UserId,
-    common::RepositoryError,
     tag::{TagError, TagRepository, TagTitle},
 };
 

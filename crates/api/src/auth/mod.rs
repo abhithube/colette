@@ -1,6 +1,5 @@
 use axum::{Router, routing};
 use chrono::{DateTime, Utc};
-use colette_core::auth;
 use url::Url;
 use utoipa::OpenApi;
 use uuid::Uuid;
@@ -82,8 +81,8 @@ struct User {
     updated_at: DateTime<Utc>,
 }
 
-impl From<colette_core::User> for User {
-    fn from(value: colette_core::User) -> Self {
+impl From<colette_authentication::User> for User {
+    fn from(value: colette_authentication::User) -> Self {
         Self {
             id: value.id().as_inner(),
             email: value.email().email(),
@@ -104,8 +103,8 @@ pub(super) struct TokenData {
     expires_in: i64,
 }
 
-impl From<auth::TokenData> for TokenData {
-    fn from(value: auth::TokenData) -> Self {
+impl From<colette_handler::TokenData> for TokenData {
+    fn from(value: colette_handler::TokenData) -> Self {
         TokenData {
             access_token: value.access_token,
             token_type: value.token_type.into(),
@@ -121,10 +120,10 @@ pub enum TokenType {
     Bearer,
 }
 
-impl From<auth::TokenType> for TokenType {
-    fn from(value: auth::TokenType) -> Self {
+impl From<colette_handler::TokenType> for TokenType {
+    fn from(value: colette_handler::TokenType) -> Self {
         match value {
-            auth::TokenType::Bearer => TokenType::Bearer,
+            colette_handler::TokenType::Bearer => TokenType::Bearer,
         }
     }
 }

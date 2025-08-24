@@ -1,0 +1,14 @@
+[package]
+name = "colette-authentication"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-trait.workspace = true
+chrono.workspace = true
+colette-common.workspace = true
+email_address.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+url.workspace = true
+uuid.workspace = true

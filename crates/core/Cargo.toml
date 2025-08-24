@@ -6,14 +6,14 @@ edition = "2024"
 [dependencies]
 async-trait.workspace = true
 chrono.workspace = true
+colette-authentication.workspace = true
+colette-common.workspace = true
 colette-scraper.workspace = true
-colette-util.workspace = true
 email_address.workspace = true
 rand = { version = "0.9.0", default-features = false, features = [
   "thread_rng",
 ] }
 serde.workspace = true
-sqlx.workspace = true
 thiserror.workspace = true
 url.workspace = true
 uuid.workspace = true

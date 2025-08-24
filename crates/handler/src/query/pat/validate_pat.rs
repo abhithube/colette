@@ -1,8 +1,5 @@
-use colette_core::{
-    auth::UserId,
-    common::RepositoryError,
-    pat::{LookupHash, PatError, PatRepository},
-};
+use colette_authentication::{LookupHash, PatError, PatRepository, UserId};
+use colette_common::RepositoryError;
 use colette_util::{CryptoError, argon2_verify, hex_encode, sha256_hash};
 
 use crate::Handler;

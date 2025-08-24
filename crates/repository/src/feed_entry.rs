@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_core::common::RepositoryError;
+use colette_common::RepositoryError;
 use colette_handler::{FeedEntryDto, FeedEntryQueryParams, FeedEntryQueryRepository};
 use sqlx::PgPool;
 use uuid::Uuid;

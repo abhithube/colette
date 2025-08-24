@@ -1,11 +1,9 @@
 use chrono::{DateTime, Utc};
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
 use url::Url;
 
-use crate::{
-    auth::UserId,
-    bookmark::{Bookmark, BookmarkId},
-    common::RepositoryError,
-};
+use crate::bookmark::{Bookmark, BookmarkId};
 
 #[async_trait::async_trait]
 pub trait BookmarkRepository: Send + Sync + 'static {

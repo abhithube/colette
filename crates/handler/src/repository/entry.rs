@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
+use colette_common::RepositoryError;
 use colette_core::{
-    common::RepositoryError,
     entry::{EntryFilter, ReadStatus},
     pagination::Cursor,
 };

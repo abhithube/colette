@@ -1,16 +1,12 @@
-use colette_core::{
-    User,
-    auth::{
-        CustomProvider, DisplayName, JwtConfig, OIDC_PROVIDER, Provider, SocialAccount, Sub,
-        TokenData, TokenType, UserError, UserRepository,
-    },
-    common::RepositoryError,
+use colette_authentication::{
+    CustomProvider, DisplayName, Provider, SocialAccount, Sub, User, UserError, UserRepository,
 };
+use colette_common::RepositoryError;
 use colette_jwt::{Claims, JwtManager};
 use colette_oidc::OidcClient;
 use email_address::EmailAddress;
 
-use crate::Handler;
+use crate::{Handler, JwtConfig, OIDC_PROVIDER, TokenData, TokenType};
 
 #[derive(Debug, Clone)]
 pub struct ExchangeCodeCommand {

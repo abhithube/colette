@@ -3,30 +3,8 @@ use argon2::{
     password_hash::{SaltString, rand_core::OsRng},
 };
 use base64::{Engine as _, engine::general_purpose};
-use chrono::{DateTime, Utc};
 use rand::RngCore as _;
 use sha2::{Digest, Sha256};
-use uuid::{ContextV7, NoContext, Timestamp, Uuid};
-
-pub fn uuid_generate() -> Uuid {
-    Uuid::now_v7()
-}
-
-pub fn uuid_generate_ts(now: DateTime<Utc>) -> Uuid {
-    Uuid::new_v7(Timestamp::from_unix(
-        NoContext,
-        now.timestamp() as u64,
-        now.timestamp_subsec_nanos(),
-    ))
-}
-
-pub fn uuid_generate_ctx(ctx: ContextV7, now: DateTime<Utc>) -> Uuid {
-    Uuid::new_v7(Timestamp::from_unix(
-        ctx,
-        now.timestamp() as u64,
-        now.timestamp_subsec_nanos(),
-    ))
-}
 
 pub fn argon2_hash(value: &str) -> Result<String, CryptoError> {
     let salt = SaltString::generate(&mut OsRng);

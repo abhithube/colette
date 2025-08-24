@@ -1,4 +1,5 @@
-use colette_core::{common::RepositoryError, pat::PatError};
+use colette_authentication::PatError;
+use colette_common::RepositoryError;
 use uuid::Uuid;
 
 use crate::{Handler, PatQueryRepository, PersonalAccessTokenDto};

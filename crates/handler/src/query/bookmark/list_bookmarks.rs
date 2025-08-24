@@ -1,6 +1,6 @@
+use colette_common::RepositoryError;
 use colette_core::{
     bookmark::BookmarkFilter,
-    common::RepositoryError,
     pagination::{Paginated, paginate},
 };
 use uuid::Uuid;

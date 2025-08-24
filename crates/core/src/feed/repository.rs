@@ -1,11 +1,9 @@
 use chrono::{DateTime, Utc};
+use colette_common::RepositoryError;
 use colette_scraper::feed::ProcessedFeedEntry;
 use url::Url;
 
-use crate::{
-    common::RepositoryError,
-    feed::{Feed, FeedId},
-};
+use crate::feed::{Feed, FeedId};
 
 #[async_trait::async_trait]
 pub trait FeedRepository: Send + Sync + 'static {

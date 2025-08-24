@@ -1,10 +1,8 @@
 use chrono::{DateTime, Utc};
+use colette_authentication::UserId;
 use uuid::Uuid;
 
-use crate::{
-    auth::UserId,
-    filter::{BooleanOp, DateOp, NumberOp, TextOp},
-};
+use crate::filter::{BooleanOp, DateOp, NumberOp, TextOp};
 
 #[derive(Debug, Clone)]
 pub struct Entry {

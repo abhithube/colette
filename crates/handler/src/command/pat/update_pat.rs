@@ -1,8 +1,7 @@
-use colette_core::{
-    auth::UserId,
-    common::RepositoryError,
-    pat::{PatError, PatId, PatRepository, PatTitle, PersonalAccessToken},
+use colette_authentication::{
+    PatError, PatId, PatRepository, PatTitle, PersonalAccessToken, UserId,
 };
+use colette_common::RepositoryError;
 
 use crate::Handler;
 

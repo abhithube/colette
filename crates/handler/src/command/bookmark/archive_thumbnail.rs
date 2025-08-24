@@ -1,8 +1,6 @@
 use chrono::Utc;
-use colette_core::{
-    bookmark::{BookmarkId, BookmarkRepository, ThumbnailOperation},
-    common::RepositoryError,
-};
+use colette_common::RepositoryError;
+use colette_core::bookmark::{BookmarkId, BookmarkRepository, ThumbnailOperation};
 use colette_http::HttpClient;
 use colette_s3::S3Client;
 use colette_util::{hex_encode, sha256_hash};

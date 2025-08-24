@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::pat::PatError;
+use colette_authentication::PatError;
 use colette_handler::{DeletePatCommand, DeletePatError, Handler as _};
 
 use crate::{

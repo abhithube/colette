@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
-use colette_util::uuid_generate_ts;
+use colette_common::uuid_generate_ts;
 use uuid::Uuid;
 
-use crate::auth::UserId;
+use crate::UserId;
 
 pub const PAT_VALUE_LENGTH: usize = 32;
 pub const PAT_TITLE_MAX_LENGTH: usize = 50;

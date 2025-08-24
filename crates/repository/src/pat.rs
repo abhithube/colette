@@ -1,9 +1,8 @@
 use chrono::{DateTime, Utc};
-use colette_core::{
-    auth::UserId,
-    common::RepositoryError,
-    pat::{LookupHash, PatByLookupHash, PatId, PatRepository, PersonalAccessToken},
+use colette_authentication::{
+    LookupHash, PatByLookupHash, PatId, PatRepository, PersonalAccessToken, UserId,
 };
+use colette_common::RepositoryError;
 use colette_handler::{PatQueryParams, PatQueryRepository, PersonalAccessTokenDto};
 use sqlx::PgPool;
 use uuid::Uuid;

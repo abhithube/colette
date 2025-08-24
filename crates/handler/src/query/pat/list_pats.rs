@@ -1,7 +1,5 @@
-use colette_core::{
-    common::RepositoryError,
-    pagination::{Paginated, paginate},
-};
+use colette_common::RepositoryError;
+use colette_core::pagination::{Paginated, paginate};
 use uuid::Uuid;
 
 use crate::{Handler, PatCursor, PatQueryParams, PatQueryRepository, PersonalAccessTokenDto};

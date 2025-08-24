@@ -1,42 +1,32 @@
 use chrono::{DateTime, Duration, Utc};
 
-use crate::common::NumericCodeGenerator;
-
-pub const OTP_CODE_LEN: u8 = 6;
+pub const OTP_CODE_LEN: usize = 6;
 pub const OTP_CODE_EXPIRATION_MIN: u8 = 10;
 
 #[derive(Debug, Clone)]
 pub struct OtpCode {
-    code: String,
+    code: CodeValue,
     expires_at: DateTime<Utc>,
     used_at: Option<DateTime<Utc>>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
 
-impl Default for OtpCode {
-    fn default() -> Self {
-        let code = NumericCodeGenerator::generate(OTP_CODE_LEN);
-
+impl OtpCode {
+    pub fn new(code: CodeValue) -> Self {
         let now = Utc::now();
         let expires_at = now + Duration::minutes(OTP_CODE_EXPIRATION_MIN as i64);
 
         Self {
-            code: String::from_utf8_lossy(&code).into_owned(),
+            code,
             expires_at,
             used_at: None,
             created_at: now,
             updated_at: now,
         }
     }
-}
 
-impl OtpCode {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn code(&self) -> &str {
+    pub fn code(&self) -> &CodeValue {
         &self.code
     }
 
@@ -50,12 +40,12 @@ impl OtpCode {
 
     pub fn use_up(&mut self) -> Result<(), OtpError> {
         if self.used_at.is_some() {
-            return Err(OtpError::AlreadyUsedOtpCode);
+            return Err(OtpError::AlreadyUsedCode);
         }
 
         let now = Utc::now();
         if self.expires_at < now {
-            return Err(OtpError::InvalidOtpCode);
+            return Err(OtpError::InvalidCode);
         }
 
         self.used_at = Some(now);
@@ -80,7 +70,7 @@ impl OtpCode {
         updated_at: DateTime<Utc>,
     ) -> Self {
         Self {
-            code,
+            code: CodeValue(code),
             expires_at,
             used_at,
             created_at,
@@ -89,11 +79,31 @@ impl OtpCode {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CodeValue(String);
+
+impl CodeValue {
+    pub fn new(value: String) -> Result<Self, OtpError> {
+        if value.len() != OTP_CODE_LEN {
+            return Err(OtpError::InvalidLength);
+        }
+
+        Ok(CodeValue(value))
+    }
+
+    pub fn as_inner(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum OtpError {
+    #[error("OTP code must be exactly {OTP_CODE_LEN} characters long")]
+    InvalidLength,
+
     #[error("invalid OTP code")]
-    InvalidOtpCode,
+    InvalidCode,
 
     #[error("already used OTP code")]
-    AlreadyUsedOtpCode,
+    AlreadyUsedCode,
 }

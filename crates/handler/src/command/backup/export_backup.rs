@@ -1,5 +1,6 @@
 use bytes::Bytes;
-use colette_core::{backup::Backup, common::RepositoryError};
+use colette_common::RepositoryError;
+use colette_core::backup::Backup;
 use uuid::Uuid;
 
 use crate::{

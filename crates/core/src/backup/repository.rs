@@ -1,4 +1,7 @@
-use crate::{backup::Backup, common::RepositoryError, auth::UserId};
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
+
+use crate::backup::Backup;
 
 #[async_trait::async_trait]
 pub trait BackupRepository: Send + Sync + 'static {

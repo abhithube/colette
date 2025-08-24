@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
-use colette_util::uuid_generate_ts;
+use colette_authentication::UserId;
+use colette_common::uuid_generate_ts;
 use uuid::Uuid;
 
-use crate::{auth::UserId, bookmark::BookmarkFilter};
+use crate::bookmark::BookmarkFilter;
 
 pub const COLLECTION_TITLE_MAX_LENGTH: usize = 50;
 

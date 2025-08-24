@@ -1,6 +1,7 @@
+use colette_common::RepositoryError;
 use email_address::EmailAddress;
 
-use crate::{User, auth::UserId, common::RepositoryError};
+use crate::{User, UserId};
 
 #[async_trait::async_trait]
 pub trait UserRepository: Send + Sync + 'static {

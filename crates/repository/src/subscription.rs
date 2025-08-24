@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
 use colette_core::{
     Subscription,
-    auth::UserId,
-    common::RepositoryError,
     subscription::{ImportSubscriptionsParams, SubscriptionId, SubscriptionRepository},
 };
 use colette_handler::{SubscriptionDto, SubscriptionQueryParams, SubscriptionQueryRepository};

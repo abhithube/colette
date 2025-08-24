@@ -1,8 +1,9 @@
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
+
 use crate::{
-    auth::UserId,
     bookmark::BookmarkFilter,
     collection::{Collection, CollectionId},
-    common::RepositoryError,
 };
 
 #[async_trait::async_trait]

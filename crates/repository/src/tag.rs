@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
 use colette_core::{
     Tag,
-    auth::UserId,
-    common::RepositoryError,
     tag::{TagId, TagRepository},
 };
 use colette_handler::{TagDto, TagQueryParams, TagQueryRepository};

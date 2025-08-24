@@ -1,9 +1,7 @@
 use bytes::Bytes;
-use colette_core::{
-    auth::UserId,
-    backup::{Backup, BackupRepository, ImportBackupParams},
-    common::RepositoryError,
-};
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
+use colette_core::backup::{Backup, BackupRepository, ImportBackupParams};
 
 use crate::Handler;
 

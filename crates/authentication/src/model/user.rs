@@ -1,15 +1,18 @@
 use chrono::{DateTime, Duration, Utc};
-use colette_util::uuid_generate_ts;
+use colette_common::uuid_generate_ts;
 use email_address::EmailAddress;
 use url::Url;
 use uuid::Uuid;
 
-use crate::auth::{OtpCode, OtpError, Provider, SocialAccount, SocialAccountError};
+use crate::{
+    CodeValue,
+    model::{OtpCode, OtpError, Provider, SocialAccount, SocialAccountError},
+};
 
 pub const USER_DISPLAY_NAME_MAX_LENGTH: usize = 50;
-pub const OTP_CODE_MAX_ATTEMPTS: i8 = 5;
 pub const OTP_RATE_LIMIT_COUNT: usize = 3;
 pub const OTP_RATE_LIMIT_DURATION: u8 = 10;
+pub const OTP_MAX_ATTEMPTS: u8 = 5;
 pub const PAT_MAX_COUNT: usize = 10;
 
 #[derive(Debug, Clone)]
@@ -90,26 +93,6 @@ impl User {
         Ok(())
     }
 
-    pub fn generate_otp_code(&mut self) -> Result<OtpCode, UserError> {
-        let mut attempts = 0;
-        loop {
-            let otp_code: OtpCode = OtpCode::new();
-
-            if self.otp_codes.iter().any(|e| e.code() == otp_code.code()) {
-                attempts += 1;
-                if attempts >= OTP_CODE_MAX_ATTEMPTS {
-                    return Err(UserError::DuplicateOtpCode);
-                }
-
-                continue;
-            }
-
-            self.otp_codes.push(otp_code.clone());
-
-            return Ok(otp_code);
-        }
-    }
-
     pub fn add_otp_code(&mut self, value: OtpCode) -> Result<(), UserError> {
         if self.otp_codes.iter().any(|e| e.code() == value.code()) {
             return Err(UserError::DuplicateOtpCode);
@@ -120,12 +103,12 @@ impl User {
         Ok(())
     }
 
-    pub fn use_otp_code(&mut self, code: String) -> Result<(), UserError> {
+    pub fn use_otp_code(&mut self, code: CodeValue) -> Result<(), UserError> {
         let opt_code = self
             .otp_codes
             .iter_mut()
-            .find(|e| e.code() == code)
-            .ok_or(OtpError::InvalidOtpCode)?;
+            .find(|e| e.code() == &code)
+            .ok_or(OtpError::InvalidCode)?;
 
         opt_code.use_up()?;
 

@@ -3,7 +3,7 @@ use std::{error::Error, net::SocketAddr, sync::Arc};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use chrono::Duration;
 use colette_api::{ApiConfig, ApiOidcConfig, ApiS3Config, ApiServerConfig, ApiState};
-use colette_core::auth::{JwtConfig, OidcConfig};
+use colette_crypto::OtpCodeGenerator;
 use colette_handler::*;
 use colette_http::ReqwestClient;
 use colette_job::{
@@ -154,7 +154,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let mut api_state = ApiState {
         // Auth
-        send_otp: Arc::new(SendOtpHandler::new(user_repository.clone(), stmp_client)),
+        send_otp: Arc::new(SendOtpHandler::new(
+            user_repository.clone(),
+            stmp_client,
+            OtpCodeGenerator::default(),
+        )),
         verify_otp: Arc::new(VerifyOtpHandler::new(
             user_repository.clone(),
             jwt_manager.clone(),

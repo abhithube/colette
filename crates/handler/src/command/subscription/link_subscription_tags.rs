@@ -1,7 +1,7 @@
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
 use colette_core::{
     Subscription,
-    auth::UserId,
-    common::RepositoryError,
     subscription::{SubscriptionError, SubscriptionId, SubscriptionRepository},
     tag::TagId,
 };

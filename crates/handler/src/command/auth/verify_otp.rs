@@ -1,10 +1,8 @@
-use colette_core::{
-    auth::{JwtConfig, TokenData, TokenType, UserError, UserRepository},
-    common::RepositoryError,
-};
+use colette_authentication::{CodeValue, UserError, UserRepository};
+use colette_common::RepositoryError;
 use colette_jwt::{Claims, JwtManager};
 
-use crate::Handler;
+use crate::{Handler, JwtConfig, TokenData, TokenType};
 
 #[derive(Debug, Clone)]
 pub struct VerifyOtpCommand {
@@ -40,7 +38,8 @@ impl<UR: UserRepository, JM: JwtManager> Handler<VerifyOtpCommand> for VerifyOtp
             .await?
             .ok_or(LoginUserError::NotAuthenticated)?;
 
-        user.use_otp_code(cmd.code)?;
+        let code_value = CodeValue::new(cmd.code).map_err(UserError::Otp)?;
+        user.use_otp_code(code_value)?;
 
         self.user_repository.save(&user).await?;
 

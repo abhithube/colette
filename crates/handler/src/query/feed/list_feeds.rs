@@ -1,5 +1,5 @@
+use colette_common::RepositoryError;
 use colette_core::{
-    common::RepositoryError,
     feed::{Feed, FeedCursor, FeedFindParams, FeedRepository},
     pagination::{Paginated, paginate},
 };

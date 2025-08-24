@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 async-trait.workspace = true
 chrono.workspace = true
+colette-authentication.workspace = true
+colette-common.workspace = true
 colette-core.workspace = true
 colette-handler.workspace = true
 email_address.workspace = true

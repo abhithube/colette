@@ -1,10 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
 use bytes::{Buf, Bytes};
-use colette_core::{
-    auth::UserId,
-    common::RepositoryError,
-    subscription::{ImportSubscriptionsParams, SubscriptionBatchItem, SubscriptionRepository},
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
+use colette_core::subscription::{
+    ImportSubscriptionsParams, SubscriptionBatchItem, SubscriptionRepository,
 };
 use colette_opml::Outline;
 use url::Url;

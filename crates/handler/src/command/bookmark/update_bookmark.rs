@@ -1,9 +1,9 @@
 use chrono::{DateTime, Utc};
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
 use colette_core::{
     Bookmark,
-    auth::UserId,
     bookmark::{BookmarkAuthor, BookmarkError, BookmarkId, BookmarkRepository, BookmarkTitle},
-    common::RepositoryError,
 };
 use colette_queue::JobProducer;
 use tokio::sync::Mutex;

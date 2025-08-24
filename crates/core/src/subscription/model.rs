@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
-use colette_util::uuid_generate_ts;
+use colette_authentication::UserId;
+use colette_common::uuid_generate_ts;
 use uuid::Uuid;
 
-use crate::{auth::UserId, feed::FeedId, tag::TagId};
+use crate::{feed::FeedId, tag::TagId};
 
 pub const SUBSCRIPTION_TITLE_MAX_LENGTH: usize = 50;
 pub const SUBSCRIPTION_DESCRIPTION_MAX_LENGTH: usize = 500;

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use bytes::Bytes;
-use colette_core::common::RepositoryError;
+use colette_common::RepositoryError;
 use colette_netscape::{Item, Netscape};
 use uuid::Uuid;
 

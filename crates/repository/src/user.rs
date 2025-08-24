@@ -1,9 +1,6 @@
 use chrono::{DateTime, Utc};
-use colette_core::{
-    User,
-    auth::{OtpCode, SocialAccount, UserId, UserRepository},
-    common::RepositoryError,
-};
+use colette_authentication::{OtpCode, SocialAccount, User, UserId, UserRepository};
+use colette_common::RepositoryError;
 use email_address::EmailAddress;
 use sqlx::{PgPool, types::Json};
 use uuid::Uuid;
@@ -83,7 +80,7 @@ impl UserRepository for PostgresUserRepository {
         let mut oc_updated_ats = Vec::<DateTime<Utc>>::new();
 
         for oc in data.otp_codes() {
-            oc_codes.push(oc.code().to_owned());
+            oc_codes.push(oc.code().as_inner().to_owned());
             oc_expired_ats.push(oc.expires_at());
             oc_used_ats.push(oc.used_at());
             oc_created_ats.push(oc.created_at());

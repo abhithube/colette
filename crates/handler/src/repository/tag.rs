@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
-use colette_core::{common::RepositoryError, pagination::Cursor};
+use colette_common::RepositoryError;
+use colette_core::pagination::Cursor;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]

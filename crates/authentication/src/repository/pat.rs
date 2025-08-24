@@ -1,8 +1,6 @@
-use crate::{
-    auth::UserId,
-    common::RepositoryError,
-    pat::{LookupHash, PatByLookupHash, PatId, PersonalAccessToken},
-};
+use colette_common::RepositoryError;
+
+use crate::{LookupHash, PatByLookupHash, PatId, PersonalAccessToken, UserId};
 
 #[async_trait::async_trait]
 pub trait PatRepository: Send + Sync + 'static {

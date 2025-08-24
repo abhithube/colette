@@ -1,4 +1,5 @@
-use colette_core::{common::RepositoryError, entry::EntryError};
+use colette_common::RepositoryError;
+use colette_core::entry::EntryError;
 use uuid::Uuid;
 
 use crate::{EntryDto, EntryQueryRepository, Handler};

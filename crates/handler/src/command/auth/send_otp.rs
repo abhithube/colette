@@ -1,9 +1,10 @@
 use chrono::{DateTime, Utc};
-use colette_core::{
-    User,
-    auth::{OTP_CODE_EXPIRATION_MIN, UserError, UserRepository},
-    common::RepositoryError,
+use colette_authentication::{
+    CodeValue, OTP_CODE_EXPIRATION_MIN, OTP_CODE_LEN, OTP_MAX_ATTEMPTS, OtpCode, User, UserError,
+    UserRepository,
 };
+use colette_common::RepositoryError;
+use colette_crypto::CodeGenerator;
 use colette_smtp::{SmtpClient, SmtpEmail};
 use email_address::EmailAddress;
 
@@ -21,22 +22,26 @@ pub struct SendOtpCommand {
     pub email: String,
 }
 
-pub struct SendOtpHandler<UR: UserRepository, SC: SmtpClient> {
+pub struct SendOtpHandler<UR: UserRepository, SC: SmtpClient, CG: CodeGenerator> {
     user_repository: UR,
     smtp_client: SC,
+    otp_code_generator: CG,
 }
 
-impl<UR: UserRepository, SC: SmtpClient> SendOtpHandler<UR, SC> {
-    pub fn new(user_repository: UR, smtp_client: SC) -> Self {
+impl<UR: UserRepository, SC: SmtpClient, CG: CodeGenerator> SendOtpHandler<UR, SC, CG> {
+    pub fn new(user_repository: UR, smtp_client: SC, otp_code_generator: CG) -> Self {
         Self {
             user_repository,
             smtp_client,
+            otp_code_generator,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<UR: UserRepository, SC: SmtpClient> Handler<SendOtpCommand> for SendOtpHandler<UR, SC> {
+impl<UR: UserRepository, SC: SmtpClient, CG: CodeGenerator> Handler<SendOtpCommand>
+    for SendOtpHandler<UR, SC, CG>
+{
     type Response = OtpData;
     type Error = SendOtpError;
 
@@ -53,7 +58,30 @@ impl<UR: UserRepository, SC: SmtpClient> Handler<SendOtpCommand> for SendOtpHand
 
         user.check_otp_rate_limit()?;
 
-        let otp_code = user.generate_otp_code()?;
+        let mut attempts = 0;
+        let otp_code = loop {
+            let code = self.otp_code_generator.generate(OTP_CODE_LEN);
+            let code = String::from_utf8_lossy(&code).into_owned();
+            let code = match CodeValue::new(code) {
+                Ok(code) => code,
+                Err(e) => return Err(SendOtpError::User(UserError::Otp(e))),
+            };
+
+            let otp_code = OtpCode::new(code);
+
+            if user.otp_codes().iter().any(|e| e.code() == otp_code.code()) {
+                attempts += 1;
+                if attempts >= OTP_MAX_ATTEMPTS {
+                    return Err(SendOtpError::User(UserError::TooManyOtpCodes));
+                }
+
+                continue;
+            }
+
+            user.add_otp_code(otp_code.clone())?;
+
+            break otp_code;
+        };
 
         let to_address = if let Some(display_name) = user.display_name() {
             user.email().to_display(display_name.as_inner())
@@ -62,7 +90,7 @@ impl<UR: UserRepository, SC: SmtpClient> Handler<SendOtpCommand> for SendOtpHand
         };
 
         let body = OTP_EMAIL_BODY
-            .replace(OTP_CODE_PLACEHOLDER, otp_code.code())
+            .replace(OTP_CODE_PLACEHOLDER, otp_code.code().as_inner())
             .replace(
                 OTP_EXPIRATION_MIN_PLACEHOLDER,
                 &OTP_CODE_EXPIRATION_MIN.to_string(),

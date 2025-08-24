@@ -11,7 +11,9 @@ use axum_extra::{
     headers::{Authorization, HeaderMapExt, authorization::Bearer},
 };
 use chrono::{DateTime, Utc};
-use colette_core::{auth::UserId, filter};
+use colette_authentication::UserId;
+use colette_core::filter;
+use colette_crypto::OtpCodeGenerator;
 use colette_handler::*;
 use colette_http::ReqwestClient;
 use colette_jwt::JwtManagerImpl;
@@ -64,7 +66,7 @@ pub struct S3Config {
 #[derive(Clone, axum::extract::FromRef)]
 pub struct ApiState {
     // Auth
-    pub send_otp: Arc<SendOtpHandler<PostgresUserRepository, SmtpClientImpl>>,
+    pub send_otp: Arc<SendOtpHandler<PostgresUserRepository, SmtpClientImpl, OtpCodeGenerator>>,
     pub verify_otp: Arc<VerifyOtpHandler<PostgresUserRepository, JwtManagerImpl>>,
     pub build_authorization_url: Option<Arc<BuildAuthorizationUrlHandler<OidcClientImpl>>>,
     pub exchange_code:

@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use colette_core::{auth::UserId, bookmark::BookmarkRepository, common::RepositoryError};
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
+use colette_core::bookmark::BookmarkRepository;
 use colette_http::HttpClient;
 use colette_scraper::bookmark::{BookmarkError, BookmarkScraper};
 use url::Url;

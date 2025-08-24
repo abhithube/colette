@@ -1,5 +1,5 @@
+use colette_common::RepositoryError;
 use colette_core::{
-    common::RepositoryError,
     entry::EntryFilter,
     pagination::{Paginated, paginate},
 };

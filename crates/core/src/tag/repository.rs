@@ -1,8 +1,7 @@
-use crate::{
-    auth::UserId,
-    common::RepositoryError,
-    tag::{Tag, TagId},
-};
+use colette_authentication::UserId;
+use colette_common::RepositoryError;
+
+use crate::tag::{Tag, TagId};
 
 #[async_trait::async_trait]
 pub trait TagRepository: Send + Sync + 'static {

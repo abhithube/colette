@@ -1,11 +1,9 @@
-use colette_core::{
-    auth::{JwtConfig, TokenData, TokenType, UserRepository},
-    common::RepositoryError,
-};
+use colette_authentication::UserRepository;
+use colette_common::RepositoryError;
 use colette_jwt::{Claims, JwtManager};
 use uuid::Uuid;
 
-use crate::Handler;
+use crate::{Handler, JwtConfig, TokenData, TokenType};
 
 #[derive(Debug, Clone)]
 pub struct RefreshAccessTokenCommand {
