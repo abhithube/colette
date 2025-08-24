@@ -3,10 +3,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    Handler as _,
-    bookmark::{BookmarkError, LinkBookmarkTagsCommand, LinkBookmarkTagsError},
-};
+use colette_core::bookmark::BookmarkError;
+use colette_handler::{Handler as _, LinkBookmarkTagsCommand, LinkBookmarkTagsError};
 use uuid::Uuid;
 
 use crate::{

@@ -4,7 +4,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{Handler as _, auth::GetUserQuery};
+use colette_handler::{GetUserQuery, Handler as _};
 
 use crate::{
     ApiState,

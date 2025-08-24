@@ -3,7 +3,7 @@ use axum::{
     http::{HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
-use colette_core::{Handler, bookmark::ExportBookmarksQuery};
+use colette_handler::{ExportBookmarksQuery, Handler as _};
 
 use crate::{
     ApiState,

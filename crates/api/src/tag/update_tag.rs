@@ -3,10 +3,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    Handler as _,
-    tag::{TagError, UpdateTagCommand, UpdateTagError},
-};
+use colette_core::tag::TagError;
+use colette_handler::{Handler as _, UpdateTagCommand, UpdateTagError};
 
 use crate::{
     ApiState,

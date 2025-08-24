@@ -3,35 +3,8 @@ use std::{error::Error, net::SocketAddr, sync::Arc};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use chrono::Duration;
 use colette_api::{ApiConfig, ApiOidcConfig, ApiS3Config, ApiServerConfig, ApiState};
-use colette_core::{
-    auth::{
-        BuildAuthorizationUrlHandler, CreatePatHandler, DeletePatHandler, ExchangeCodeHandler,
-        GetPatHandler, GetUserHandler, JwtConfig, ListPatsHandler, OidcConfig,
-        RefreshAccessTokenHandler, SendOtpHandler, UpdatePatHandler, ValidateAccessTokenHandler,
-        ValidatePatHandler, VerifyOtpHandler,
-    },
-    backup::{ExportBackupHandler, ImportBackupHandler},
-    bookmark::{
-        ArchiveThumbnailHandler, CreateBookmarkHandler, DeleteBookmarkHandler,
-        ExportBookmarksHandler, GetBookmarkHandler, ImportBookmarksHandler,
-        LinkBookmarkTagsHandler, ListBookmarksHandler, RefreshBookmarkHandler,
-        ScrapeBookmarkHandler, UpdateBookmarkHandler,
-    },
-    collection::{
-        CreateCollectionHandler, DeleteCollectionHandler, GetCollectionHandler,
-        ListCollectionsHandler, UpdateCollectionHandler,
-    },
-    entry::{
-        GetEntryHandler, ListEntriesHandler, MarkEntryAsReadHandler, MarkEntryAsUnreadHandler,
-    },
-    feed::{DetectFeedsHandler, ListFeedsHandler, RefreshFeedHandler},
-    subscription::{
-        CreateSubscriptionHandler, DeleteSubscriptionHandler, ExportSubscriptionsHandler,
-        GetSubscriptionHandler, ImportSubscriptionsHandler, LinkSubscriptionTagsHandler,
-        ListSubscriptionsHandler, UpdateSubscriptionHandler,
-    },
-    tag::{CreateTagHandler, DeleteTagHandler, GetTagHandler, ListTagsHandler, UpdateTagHandler},
-};
+use colette_core::auth::{JwtConfig, OidcConfig};
+use colette_handler::*;
 use colette_http::ReqwestClient;
 use colette_job::{
     archive_thumbnail::ArchiveThumbnailJobHandler, import_bookmarks::ImportBookmarksJobHandler,
@@ -42,12 +15,7 @@ use colette_jwt::JwtManagerImpl;
 use colette_oidc::OidcClientImpl;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::TokioQueue;
-use colette_repository::{
-    PostgresBackupRepository, PostgresBookmarkRepository, PostgresCollectionRepository,
-    PostgresEntryRepository, PostgresFeedEntryRepository, PostgresFeedRepository,
-    PostgresPatRepository, PostgresSubscriptionRepository, PostgresTagRepository,
-    PostgresUserRepository,
-};
+use colette_repository::*;
 use colette_s3::S3ClientImpl;
 use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
 use colette_smtp::{SmtpClientImpl, SmtpConfig};

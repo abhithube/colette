@@ -4,10 +4,8 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
-use colette_core::{
-    Handler as _,
-    bookmark::{BookmarkError, CreateBookmarkCommand, CreateBookmarkError},
-};
+use colette_core::bookmark::BookmarkError;
+use colette_handler::{CreateBookmarkCommand, CreateBookmarkError, Handler as _};
 use url::Url;
 
 use crate::{

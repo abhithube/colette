@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bytes::Bytes;
-use colette_core::{Handler as _, backup::ImportBackupCommand};
+use colette_handler::{Handler as _, ImportBackupCommand};
 
 use crate::{
     ApiState,

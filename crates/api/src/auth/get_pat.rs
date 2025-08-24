@@ -4,10 +4,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    Handler as _,
-    auth::{GetPatError, GetPatQuery, PatError},
-};
+use colette_core::auth::PatError;
+use colette_handler::{GetPatError, GetPatQuery, Handler as _};
 
 use crate::{
     ApiState,

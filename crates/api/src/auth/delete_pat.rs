@@ -3,10 +3,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    Handler as _,
-    auth::{DeletePatCommand, DeletePatError, PatError, UserError},
-};
+use colette_core::auth::{PatError, UserError};
+use colette_handler::{DeletePatCommand, DeletePatError, Handler as _};
 
 use crate::{
     ApiState,

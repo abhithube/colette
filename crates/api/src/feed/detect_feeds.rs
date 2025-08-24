@@ -3,10 +3,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    Handler as _,
-    feed::{self, DetectFeedsCommand, DetectFeedsError},
-};
+use colette_core::feed;
+use colette_handler::{DetectFeedsCommand, DetectFeedsError, Handler as _};
 use url::Url;
 
 use crate::{

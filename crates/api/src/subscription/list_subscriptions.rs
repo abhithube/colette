@@ -4,10 +4,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    Handler as _,
-    subscription::{ListSubscriptionsQuery, SubscriptionCursor},
-};
+use colette_core::subscription::SubscriptionCursor;
+use colette_handler::{Handler as _, ListSubscriptionsQuery};
 use uuid::Uuid;
 
 use crate::{

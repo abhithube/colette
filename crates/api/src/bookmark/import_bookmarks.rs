@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bytes::Bytes;
-use colette_core::{Handler, bookmark::ImportBookmarksCommand};
+use colette_handler::{Handler as _, ImportBookmarksCommand};
 
 use crate::{
     ApiState,

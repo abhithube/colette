@@ -11,47 +11,13 @@ use axum_extra::{
     headers::{Authorization, HeaderMapExt, authorization::Bearer},
 };
 use chrono::{DateTime, Utc};
-use colette_core::{
-    Handler as _,
-    auth::{
-        BuildAuthorizationUrlHandler, CreatePatHandler, DeletePatHandler, ExchangeCodeHandler,
-        GetPatHandler, GetUserHandler, ListPatsHandler, RefreshAccessTokenHandler, SendOtpHandler,
-        UpdatePatHandler, UserId, ValidateAccessTokenHandler, ValidateAccessTokenQuery,
-        ValidatePatHandler, ValidatePatQuery, VerifyOtpHandler,
-    },
-    backup::{ExportBackupHandler, ImportBackupHandler},
-    bookmark::{
-        ArchiveThumbnailHandler, CreateBookmarkHandler, DeleteBookmarkHandler,
-        ExportBookmarksHandler, GetBookmarkHandler, ImportBookmarksHandler,
-        LinkBookmarkTagsHandler, ListBookmarksHandler, RefreshBookmarkHandler,
-        ScrapeBookmarkHandler, UpdateBookmarkHandler,
-    },
-    collection::{
-        CreateCollectionHandler, DeleteCollectionHandler, GetCollectionHandler,
-        ListCollectionsHandler, UpdateCollectionHandler,
-    },
-    entry::{
-        GetEntryHandler, ListEntriesHandler, MarkEntryAsReadHandler, MarkEntryAsUnreadHandler,
-    },
-    feed::{DetectFeedsHandler, RefreshFeedHandler},
-    filter,
-    subscription::{
-        CreateSubscriptionHandler, DeleteSubscriptionHandler, ExportSubscriptionsHandler,
-        GetSubscriptionHandler, ImportSubscriptionsHandler, LinkSubscriptionTagsHandler,
-        ListSubscriptionsHandler, UpdateSubscriptionHandler,
-    },
-    tag::{CreateTagHandler, DeleteTagHandler, GetTagHandler, ListTagsHandler, UpdateTagHandler},
-};
+use colette_core::{auth::UserId, filter};
+use colette_handler::*;
 use colette_http::ReqwestClient;
 use colette_jwt::JwtManagerImpl;
 use colette_oidc::OidcClientImpl;
 use colette_queue::TokioJobProducer;
-use colette_repository::{
-    PostgresBackupRepository, PostgresBookmarkRepository, PostgresCollectionRepository,
-    PostgresEntryRepository, PostgresFeedEntryRepository, PostgresFeedRepository,
-    PostgresPatRepository, PostgresSubscriptionRepository, PostgresTagRepository,
-    PostgresUserRepository,
-};
+use colette_repository::*;
 use colette_s3::S3ClientImpl;
 use colette_smtp::SmtpClientImpl;
 use url::Url;

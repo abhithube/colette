@@ -9,6 +9,7 @@ axum-embed = { version = "0.1.0", default-features = false }
 chrono.workspace = true
 colette-api.workspace = true
 colette-core.workspace = true
+colette-handler.workspace = true
 colette-http.workspace = true
 colette-job.workspace = true
 colette-jwt.workspace = true

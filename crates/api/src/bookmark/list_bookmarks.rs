@@ -4,10 +4,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    Handler as _,
-    bookmark::{BookmarkCursor, ListBookmarksQuery},
-};
+use colette_core::bookmark::BookmarkCursor;
+use colette_handler::{Handler as _, ListBookmarksQuery};
 use uuid::Uuid;
 
 use crate::{

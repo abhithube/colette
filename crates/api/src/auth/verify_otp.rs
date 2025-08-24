@@ -4,10 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::CookieJar;
-use colette_core::{
-    Handler as _,
-    auth::{LoginUserError, VerifyOtpCommand},
-};
+use colette_handler::{Handler as _, LoginUserError, VerifyOtpCommand};
 
 use crate::{
     ApiState,

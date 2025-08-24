@@ -4,10 +4,8 @@ use std::{
     task::{Context, Poll},
 };
 
-use colette_core::{
-    Handler as _,
-    bookmark::{RefreshBookmarkCommand, RefreshBookmarkHandler, ScrapeBookmarkJobData},
-};
+use colette_core::bookmark::ScrapeBookmarkJobData;
+use colette_handler::{Handler as _, RefreshBookmarkCommand, RefreshBookmarkHandler};
 use colette_http::ReqwestClient;
 use colette_queue::Job;
 use colette_repository::PostgresBookmarkRepository;

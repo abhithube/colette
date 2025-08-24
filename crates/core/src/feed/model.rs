@@ -70,7 +70,7 @@ impl Display for FeedStatus {
 }
 
 impl FromStr for FeedStatus {
-    type Err = serde_json::Error;
+    type Err = FeedError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -108,3 +108,6 @@ pub struct FeedDetected {
 pub struct ScrapeFeedJobData {
     pub url: Url,
 }
+
+#[derive(Debug, thiserror::Error)]
+pub enum FeedError {}

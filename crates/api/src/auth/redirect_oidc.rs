@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Redirect, Response},
 };
 use axum_extra::extract::CookieJar;
-use colette_core::{Handler as _, auth::BuildAuthorizationUrlQuery};
+use colette_handler::{BuildAuthorizationUrlQuery, Handler as _};
 
 use crate::{
     ApiState,

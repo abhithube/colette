@@ -45,6 +45,7 @@ pub struct SubscriptionFindParams {
 pub struct ImportSubscriptionsParams {
     pub subscription_items: Vec<SubscriptionBatchItem>,
     pub tag_titles: Vec<String>,
+    pub feed_refresh_interval: u32,
     pub user_id: UserId,
 }
 

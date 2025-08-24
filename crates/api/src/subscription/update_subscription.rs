@@ -3,10 +3,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    Handler as _,
-    subscription::{SubscriptionError, UpdateSubscriptionCommand, UpdateSubscriptionError},
-};
+use colette_core::subscription::SubscriptionError;
+use colette_handler::{Handler as _, UpdateSubscriptionCommand, UpdateSubscriptionError};
 
 use crate::{
     ApiState,

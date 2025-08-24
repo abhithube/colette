@@ -4,6 +4,7 @@ members = [
   "crates/api",
   "crates/core",
   "crates/feed",
+  "crates/handler",
   "crates/http",
   "crates/job",
   "crates/jwt",
@@ -38,6 +39,7 @@ chrono = { version = "0.4.39", default-features = false, features = [
 colette-api.path = "crates/api"
 colette-core.path = "crates/core"
 colette-feed.path = "crates/feed"
+colette-handler.path = "crates/handler"
 colette-http.path = "crates/http"
 colette-job.path = "crates/job"
 colette-jwt.path = "crates/jwt"

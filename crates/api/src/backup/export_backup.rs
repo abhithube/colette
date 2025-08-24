@@ -3,7 +3,7 @@ use axum::{
     http::{HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
 };
-use colette_core::{Handler as _, backup::ExportBackupCommand};
+use colette_handler::{ExportBackupCommand, Handler as _};
 
 use crate::{
     ApiState,

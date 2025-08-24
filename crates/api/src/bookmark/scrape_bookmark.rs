@@ -4,10 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
-use colette_core::{
-    Handler as _,
-    bookmark::{self, ScrapeBookmarkCommand},
-};
+use colette_handler::{Handler as _, ScrapeBookmarkCommand};
 use url::Url;
 
 use crate::{
@@ -67,8 +64,8 @@ pub(super) struct BookmarkScraped {
     author: Option<String>,
 }
 
-impl From<bookmark::BookmarkScraped> for BookmarkScraped {
-    fn from(value: bookmark::BookmarkScraped) -> Self {
+impl From<colette_handler::BookmarkScraped> for BookmarkScraped {
+    fn from(value: colette_handler::BookmarkScraped) -> Self {
         Self {
             link: value.link,
             title: value.title,

@@ -4,11 +4,9 @@ use std::{
     task::{Context, Poll},
 };
 
-use colette_core::{
-    Handler as _,
-    bookmark::{
-        ImportBookmarksJobData, ListBookmarksHandler, ListBookmarksQuery, ScrapeBookmarkJobData,
-    },
+use colette_core::bookmark::ScrapeBookmarkJobData;
+use colette_handler::{
+    Handler as _, ImportBookmarksJobData, ListBookmarksHandler, ListBookmarksQuery,
 };
 use colette_queue::{Job, JobProducer, TokioJobProducer};
 use colette_repository::{PostgresBookmarkRepository, PostgresCollectionRepository};

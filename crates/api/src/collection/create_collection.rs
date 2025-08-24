@@ -3,10 +3,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    Handler as _,
-    collection::{CollectionError, CreateCollectionCommand, CreateCollectionError},
-};
+use colette_core::collection::CollectionError;
+use colette_handler::{CreateCollectionCommand, CreateCollectionError, Handler as _};
 
 use crate::{
     ApiState,

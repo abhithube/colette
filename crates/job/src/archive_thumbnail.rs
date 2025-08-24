@@ -4,13 +4,8 @@ use std::{
     task::{Context, Poll},
 };
 
-use colette_core::{
-    Handler as _,
-    bookmark::{
-        ArchiveThumbnailCommand, ArchiveThumbnailHandler, ArchiveThumbnailJobData,
-        ThumbnailOperation,
-    },
-};
+use colette_core::bookmark::{ArchiveThumbnailJobData, ThumbnailOperation};
+use colette_handler::{ArchiveThumbnailCommand, ArchiveThumbnailHandler, Handler as _};
 use colette_http::ReqwestClient;
 use colette_queue::Job;
 use colette_repository::PostgresBookmarkRepository;

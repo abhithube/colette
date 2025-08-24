@@ -4,10 +4,8 @@ use std::{
     task::{Context, Poll},
 };
 
-use colette_core::{
-    Handler as _,
-    feed::{RefreshFeedCommand, RefreshFeedHandler, ScrapeFeedJobData},
-};
+use colette_core::feed::ScrapeFeedJobData;
+use colette_handler::{Handler as _, RefreshFeedCommand, RefreshFeedHandler};
 use colette_http::ReqwestClient;
 use colette_queue::Job;
 use colette_repository::{PostgresFeedEntryRepository, PostgresFeedRepository};

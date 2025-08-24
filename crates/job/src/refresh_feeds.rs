@@ -4,10 +4,8 @@ use std::{
     task::{Context, Poll},
 };
 
-use colette_core::{
-    Handler as _,
-    feed::{ListFeedsHandler, ListFeedsQuery, ScrapeFeedJobData},
-};
+use colette_core::feed::ScrapeFeedJobData;
+use colette_handler::{Handler as _, ListFeedsHandler, ListFeedsQuery};
 use colette_queue::{Job, JobProducer, TokioJobProducer};
 use colette_repository::PostgresFeedRepository;
 use futures::FutureExt;

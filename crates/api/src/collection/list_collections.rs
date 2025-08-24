@@ -4,10 +4,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    Handler as _,
-    collection::{CollectionCursor, ListCollectionsQuery},
-};
+use colette_core::collection::CollectionCursor;
+use colette_handler::{Handler as _, ListCollectionsQuery};
 
 use crate::{
     ApiState,

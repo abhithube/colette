@@ -3,10 +3,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    Handler as _,
-    bookmark::{BookmarkError, DeleteBookmarkCommand, DeleteBookmarkError},
-};
+use colette_core::bookmark::BookmarkError;
+use colette_handler::{DeleteBookmarkCommand, DeleteBookmarkError, Handler as _};
 
 use crate::{
     ApiState,

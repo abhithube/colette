@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub(crate) trait Cursor {
+pub trait Cursor {
     type Data: Serialize + for<'de> Deserialize<'de>;
 
     fn to_cursor(&self) -> Self::Data;
@@ -21,7 +21,7 @@ impl<T, U> Default for Paginated<T, U> {
     }
 }
 
-pub(crate) fn paginate<I, T: Cursor<Data = I>>(mut items: Vec<T>, limit: usize) -> Paginated<T, I> {
+pub fn paginate<I, T: Cursor<Data = I>>(mut items: Vec<T>, limit: usize) -> Paginated<T, I> {
     if limit == 0 {
         return Paginated {
             items,

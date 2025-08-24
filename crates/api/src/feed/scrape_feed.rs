@@ -3,10 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    Handler as _,
-    feed::{RefreshFeedCommand, RefreshFeedError},
-};
+use colette_handler::{Handler as _, RefreshFeedCommand, RefreshFeedError};
 use url::Url;
 
 use crate::{

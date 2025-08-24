@@ -3,7 +3,6 @@ use colette_core::{
     Subscription,
     auth::UserId,
     common::RepositoryError,
-    feed::DEFAULT_INTERVAL,
     subscription::{
         ImportSubscriptionsParams, SubscriptionDto, SubscriptionFindParams, SubscriptionId,
         SubscriptionRepository,
@@ -146,7 +145,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             &feed_source_urls as &[DbUrl],
             &feed_links as &[DbUrl],
             &feed_titles,
-            DEFAULT_INTERVAL as i32,
+            params.feed_refresh_interval as i32,
             &tag_titles,
             &st_feed_source_urls as &[DbUrl],
             &st_tag_titles,

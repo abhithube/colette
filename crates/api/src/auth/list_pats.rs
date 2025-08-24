@@ -4,10 +4,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    Handler as _,
-    auth::{ListPatsError, ListPatsQuery, PatCursor},
-};
+use colette_core::auth::PatCursor;
+use colette_handler::{Handler as _, ListPatsQuery};
 
 use crate::{
     ApiState,
@@ -82,12 +80,6 @@ pub(super) enum ErrResponse {
 
     #[response(status = "default", description = "Unknown error")]
     InternalServerError(ApiError),
-}
-
-impl From<ListPatsError> for ErrResponse {
-    fn from(value: ListPatsError) -> Self {
-        ErrResponse::InternalServerError(value.into())
-    }
 }
 
 impl IntoResponse for ErrResponse {

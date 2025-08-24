@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::CookieJar;
-use colette_core::{Handler as _, auth::RefreshAccessTokenCommand};
+use colette_handler::{Handler as _, RefreshAccessTokenCommand};
 
 use crate::{
     ApiState,

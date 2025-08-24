@@ -4,10 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
-use colette_core::{
-    Handler as _,
-    auth::{self, CreatePatCommand},
-};
+use colette_handler::{CreatePatCommand, Handler as _};
 use uuid::Uuid;
 
 use crate::{
@@ -67,8 +64,8 @@ pub(super) struct PatCreated {
     created_at: DateTime<Utc>,
 }
 
-impl From<auth::PatCreated> for PatCreated {
-    fn from(value: auth::PatCreated) -> Self {
+impl From<colette_handler::PatCreated> for PatCreated {
+    fn from(value: colette_handler::PatCreated) -> Self {
         Self {
             id: value.id().as_inner(),
             value: value.value().as_inner().to_owned(),

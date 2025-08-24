@@ -3,10 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    Handler as _,
-    subscription::{CreateSubscriptionCommand, CreateSubscriptionError},
-};
+use colette_handler::{CreateSubscriptionCommand, CreateSubscriptionError, Handler as _};
 use uuid::Uuid;
 
 use crate::{

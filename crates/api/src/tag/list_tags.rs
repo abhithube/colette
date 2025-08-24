@@ -4,10 +4,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    Handler as _,
-    tag::{ListTagsQuery, TagCursor},
-};
+use colette_core::tag::TagCursor;
+use colette_handler::{Handler as _, ListTagsQuery};
 
 use crate::{
     ApiState,

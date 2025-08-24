@@ -4,10 +4,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    Handler as _,
-    bookmark::{BookmarkError, GetBookmarkError, GetBookmarkQuery},
-};
+use colette_core::bookmark::BookmarkError;
+use colette_handler::{GetBookmarkError, GetBookmarkQuery, Handler as _};
 
 use crate::{
     ApiState,
