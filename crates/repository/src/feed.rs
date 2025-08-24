@@ -125,7 +125,6 @@ impl FeedRepository for PostgresFeedRepository {
     }
 }
 
-#[derive(serde::Deserialize)]
 pub(crate) struct FeedRow {
     id: Uuid,
     source_url: DbUrl,
@@ -154,7 +153,6 @@ impl From<FeedRow> for Feed {
     }
 }
 
-#[derive(serde::Deserialize)]
 pub(crate) struct DbFeedStatus(FeedStatus);
 
 impl From<DbFeedStatus> for FeedStatus {

@@ -150,7 +150,7 @@ impl Subscription {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SubscriptionId(Uuid);
 
 impl SubscriptionId {

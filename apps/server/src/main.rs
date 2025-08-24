@@ -21,8 +21,7 @@ use colette_core::{
         CreateCollectionHandler, DeleteCollectionHandler, GetCollectionHandler,
         ListCollectionsHandler, UpdateCollectionHandler,
     },
-    feed::{DetectFeedsHandler, GetFeedHandler, ListFeedsHandler, RefreshFeedHandler},
-    feed_entry::{GetFeedEntryHandler, ListFeedEntriesHandler},
+    feed::{DetectFeedsHandler, ListFeedsHandler, RefreshFeedHandler},
     subscription::{
         CreateSubscriptionHandler, DeleteSubscriptionHandler, ExportSubscriptionsHandler,
         GetSubscriptionHandler, ImportSubscriptionsHandler, LinkSubscriptionTagsHandler,
@@ -253,14 +252,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         delete_collection: Arc::new(DeleteCollectionHandler::new(collection_repository.clone())),
 
         // Feeds
-        list_feeds: list_feeds_handler.clone(),
-        get_feed: Arc::new(GetFeedHandler::new(feed_repository)),
         detect_feeds: Arc::new(DetectFeedsHandler::new(http_client, feed_scraper)),
         refresh_feed: refresh_feed_handler.clone(),
-
-        // Feed Entries
-        list_feed_entries: Arc::new(ListFeedEntriesHandler::new(feed_entry_repository.clone())),
-        get_feed_entry: Arc::new(GetFeedEntryHandler::new(feed_entry_repository)),
 
         // Subscriptions
         list_subscriptions: Arc::new(ListSubscriptionsHandler::new(

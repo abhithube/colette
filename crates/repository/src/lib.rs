@@ -28,7 +28,7 @@ mod subscription_entry;
 mod tag;
 mod user;
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone)]
 pub(crate) struct DbUrl(Url);
 
 impl From<DbUrl> for Url {

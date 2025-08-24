@@ -4,9 +4,9 @@ use chrono::{DateTime, Utc};
 use url::Url;
 use uuid::Uuid;
 
-use crate::{feed::FeedId, pagination::Cursor};
+use crate::feed::FeedId;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone)]
 pub struct FeedEntry {
     pub id: FeedEntryId,
     pub link: Url,
@@ -18,7 +18,7 @@ pub struct FeedEntry {
     pub feed_id: FeedId,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FeedEntryId(Uuid);
 
 impl FeedEntryId {
@@ -40,22 +40,5 @@ impl From<Uuid> for FeedEntryId {
 impl fmt::Display for FeedEntryId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.as_inner().fmt(f)
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct FeedEntryCursor {
-    pub published_at: DateTime<Utc>,
-    pub id: FeedEntryId,
-}
-
-impl Cursor for FeedEntry {
-    type Data = FeedEntryCursor;
-
-    fn to_cursor(&self) -> Self::Data {
-        Self::Data {
-            published_at: self.published_at,
-            id: self.id,
-        }
     }
 }

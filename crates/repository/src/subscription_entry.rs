@@ -48,7 +48,7 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
         params: SubscriptionEntryFindParams,
     ) -> Result<Vec<SubscriptionEntry>, RepositoryError> {
         let (cursor_published_at, cursor_id) = if let Some((published_at, id)) = params.cursor {
-            (Some(published_at), Some(id.as_inner()))
+            (Some(published_at), Some(id))
         } else {
             (None, None)
         };

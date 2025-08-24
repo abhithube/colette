@@ -23,7 +23,7 @@ pub struct SubscriptionEntry {
     pub user_id: UserId,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SubscriptionEntryId(Uuid);
 
 impl SubscriptionEntryId {
@@ -51,7 +51,7 @@ impl fmt::Display for SubscriptionEntryId {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SubscriptionEntryCursor {
     pub published_at: DateTime<Utc>,
-    pub id: FeedEntryId,
+    pub id: Uuid,
 }
 
 impl Cursor for SubscriptionEntry {
@@ -60,7 +60,7 @@ impl Cursor for SubscriptionEntry {
     fn to_cursor(&self) -> Self::Data {
         Self::Data {
             published_at: self.feed_entry.published_at,
-            id: self.feed_entry.id,
+            id: self.feed_entry.id.as_inner(),
         }
     }
 }

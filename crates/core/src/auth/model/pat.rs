@@ -211,7 +211,7 @@ impl PatPreview {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PatId(Uuid);
 
 impl PatId {

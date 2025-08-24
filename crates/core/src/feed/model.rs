@@ -9,23 +9,20 @@ use uuid::Uuid;
 
 use crate::pagination::Cursor;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Feed {
     pub id: FeedId,
     pub source_url: Url,
     pub link: Url,
     pub title: String,
     pub description: Option<String>,
-    #[serde(skip_serializing, default = "default_refresh_interval_min")]
     pub refresh_interval_min: u32,
-    #[serde(skip_serializing, default = "FeedStatus::default")]
     pub status: FeedStatus,
-    #[serde(skip_serializing)]
     pub refreshed_at: Option<DateTime<Utc>>,
     pub is_custom: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FeedId(Uuid);
 
 impl FeedId {
@@ -50,8 +47,7 @@ impl fmt::Display for FeedId {
     }
 }
 
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-#[serde(rename = "lowercase")]
+#[derive(Debug, Clone, Default)]
 pub enum FeedStatus {
     #[default]
     Pending,
@@ -87,10 +83,6 @@ impl FromStr for FeedStatus {
     }
 }
 
-fn default_refresh_interval_min() -> u32 {
-    60
-}
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FeedCursor {
     pub source_url: Url,
@@ -106,7 +98,7 @@ impl Cursor for Feed {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone)]
 pub struct FeedDetected {
     pub url: Url,
     pub title: String,

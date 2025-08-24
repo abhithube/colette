@@ -80,7 +80,6 @@ impl From<PersonalAccessTokenRow> for PersonalAccessToken {
     }
 }
 
-#[derive(serde::Deserialize)]
 pub(crate) struct PatByLookupHashRow {
     id: Uuid,
     verification_hash: String,

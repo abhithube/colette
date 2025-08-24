@@ -30,8 +30,7 @@ use colette_core::{
         CreateCollectionHandler, DeleteCollectionHandler, GetCollectionHandler,
         ListCollectionsHandler, UpdateCollectionHandler,
     },
-    feed::{DetectFeedsHandler, GetFeedHandler, ListFeedsHandler, RefreshFeedHandler},
-    feed_entry::{GetFeedEntryHandler, ListFeedEntriesHandler},
+    feed::{DetectFeedsHandler, RefreshFeedHandler},
     filter,
     subscription::{
         CreateSubscriptionHandler, DeleteSubscriptionHandler, ExportSubscriptionsHandler,
@@ -149,15 +148,9 @@ pub struct ApiState {
     pub delete_collection: Arc<DeleteCollectionHandler<PostgresCollectionRepository>>,
 
     // Feeds
-    pub list_feeds: Arc<ListFeedsHandler<PostgresFeedRepository>>,
-    pub get_feed: Arc<GetFeedHandler<PostgresFeedRepository>>,
     pub detect_feeds: Arc<DetectFeedsHandler<ReqwestClient>>,
     pub refresh_feed:
         Arc<RefreshFeedHandler<PostgresFeedRepository, PostgresFeedEntryRepository, ReqwestClient>>,
-
-    // Feed Entries
-    pub list_feed_entries: Arc<ListFeedEntriesHandler<PostgresFeedEntryRepository>>,
-    pub get_feed_entry: Arc<GetFeedEntryHandler<PostgresFeedEntryRepository>>,
 
     // Subscriptions
     pub list_subscriptions: Arc<ListSubscriptionsHandler<PostgresSubscriptionRepository>>,

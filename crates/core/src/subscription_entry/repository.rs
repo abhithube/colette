@@ -1,12 +1,12 @@
 use chrono::{DateTime, Utc};
+use uuid::Uuid;
 
 use crate::{
+    auth::UserId,
     common::RepositoryError,
-    feed_entry::FeedEntryId,
     subscription::SubscriptionId,
     subscription_entry::{SubscriptionEntry, SubscriptionEntryFilter, SubscriptionEntryId},
     tag::TagId,
-    auth::UserId,
 };
 
 #[async_trait::async_trait]
@@ -46,7 +46,7 @@ pub struct SubscriptionEntryFindParams {
     pub has_read: Option<bool>,
     pub tags: Option<Vec<TagId>>,
     pub user_id: Option<UserId>,
-    pub cursor: Option<(DateTime<Utc>, FeedEntryId)>,
+    pub cursor: Option<(DateTime<Utc>, Uuid)>,
     pub limit: Option<usize>,
     pub with_feed_entry: bool,
 }
