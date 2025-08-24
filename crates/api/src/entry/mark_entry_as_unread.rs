@@ -5,24 +5,24 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    subscription_entry::{MarkSubscriptionEntryAsReadCommand, MarkSubscriptionEntryAsReadError},
+    entry::{EntryError, MarkEntryAsUnreadCommand, MarkEntryAsUnreadError},
 };
 use uuid::Uuid;
 
 use crate::{
     ApiState,
     common::{ApiError, Auth, Id, Path},
-    subscription_entry::SUBSCRIPTION_ENTRIES_TAG,
+    entry::ENTRIES_TAG,
 };
 
 #[utoipa::path(
   post,
-  path = "/{id}/markAsRead",
+  path = "/{id}/markAsUnread",
   params(Id),
   responses(OkResponse, ErrResponse),
-  operation_id = "markSubscriptionEntryAsRead",
-  description = "Mark a subscription entry as read",
-  tag = SUBSCRIPTION_ENTRIES_TAG
+  operation_id = "markEntryAsUnread",
+  description = "Mark an entry as unread",
+  tag = ENTRIES_TAG
 )]
 #[axum::debug_handler]
 pub(super) async fn handler(
@@ -31,8 +31,8 @@ pub(super) async fn handler(
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .mark_subscription_entry_as_read
-        .handle(MarkSubscriptionEntryAsReadCommand {
+        .mark_entry_as_unread
+        .handle(MarkEntryAsUnreadCommand {
             id: id.into(),
             user_id,
         })
@@ -40,14 +40,16 @@ pub(super) async fn handler(
     {
         Ok(()) => Ok(OkResponse),
         Err(e) => match e {
-            MarkSubscriptionEntryAsReadError::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            MarkEntryAsUnreadError::Entry(EntryError::NotFound(_)) => {
+                Err(ErrResponse::NotFound(e.into()))
+            }
             _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
 }
 
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::NO_CONTENT, description = "Successfully marked subscription entry as read")]
+#[response(status = StatusCode::NO_CONTENT, description = "Successfully marked entry as unread")]
 pub(super) struct OkResponse;
 
 impl IntoResponse for OkResponse {
@@ -62,7 +64,7 @@ pub(super) enum ErrResponse {
     #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
     Unauthorized(ApiError),
 
-    #[response(status = StatusCode::NOT_FOUND, description = "Subscription entry not found")]
+    #[response(status = StatusCode::NOT_FOUND, description = "Entry not found")]
     NotFound(ApiError),
 
     #[response(status = StatusCode::UNPROCESSABLE_ENTITY, description = "Invalid input")]

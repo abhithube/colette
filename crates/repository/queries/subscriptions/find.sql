@@ -19,16 +19,9 @@ FROM
     FROM
       subscriptions s_inner
       INNER JOIN feed_entries fe ON s_inner.feed_id = fe.feed_id
+      LEFT JOIN read_statuses rs ON rs.feed_entry_id = fe.id
     WHERE
-      NOT EXISTS (
-        SELECT
-          1
-        FROM
-          subscription_entries se
-        WHERE
-          se.subscription_id = s_inner.id
-          AND se.feed_entry_id = fe.id
-      )
+      rs.feed_entry_id IS NULL
     GROUP BY
       s_inner.id
   ) AS uc ON s.id = uc.subscription_id

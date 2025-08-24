@@ -85,17 +85,6 @@ WITH
     FROM
       subscriptions s
       JOIN upserted_feed f ON f.id = s.feed_id
-  ),
-  upserted_ses AS (
-    INSERT INTO
-      subscription_entries (subscription_id, feed_entry_id)
-    SELECT
-      s.id,
-      fe.id
-    FROM
-      upserted_fes fe
-      JOIN s ON s.feed_id = fe.feed_id
-    ON CONFLICT DO NOTHING
   )
 SELECT
   id

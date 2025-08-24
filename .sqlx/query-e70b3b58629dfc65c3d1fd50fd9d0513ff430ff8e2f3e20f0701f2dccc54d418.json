@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM read_statuses\nWHERE\n  feed_entry_id = $1\n  AND user_id = $2\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e70b3b58629dfc65c3d1fd50fd9d0513ff430ff8e2f3e20f0701f2dccc54d418"
+}

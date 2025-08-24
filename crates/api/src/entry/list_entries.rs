@@ -6,41 +6,41 @@ use axum::{
 };
 use colette_core::{
     Handler as _,
-    subscription_entry::{ListSubscriptionEntriesQuery, SubscriptionEntryCursor},
+    entry::{EntryCursor, ListEntriesQuery},
 };
 use uuid::Uuid;
 
 use crate::{
     ApiState,
     common::{ApiError, Auth, Query},
+    entry::{ENTRIES_TAG, Entry},
     pagination::{PAGINATION_LIMIT, Paginated, decode_cursor},
-    subscription_entry::{SUBSCRIPTION_ENTRIES_TAG, SubscriptionEntryDetails},
 };
 
 #[utoipa::path(
     get,
     path = "",
-    params(SubscriptionEntryListQuery),
+    params(EntryListQuery),
     responses(OkResponse, ErrResponse),
-    operation_id = "listSubscriptionEntries",
-    description = "List subscription entries",
-    tag = SUBSCRIPTION_ENTRIES_TAG
+    operation_id = "listEntries",
+    description = "List user entries",
+    tag = ENTRIES_TAG
 )]
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
-    Query(query): Query<SubscriptionEntryListQuery>,
+    Query(query): Query<EntryListQuery>,
     Auth { user_id }: Auth,
 ) -> Result<OkResponse, ErrResponse> {
     let cursor = query
         .cursor
-        .map(|e| decode_cursor::<SubscriptionEntryCursor>(&e))
+        .map(|e| decode_cursor::<EntryCursor>(&e))
         .transpose()
         .map_err(|e| ErrResponse::InternalServerError(e.into()))?;
 
     match state
-        .list_subscription_entries
-        .handle(ListSubscriptionEntriesQuery {
+        .list_entries
+        .handle(ListEntriesQuery {
             collection_id: query.collection_id.map(Into::into),
             subscription_id: query.subscription_id.map(Into::into),
             has_read: query.has_read,
@@ -51,8 +51,8 @@ pub(super) async fn handler(
         })
         .await
     {
-        Ok(subscription_entries) => {
-            let data = subscription_entries
+        Ok(entries) => {
+            let data = entries
                 .try_into()
                 .map_err(ErrResponse::InternalServerError)?;
 
@@ -65,28 +65,28 @@ pub(super) async fn handler(
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
-pub(super) struct SubscriptionEntryListQuery {
-    /// Filter by the ID of a collection whose filters may apply to the subscription entry
-    #[param(nullable = false)]
-    collection_id: Option<Uuid>,
+pub(super) struct EntryListQuery {
     /// Filter by the ID of the associated subscription
     #[param(nullable = false)]
     subscription_id: Option<Uuid>,
-    /// Filter by whether the subscription entry has been marked as read
+    /// Filter by whether the entry has been marked as read
     #[param(nullable = false)]
     has_read: Option<bool>,
     /// Filter by the IDs of the tags linked to the associated subscription
     #[param(nullable = false)]
     #[serde(rename = "tag[]")]
     tags: Option<Vec<Uuid>>,
+    /// Filter by the ID of a collection whose filters may apply to the entry
+    #[param(nullable = false)]
+    collection_id: Option<Uuid>,
     /// Pagination cursor
     #[param(nullable = false)]
     cursor: Option<String>,
 }
 
 #[derive(utoipa::IntoResponses)]
-#[response(status = StatusCode::OK, description = "Paginated list of subscription entries")]
-pub(super) struct OkResponse(Paginated<SubscriptionEntryDetails>);
+#[response(status = StatusCode::OK, description = "Paginated list of entries")]
+pub(super) struct OkResponse(Paginated<Entry>);
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {

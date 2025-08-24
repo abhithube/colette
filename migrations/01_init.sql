@@ -93,15 +93,12 @@ CREATE TABLE subscriptions (
   UNIQUE (user_id, feed_id)
 );
 
-CREATE TABLE subscription_entries (
-  id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
-  has_read BOOLEAN NOT NULL DEFAULT FALSE,
-  read_at TIMESTAMPTZ,
-  subscription_id UUID NOT NULL REFERENCES subscriptions (id) ON DELETE CASCADE,
+CREATE TABLE read_statuses (
   feed_entry_id UUID NOT NULL REFERENCES feed_entries (id) ON DELETE RESTRICT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (subscription_id, feed_entry_id)
+  user_id UUID NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
+  UNIQUE (user_id, feed_entry_id)
 );
 
 CREATE TABLE bookmarks (

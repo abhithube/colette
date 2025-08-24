@@ -100,17 +100,6 @@ WITH
       feed_entries fe
       JOIN f ON f.id = fe.feed_id
   ),
-  se AS (
-    INSERT INTO
-      subscription_entries (subscription_id, feed_entry_id)
-    SELECT
-      s.id,
-      fe.id
-    FROM
-      fe
-      JOIN s ON s.feed_id = fe.feed_id
-    ON CONFLICT DO NOTHING
-  ),
   orphaned_subscriptions AS (
     DELETE FROM subscriptions old USING s
     WHERE

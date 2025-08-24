@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  fe.id,\n  rs.created_at AS read_at,\n  rs.user_id\nFROM\n  feed_entries fe\n  LEFT JOIN read_statuses rs ON rs.feed_entry_id = fe.id\nWHERE\n  fe.id = $1\n  AND rs.user_id = $2\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "read_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ef0a61e8c73eed23b02f7e38399dfe618204d45e5fa737035c30af7f8507bd15"
+}

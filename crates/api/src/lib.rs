@@ -12,9 +12,9 @@ pub use common::{
     ServerConfig as ApiServerConfig,
 };
 use config::ConfigApi;
+use entry::EntryApi;
 use feed::FeedApi;
 use subscription::SubscriptionApi;
-use subscription_entry::SubscriptionEntryApi;
 use tag::TagApi;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use url::Url;
@@ -35,10 +35,10 @@ mod bookmark;
 mod collection;
 mod common;
 pub mod config;
+mod entry;
 mod feed;
 mod pagination;
 mod subscription;
-mod subscription_entry;
 mod tag;
 
 const API_PREFIX: &str = "/api";
@@ -56,9 +56,9 @@ const API_PREFIX: &str = "/api";
         (path = "/bookmarks", api = BookmarkApi),
         (path = "/collections", api = CollectionApi),
         (path = "/config", api = ConfigApi),
+        (path = "/entries", api = EntryApi),
         (path = "/feeds", api = FeedApi),
         (path = "/subscriptions", api = SubscriptionApi),
-        (path = "/subscriptionEntries", api = SubscriptionEntryApi),
         (path = "/tags", api = TagApi),
     ),
     components(schemas(CreatedResource, ApiError, TextOp, BooleanOp, DateOp)),
@@ -110,7 +110,7 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<Url>>) -> Rout
         .nest("/backups", BackupApi::router())
         .nest("/bookmarks", BookmarkApi::router())
         .nest("/collections", CollectionApi::router())
-        .nest("/subscriptionEntries", SubscriptionEntryApi::router())
+        .nest("/entries", EntryApi::router())
         .nest("/subscriptions", SubscriptionApi::router())
         .nest("/tags", TagApi::router())
         .layer(middleware::from_fn_with_state(

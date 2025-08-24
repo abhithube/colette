@@ -21,15 +21,14 @@ use colette_core::{
         CreateCollectionHandler, DeleteCollectionHandler, GetCollectionHandler,
         ListCollectionsHandler, UpdateCollectionHandler,
     },
+    entry::{
+        GetEntryHandler, ListEntriesHandler, MarkEntryAsReadHandler, MarkEntryAsUnreadHandler,
+    },
     feed::{DetectFeedsHandler, ListFeedsHandler, RefreshFeedHandler},
     subscription::{
         CreateSubscriptionHandler, DeleteSubscriptionHandler, ExportSubscriptionsHandler,
         GetSubscriptionHandler, ImportSubscriptionsHandler, LinkSubscriptionTagsHandler,
         ListSubscriptionsHandler, UpdateSubscriptionHandler,
-    },
-    subscription_entry::{
-        GetSubscriptionEntryHandler, ListSubscriptionEntriesHandler,
-        MarkSubscriptionEntryAsReadHandler, MarkSubscriptionEntryAsUnreadHandler,
     },
     tag::{CreateTagHandler, DeleteTagHandler, GetTagHandler, ListTagsHandler, UpdateTagHandler},
 };
@@ -45,8 +44,8 @@ use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::TokioQueue;
 use colette_repository::{
     PostgresBackupRepository, PostgresBookmarkRepository, PostgresCollectionRepository,
-    PostgresFeedEntryRepository, PostgresFeedRepository, PostgresPatRepository,
-    PostgresSubscriptionEntryRepository, PostgresSubscriptionRepository, PostgresTagRepository,
+    PostgresEntryRepository, PostgresFeedEntryRepository, PostgresFeedRepository,
+    PostgresPatRepository, PostgresSubscriptionRepository, PostgresTagRepository,
     PostgresUserRepository,
 };
 use colette_s3::S3ClientImpl;
@@ -94,7 +93,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let feed_entry_repository = PostgresFeedEntryRepository::new(pool.clone());
     let pat_repository = PostgresPatRepository::new(pool.clone());
     let subscription_repository = PostgresSubscriptionRepository::new(pool.clone());
-    let subscription_entry_repository = PostgresSubscriptionEntryRepository::new(pool.clone());
+    let entry_repository = PostgresEntryRepository::new(pool.clone());
     let tag_repository = PostgresTagRepository::new(pool.clone());
 
     let reqwest_client = reqwest::Client::builder().build()?;
@@ -277,20 +276,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )),
         export_subscriptions: Arc::new(ExportSubscriptionsHandler::new(subscription_repository)),
 
-        // Subscription Entries
-        list_subscription_entries: Arc::new(ListSubscriptionEntriesHandler::new(
-            subscription_entry_repository.clone(),
+        // Entries
+        list_entries: Arc::new(ListEntriesHandler::new(
+            entry_repository.clone(),
             collection_repository,
         )),
-        get_subscription_entry: Arc::new(GetSubscriptionEntryHandler::new(
-            subscription_entry_repository.clone(),
-        )),
-        mark_subscription_entry_as_read: Arc::new(MarkSubscriptionEntryAsReadHandler::new(
-            subscription_entry_repository.clone(),
-        )),
-        mark_subscription_entry_as_unread: Arc::new(MarkSubscriptionEntryAsUnreadHandler::new(
-            subscription_entry_repository,
-        )),
+        get_entry: Arc::new(GetEntryHandler::new(entry_repository.clone())),
+        mark_entry_as_read: Arc::new(MarkEntryAsReadHandler::new(entry_repository.clone())),
+        mark_entry_as_unread: Arc::new(MarkEntryAsUnreadHandler::new(entry_repository)),
 
         // Tags
         list_tags: Arc::new(ListTagsHandler::new(tag_repository.clone())),

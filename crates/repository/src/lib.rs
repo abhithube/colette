@@ -2,6 +2,7 @@ pub use backup::PostgresBackupRepository;
 pub use bookmark::PostgresBookmarkRepository;
 use colette_core::filter::{BooleanOp, DateOp, NumberOp, TextOp};
 pub use collection::PostgresCollectionRepository;
+pub use entry::PostgresEntryRepository;
 pub use feed::PostgresFeedRepository;
 pub use feed_entry::PostgresFeedEntryRepository;
 pub use pat::PostgresPatRepository;
@@ -12,7 +13,6 @@ use sqlx::{
     postgres::{PgArgumentBuffer, PgHasArrayType, PgTypeInfo, PgValueFormat, PgValueRef},
 };
 pub use subscription::PostgresSubscriptionRepository;
-pub use subscription_entry::PostgresSubscriptionEntryRepository;
 pub use tag::PostgresTagRepository;
 use url::Url;
 pub use user::PostgresUserRepository;
@@ -20,11 +20,11 @@ pub use user::PostgresUserRepository;
 mod backup;
 mod bookmark;
 mod collection;
+mod entry;
 mod feed;
 mod feed_entry;
 mod pat;
 mod subscription;
-mod subscription_entry;
 mod tag;
 mod user;
 

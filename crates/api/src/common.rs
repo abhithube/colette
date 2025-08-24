@@ -30,16 +30,15 @@ use colette_core::{
         CreateCollectionHandler, DeleteCollectionHandler, GetCollectionHandler,
         ListCollectionsHandler, UpdateCollectionHandler,
     },
+    entry::{
+        GetEntryHandler, ListEntriesHandler, MarkEntryAsReadHandler, MarkEntryAsUnreadHandler,
+    },
     feed::{DetectFeedsHandler, RefreshFeedHandler},
     filter,
     subscription::{
         CreateSubscriptionHandler, DeleteSubscriptionHandler, ExportSubscriptionsHandler,
         GetSubscriptionHandler, ImportSubscriptionsHandler, LinkSubscriptionTagsHandler,
         ListSubscriptionsHandler, UpdateSubscriptionHandler,
-    },
-    subscription_entry::{
-        GetSubscriptionEntryHandler, ListSubscriptionEntriesHandler,
-        MarkSubscriptionEntryAsReadHandler, MarkSubscriptionEntryAsUnreadHandler,
     },
     tag::{CreateTagHandler, DeleteTagHandler, GetTagHandler, ListTagsHandler, UpdateTagHandler},
 };
@@ -49,8 +48,8 @@ use colette_oidc::OidcClientImpl;
 use colette_queue::TokioJobProducer;
 use colette_repository::{
     PostgresBackupRepository, PostgresBookmarkRepository, PostgresCollectionRepository,
-    PostgresFeedEntryRepository, PostgresFeedRepository, PostgresPatRepository,
-    PostgresSubscriptionEntryRepository, PostgresSubscriptionRepository, PostgresTagRepository,
+    PostgresEntryRepository, PostgresFeedEntryRepository, PostgresFeedRepository,
+    PostgresPatRepository, PostgresSubscriptionRepository, PostgresTagRepository,
     PostgresUserRepository,
 };
 use colette_s3::S3ClientImpl;
@@ -162,19 +161,12 @@ pub struct ApiState {
     pub import_subscriptions: Arc<ImportSubscriptionsHandler<PostgresSubscriptionRepository>>,
     pub export_subscriptions: Arc<ExportSubscriptionsHandler<PostgresSubscriptionRepository>>,
 
-    // Subscription Entries
-    pub list_subscription_entries: Arc<
-        ListSubscriptionEntriesHandler<
-            PostgresSubscriptionEntryRepository,
-            PostgresCollectionRepository,
-        >,
-    >,
-    pub get_subscription_entry:
-        Arc<GetSubscriptionEntryHandler<PostgresSubscriptionEntryRepository>>,
-    pub mark_subscription_entry_as_read:
-        Arc<MarkSubscriptionEntryAsReadHandler<PostgresSubscriptionEntryRepository>>,
-    pub mark_subscription_entry_as_unread:
-        Arc<MarkSubscriptionEntryAsUnreadHandler<PostgresSubscriptionEntryRepository>>,
+    // Entries
+    pub list_entries:
+        Arc<ListEntriesHandler<PostgresEntryRepository, PostgresCollectionRepository>>,
+    pub get_entry: Arc<GetEntryHandler<PostgresEntryRepository>>,
+    pub mark_entry_as_read: Arc<MarkEntryAsReadHandler<PostgresEntryRepository>>,
+    pub mark_entry_as_unread: Arc<MarkEntryAsUnreadHandler<PostgresEntryRepository>>,
 
     // Tags
     pub list_tags: Arc<ListTagsHandler<PostgresTagRepository>>,

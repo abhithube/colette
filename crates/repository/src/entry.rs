@@ -1,11 +1,11 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    FeedEntry, SubscriptionEntry,
+    Entry,
+    auth::UserId,
     common::RepositoryError,
-    subscription_entry::{
-        SubscriptionEntryBooleanField, SubscriptionEntryDateField, SubscriptionEntryFilter,
-        SubscriptionEntryFindParams, SubscriptionEntryId, SubscriptionEntryRepository,
-        SubscriptionEntryTextField,
+    entry::{
+        EntryBooleanField, EntryDateField, EntryDto, EntryFilter, EntryFindParams, EntryId,
+        EntryRepository, EntryTextField, ReadStatus,
     },
 };
 use sqlx::{PgPool, QueryBuilder};
@@ -13,13 +13,13 @@ use uuid::Uuid;
 
 use crate::{DbUrl, ToColumn, ToSql};
 
-const BASE_QUERY: &str = include_str!("../queries/subscription_entries/find.sql");
+const BASE_QUERY: &str = include_str!("../queries/entries/find.sql");
 
 #[allow(dead_code)]
 fn validate_base_query() {
     let _ = sqlx::query_file!(
-        "queries/subscription_entries/find.sql",
-        Option::<Uuid>::None,
+        "queries/entries/find.sql",
+        Uuid::now_v7(),
         Option::<Uuid>::None,
         Option::<Uuid>::None,
         Option::<bool>::None,
@@ -31,22 +31,19 @@ fn validate_base_query() {
 }
 
 #[derive(Debug, Clone)]
-pub struct PostgresSubscriptionEntryRepository {
+pub struct PostgresEntryRepository {
     pool: PgPool,
 }
 
-impl PostgresSubscriptionEntryRepository {
+impl PostgresEntryRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
 
 #[async_trait::async_trait]
-impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
-    async fn find(
-        &self,
-        params: SubscriptionEntryFindParams,
-    ) -> Result<Vec<SubscriptionEntry>, RepositoryError> {
+impl EntryRepository for PostgresEntryRepository {
+    async fn find(&self, params: EntryFindParams) -> Result<Vec<EntryDto>, RepositoryError> {
         let (cursor_published_at, cursor_id) = if let Some((published_at, id)) = params.cursor {
             (Some(published_at), Some(id))
         } else {
@@ -62,9 +59,9 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
         }
 
         let rows = qb
-            .build_query_as::<SubscriptionEntryRow>()
+            .build_query_as::<EntryRow>()
+            .bind(params.user_id.as_inner())
             .bind(params.id.map(|e| e.as_inner()))
-            .bind(params.user_id.map(|e| e.as_inner()))
             .bind(params.subscription_id.map(|e| e.as_inner()))
             .bind(params.has_read)
             .bind(
@@ -75,77 +72,112 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
             .bind(cursor_published_at)
             .bind(cursor_id)
             .bind(params.limit.map(|e| e as i64))
-            .bind(params.with_feed_entry)
             .fetch_all(&self.pool)
             .await?;
 
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    async fn mark_as_read(&self, id: SubscriptionEntryId) -> Result<(), RepositoryError> {
-        sqlx::query_file!(
-            "queries/subscription_entries/mark_as_read.sql",
-            id.as_inner()
+    async fn find_by_id(
+        &self,
+        id: EntryId,
+        user_id: UserId,
+    ) -> Result<Option<Entry>, RepositoryError> {
+        let entry = sqlx::query_file_as!(
+            EntryByIdRow,
+            "queries/entries/find_by_id.sql",
+            id.as_inner(),
+            user_id.as_inner()
         )
-        .execute(&self.pool)
+        .map(Into::into)
+        .fetch_optional(&self.pool)
         .await?;
 
-        Ok(())
+        Ok(entry)
     }
 
-    async fn mark_as_unread(&self, id: SubscriptionEntryId) -> Result<(), RepositoryError> {
-        sqlx::query_file!(
-            "queries/subscription_entries/mark_as_unread.sql",
-            id.as_inner()
-        )
-        .execute(&self.pool)
-        .await?;
+    async fn save(&self, data: &Entry) -> Result<(), RepositoryError> {
+        match data.read_status() {
+            ReadStatus::Unread => {
+                sqlx::query_file!(
+                    "queries/read_statuses/delete_by_id.sql",
+                    data.id().as_inner(),
+                    data.user_id().as_inner()
+                )
+                .execute(&self.pool)
+                .await?;
+            }
+            ReadStatus::Read(read_at) => {
+                sqlx::query_file!(
+                    "queries/read_statuses/insert.sql",
+                    data.id().as_inner(),
+                    data.user_id().as_inner(),
+                    read_at
+                )
+                .execute(&self.pool)
+                .await?;
+            }
+        }
 
         Ok(())
     }
 }
 
 #[derive(sqlx::FromRow)]
-struct SubscriptionEntryRow {
+struct EntryRow {
     id: Uuid,
-    has_read: bool,
-    read_at: Option<DateTime<Utc>>,
-    subscription_id: Uuid,
-    feed_entry_id: Uuid,
     link: DbUrl,
     title: String,
     published_at: DateTime<Utc>,
     description: Option<String>,
     author: Option<String>,
     thumbnail_url: Option<DbUrl>,
+    read_at: Option<DateTime<Utc>>,
     feed_id: Uuid,
-    user_id: Uuid,
 }
 
-impl From<SubscriptionEntryRow> for SubscriptionEntry {
-    fn from(value: SubscriptionEntryRow) -> Self {
+impl From<EntryRow> for EntryDto {
+    fn from(value: EntryRow) -> Self {
         Self {
-            id: value.id.into(),
-            has_read: value.has_read,
-            read_at: value.read_at,
-            subscription_id: value.subscription_id.into(),
-            feed_entry_id: value.id.into(),
-            user_id: value.user_id.into(),
-            feed_entry: FeedEntry {
-                id: value.feed_entry_id.into(),
-                link: value.link.into(),
-                title: value.title,
-                published_at: value.published_at,
-                description: value.description,
-                thumbnail_url: value.thumbnail_url.map(Into::into),
-                author: value.author,
-                feed_id: value.feed_id.into(),
+            id: value.id,
+            link: value.link.into(),
+            title: value.title,
+            published_at: value.published_at,
+            description: value.description,
+            thumbnail_url: value.thumbnail_url.map(Into::into),
+            author: value.author,
+            read_status: if let Some(read_at) = value.read_at {
+                ReadStatus::Read(read_at)
+            } else {
+                ReadStatus::Unread
             },
+            feed_id: value.feed_id,
         }
     }
 }
 
-impl ToColumn for SubscriptionEntryTextField {
+#[derive(sqlx::FromRow)]
+struct EntryByIdRow {
+    id: Uuid,
+    read_at: Option<DateTime<Utc>>,
+    user_id: Uuid,
+}
+
+impl From<EntryByIdRow> for Entry {
+    fn from(value: EntryByIdRow) -> Self {
+        Self::from_unchecked(
+            value.id,
+            if let Some(read_at) = value.read_at {
+                ReadStatus::Read(read_at)
+            } else {
+                ReadStatus::Unread
+            },
+            value.user_id,
+        )
+    }
+}
+
+impl ToColumn for EntryTextField {
     fn to_column(self) -> String {
         match self {
             Self::Link => "link".into(),
@@ -157,7 +189,7 @@ impl ToColumn for SubscriptionEntryTextField {
     }
 }
 
-impl ToColumn for SubscriptionEntryBooleanField {
+impl ToColumn for EntryBooleanField {
     fn to_column(self) -> String {
         match self {
             Self::HasRead => "has_read".into(),
@@ -165,7 +197,7 @@ impl ToColumn for SubscriptionEntryBooleanField {
     }
 }
 
-impl ToColumn for SubscriptionEntryDateField {
+impl ToColumn for EntryDateField {
     fn to_column(self) -> String {
         match self {
             Self::PublishedAt => "published_at".into(),
@@ -173,23 +205,19 @@ impl ToColumn for SubscriptionEntryDateField {
     }
 }
 
-impl ToSql for SubscriptionEntryFilter {
+impl ToSql for EntryFilter {
     fn to_sql(self) -> String {
         match self {
-            SubscriptionEntryFilter::Text { field, op } => match field {
-                SubscriptionEntryTextField::Tag => format!(
+            EntryFilter::Text { field, op } => match field {
+                EntryTextField::Tag => format!(
                     "EXISTS (SELECT 1 FROM subscriptions_tags st INNER JOIN tags t ON t.id = st.tag_id WHERE st.subscription_id = s.id AND {})",
                     (field.to_column().as_str(), op).to_sql()
                 ),
                 _ => (field.to_column().as_str(), op).to_sql(),
             },
-            SubscriptionEntryFilter::Boolean { field, op } => {
-                (field.to_column().as_str(), op).to_sql()
-            }
-            SubscriptionEntryFilter::Date { field, op } => {
-                (field.to_column().as_str(), op).to_sql()
-            }
-            SubscriptionEntryFilter::And(filters) => {
+            EntryFilter::Boolean { field, op } => (field.to_column().as_str(), op).to_sql(),
+            EntryFilter::Date { field, op } => (field.to_column().as_str(), op).to_sql(),
+            EntryFilter::And(filters) => {
                 let mut conditions = filters.into_iter().map(|e| e.to_sql()).collect::<Vec<_>>();
                 let mut and = conditions.swap_remove(0);
 
@@ -199,7 +227,7 @@ impl ToSql for SubscriptionEntryFilter {
 
                 and
             }
-            SubscriptionEntryFilter::Or(filters) => {
+            EntryFilter::Or(filters) => {
                 let mut conditions = filters.into_iter().map(|e| e.to_sql()).collect::<Vec<_>>();
                 let mut or = conditions.swap_remove(0);
 
@@ -209,7 +237,7 @@ impl ToSql for SubscriptionEntryFilter {
 
                 or
             }
-            SubscriptionEntryFilter::Not(filter) => format!("NOT {}", (*filter).to_sql()),
+            EntryFilter::Not(filter) => format!("NOT {}", (*filter).to_sql()),
         }
     }
 }

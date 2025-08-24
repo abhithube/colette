@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n  read_statuses (feed_entry_id, user_id, created_at, updated_at)\nVALUES\n  ($1, $2, $3, now())\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a2c22843eac817f5398f6e6be8c0a827c6aac0c8db1d3e7252097c23a56486ed"
+}

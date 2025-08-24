@@ -1,37 +1,31 @@
 SELECT
-  se.id,
-  se.has_read,
-  se.read_at,
-  se.subscription_id,
-  se.feed_entry_id,
+  fe.id,
   fe.link,
   fe.title,
   fe.published_at,
   fe.description,
   fe.author,
   fe.thumbnail_url,
-  fe.feed_id,
-  s.user_id
+  rs.created_at AS read_at,
+  fe.feed_id
 FROM
-  subscription_entries se
-  INNER JOIN feed_entries fe ON fe.id = se.feed_entry_id
-  INNER JOIN subscriptions s ON s.id = se.subscription_id
+  feed_entries fe
+  LEFT JOIN read_statuses rs ON rs.feed_entry_id = fe.id
+  INNER JOIN feeds f ON f.id = fe.feed_id
+  INNER JOIN subscriptions s ON s.feed_id = f.id
 WHERE
-  (
-    $1::UUID IS NULL
-    OR se.id = $1
-  )
+  s.user_id = $1
   AND (
     $2::UUID IS NULL
-    OR s.user_id = $2
+    OR fe.id = $2
   )
   AND (
     $3::UUID IS NULL
-    OR se.subscription_id = $3
+    OR s.id = $3
   )
   AND (
     $4::BOOL IS NULL
-    OR se.has_read = $4
+    OR rs.feed_entry_id IS NOT NULL
   )
   AND (
     $5::UUID[] IS NULL

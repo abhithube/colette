@@ -59,7 +59,7 @@ struct Subscription {
     description: Option<String>,
     /// Linked tags
     tags: Vec<Tag>,
-    /// Count of unread subscription entries associated with the subscription
+    /// Count of unread entries associated with the subscription
     unread_count: i64,
     /// Timestamp at which the subscription was created
     created_at: DateTime<Utc>,
