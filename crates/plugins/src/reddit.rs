@@ -49,11 +49,21 @@ impl RedditBookmarkPlugin {
 
 #[async_trait::async_trait]
 impl BookmarkPlugin for RedditBookmarkPlugin {
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, BookmarkError> {
+    fn is_supported(&self, url: &mut Url) -> bool {
+        if let Some(domain) = url.domain()
+            && domain != "www.reddit.com"
+        {
+            return false;
+        }
+
         if !url.path().contains(".rss") {
             url.path_segments_mut().unwrap().pop_if_empty().push(".rss");
         }
 
+        true
+    }
+
+    async fn scrape(&self, url: &Url) -> Result<ProcessedBookmark, BookmarkError> {
         let resp = RequestBuilder::from_parts(
             self.client.clone(),
             Request::new(Method::GET, url.to_owned()),

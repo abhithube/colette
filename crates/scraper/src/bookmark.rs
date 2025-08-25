@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::BufReader, str::Utf8Error};
+use std::{io::BufReader, str::Utf8Error};
 
 use bytes::Buf;
 use chrono::{DateTime, Utc};
@@ -19,40 +19,41 @@ const RFC3339_WITH_MICRO: &str = "%Y-%m-%dT%H:%M:%S%.6f%z";
 
 #[async_trait::async_trait]
 pub trait BookmarkPlugin: Send + Sync {
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, BookmarkError>;
+    fn is_supported(&self, url: &mut Url) -> bool;
+
+    async fn scrape(&self, url: &Url) -> Result<ProcessedBookmark, BookmarkError>;
 }
 
 pub struct BookmarkScraper<HC: HttpClient> {
     client: HC,
-    plugins: HashMap<&'static str, Box<dyn BookmarkPlugin>>,
+    plugins: Vec<Box<dyn BookmarkPlugin>>,
 }
 
 impl<HC: HttpClient> BookmarkScraper<HC> {
-    pub fn new(client: HC, plugins: HashMap<&'static str, Box<dyn BookmarkPlugin>>) -> Self {
+    pub fn new(client: HC, plugins: Vec<Box<dyn BookmarkPlugin>>) -> Self {
         Self { client, plugins }
     }
 
     pub async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, BookmarkError> {
-        let host = url.host_str().unwrap();
-
-        match self.plugins.get(host) {
-            Some(plugin) => plugin.scrape(url).await,
-            None => {
-                let body = self.client.get(url).await?;
-                let mut reader = BufReader::new(body.reader());
-
-                let raw = str::from_utf8(reader.peek(14)?)?;
-                if !raw.to_lowercase().contains("<!doctype html") {
-                    return Err(BookmarkError::Unsupported);
-                }
-
-                let extracted = colette_meta::parse_metadata(reader)
-                    .map(ExtractedBookmark::from)
-                    .map_err(BookmarkError::Parse)?;
-
-                extracted.try_into().map_err(BookmarkError::Postprocess)
+        for plugin in self.plugins.iter() {
+            if plugin.is_supported(url) {
+                return plugin.scrape(url).await;
             }
         }
+
+        let body = self.client.get(url).await?;
+        let mut reader = BufReader::new(body.reader());
+
+        let raw = str::from_utf8(reader.peek(14)?)?;
+        if !raw.to_lowercase().contains("<!doctype html") {
+            return Err(BookmarkError::Unsupported);
+        }
+
+        let extracted = colette_meta::parse_metadata(reader)
+            .map(ExtractedBookmark::from)
+            .map_err(BookmarkError::Parse)?;
+
+        extracted.try_into().map_err(BookmarkError::Postprocess)
     }
 }
 
