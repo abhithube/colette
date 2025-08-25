@@ -3,7 +3,7 @@ use colette_common::RepositoryError;
 use colette_scraper::feed::ProcessedFeedEntry;
 use url::Url;
 
-use crate::feed::{Feed, FeedId};
+use crate::{Feed, FeedId};
 
 #[async_trait::async_trait]
 pub trait FeedRepository: Sync {

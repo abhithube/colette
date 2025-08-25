@@ -427,6 +427,7 @@ dependencies = [
  "colette-crypto",
  "colette-handler",
  "colette-http",
+ "colette-ingestion",
  "colette-jwt",
  "colette-oidc",
  "colette-queue",
@@ -496,6 +497,7 @@ dependencies = [
  "chrono",
  "colette-authentication",
  "colette-common",
+ "colette-ingestion",
  "serde",
  "thiserror 2.0.14",
  "url",
@@ -530,6 +532,7 @@ dependencies = [
  "colette-crud",
  "colette-crypto",
  "colette-http",
+ "colette-ingestion",
  "colette-jwt",
  "colette-meta",
  "colette-netscape",
@@ -563,6 +566,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-ingestion"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "colette-common",
+ "colette-scraper",
+ "serde",
+ "thiserror 2.0.14",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "colette-job"
 version = "0.1.0"
 dependencies = [
@@ -570,6 +587,7 @@ dependencies = [
  "colette-crud",
  "colette-handler",
  "colette-http",
+ "colette-ingestion",
  "colette-queue",
  "colette-repository",
  "colette-s3",
@@ -674,6 +692,7 @@ dependencies = [
  "colette-core",
  "colette-crud",
  "colette-handler",
+ "colette-ingestion",
  "email_address",
  "serde",
  "serde_json",

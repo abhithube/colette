@@ -2,8 +2,9 @@ use colette_authentication::UserId;
 use colette_common::RepositoryError;
 use colette_crud::{
     Subscription, SubscriptionDescription, SubscriptionError, SubscriptionRepository,
-    SubscriptionTitle, feed::FeedId,
+    SubscriptionTitle,
 };
+use colette_ingestion::FeedId;
 
 use crate::Handler;
 

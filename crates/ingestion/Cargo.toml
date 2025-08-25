@@ -1,15 +1,14 @@
 [package]
-name = "colette-crud"
+name = "colette-ingestion"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 async-trait.workspace = true
 chrono.workspace = true
-colette-authentication.workspace = true
 colette-common.workspace = true
-colette-ingestion.workspace = true
-serde.workspace = true
+colette-scraper.workspace = true
 thiserror.workspace = true
+serde.workspace = true
 url.workspace = true
 uuid.workspace = true

@@ -1,10 +1,10 @@
 use std::{cmp, sync::Arc};
 
 use colette_common::RepositoryError;
-use colette_core::feed::{
+use colette_http::HttpClient;
+use colette_ingestion::{
     Feed, FeedError, FeedFindParams, FeedId, FeedRepository, FeedUpsertParams,
 };
-use colette_http::HttpClient;
 use colette_scraper::feed::{FeedScraper, ProcessedFeed};
 use url::Url;
 

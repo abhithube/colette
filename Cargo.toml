@@ -10,6 +10,7 @@ members = [
   "crates/feed",
   "crates/handler",
   "crates/http",
+  "crates/ingestion",
   "crates/job",
   "crates/jwt",
   "crates/meta",
@@ -49,6 +50,7 @@ colette-crypto.path = "crates/crypto"
 colette-feed.path = "crates/feed"
 colette-handler.path = "crates/handler"
 colette-http.path = "crates/http"
+colette-ingestion.path = "crates/ingestion"
 colette-job.path = "crates/job"
 colette-jwt.path = "crates/jwt"
 colette-meta.path = "crates/meta"

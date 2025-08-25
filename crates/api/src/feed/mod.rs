@@ -46,8 +46,8 @@ pub(crate) struct Feed {
     refreshed_at: Option<DateTime<Utc>>,
 }
 
-impl From<colette_core::Feed> for Feed {
-    fn from(value: colette_core::Feed) -> Self {
+impl From<colette_ingestion::Feed> for Feed {
+    fn from(value: colette_ingestion::Feed) -> Self {
         Self {
             id: value.id.as_inner(),
             source_url: value.source_url,

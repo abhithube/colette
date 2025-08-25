@@ -4,8 +4,8 @@ use std::{
     task::{Context, Poll},
 };
 
-use colette_core::feed::ScrapeFeedJobData;
-use colette_handler::{Handler as _, ListFeedsHandler, ListFeedsQuery};
+use colette_handler::{FetchOutdatedFeedsHandler, FetchOutdatedFeedsQuery, Handler as _};
+use colette_ingestion::ScrapeFeedJobData;
 use colette_queue::{Job, JobProducer, TokioJobProducer};
 use colette_repository::PostgresFeedRepository;
 use futures::FutureExt;
@@ -15,17 +15,17 @@ use tower::Service;
 use crate::Error;
 
 pub struct RefreshFeedsJobHandler {
-    list_feeds: Arc<ListFeedsHandler<PostgresFeedRepository>>,
+    fetch_outdated_feeds: Arc<FetchOutdatedFeedsHandler<PostgresFeedRepository>>,
     scrape_feed_producer: Arc<Mutex<TokioJobProducer>>,
 }
 
 impl RefreshFeedsJobHandler {
     pub fn new(
-        list_feeds: Arc<ListFeedsHandler<PostgresFeedRepository>>,
+        fetch_outdated_feeds: Arc<FetchOutdatedFeedsHandler<PostgresFeedRepository>>,
         scrape_feed_producer: Arc<Mutex<TokioJobProducer>>,
     ) -> Self {
         Self {
-            list_feeds,
+            fetch_outdated_feeds,
             scrape_feed_producer,
         }
     }
@@ -41,22 +41,18 @@ impl Service<Job> for RefreshFeedsJobHandler {
     }
 
     fn call(&mut self, _job: Job) -> Self::Future {
-        let list_feeds = self.list_feeds.clone();
+        let fetch_outdated_feeds = self.fetch_outdated_feeds.clone();
         let scrape_feed_producer = self.scrape_feed_producer.clone();
 
         async move {
             tracing::debug!("Refreshing feeds");
 
-            let feeds = list_feeds
-                .handle(ListFeedsQuery {
-                    limit: Some(100),
-                    ready_to_refresh: true,
-                    ..Default::default()
-                })
+            let feeds = fetch_outdated_feeds
+                .handle(FetchOutdatedFeedsQuery {})
                 .await
                 .map_err(|e| Error::Service(e.to_string()))?;
 
-            for feed in feeds.items {
+            for feed in feeds {
                 let data = ScrapeFeedJobData {
                     url: feed.source_url,
                 };

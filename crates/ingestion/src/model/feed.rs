@@ -4,8 +4,6 @@ use chrono::{DateTime, Utc};
 use url::Url;
 use uuid::Uuid;
 
-use crate::pagination::Cursor;
-
 #[derive(Debug, Clone)]
 pub struct Feed {
     pub id: FeedId,
@@ -70,21 +68,6 @@ impl FromStr for FeedStatus {
             "refreshing" => Ok(Self::Refreshing),
             "failed" => Ok(Self::Failed),
             _ => unreachable!(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct FeedCursor {
-    pub source_url: Url,
-}
-
-impl Cursor for Feed {
-    type Data = FeedCursor;
-
-    fn to_cursor(&self) -> Self::Data {
-        Self::Data {
-            source_url: self.source_url.clone(),
         }
     }
 }

@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use bytes::Buf;
 use colette_common::RepositoryError;
-use colette_core::feed::FeedDetected;
 use colette_http::HttpClient;
+use colette_ingestion::FeedDetected;
 use colette_scraper::feed::FeedScraper;
 use url::Url;
 

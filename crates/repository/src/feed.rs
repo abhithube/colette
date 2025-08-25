@@ -1,11 +1,8 @@
 use chrono::{DateTime, Utc};
 use colette_common::RepositoryError;
-use colette_core::{
-    Feed,
-    feed::{
-        FeedFindOutdatedParams, FeedFindParams, FeedId, FeedRepository, FeedStatus,
-        FeedUpsertParams,
-    },
+use colette_ingestion::{
+    Feed, FeedFindOutdatedParams, FeedFindParams, FeedId, FeedRepository, FeedStatus,
+    FeedUpsertParams,
 };
 use sqlx::{
     Decode, Encode, PgPool, Postgres, Type,

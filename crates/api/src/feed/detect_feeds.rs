@@ -3,7 +3,6 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::feed;
 use colette_handler::{DetectFeedsCommand, DetectFeedsError, Handler as _};
 use url::Url;
 
@@ -56,8 +55,8 @@ pub(super) struct FeedDetected {
     title: String,
 }
 
-impl From<feed::FeedDetected> for FeedDetected {
-    fn from(value: feed::FeedDetected) -> Self {
+impl From<colette_ingestion::FeedDetected> for FeedDetected {
+    fn from(value: colette_ingestion::FeedDetected) -> Self {
         Self {
             url: value.url,
             title: value.title,

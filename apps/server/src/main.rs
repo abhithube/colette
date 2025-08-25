@@ -145,7 +145,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         http_client.clone(),
         s3_client,
     ));
-    let list_feeds_handler = Arc::new(ListFeedsHandler::new(feed_repository.clone()));
+    let fetch_outdated_feeds_handler =
+        Arc::new(FetchOutdatedFeedsHandler::new(feed_repository.clone()));
     let refresh_feed_handler = Arc::new(RefreshFeedHandler::new(
         feed_repository.clone(),
         feed_entry_repository.clone(),
@@ -345,7 +346,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             "0 * * * * *".parse().unwrap(),
             ServiceBuilder::new()
                 .service(RefreshFeedsJobHandler::new(
-                    list_feeds_handler,
+                    fetch_outdated_feeds_handler,
                     Arc::new(Mutex::new(scrape_feed_producer)),
                 ))
                 .boxed(),
