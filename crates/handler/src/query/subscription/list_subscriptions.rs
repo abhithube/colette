@@ -1,10 +1,9 @@
 use colette_common::RepositoryError;
-use colette_core::pagination::{Paginated, paginate};
 use uuid::Uuid;
 
 use crate::{
-    Handler, SubscriptionCursor, SubscriptionDto, SubscriptionQueryParams,
-    SubscriptionQueryRepository,
+    Handler, Paginated, SubscriptionCursor, SubscriptionDto, SubscriptionQueryParams,
+    SubscriptionQueryRepository, paginate,
 };
 
 #[derive(Debug, Clone)]

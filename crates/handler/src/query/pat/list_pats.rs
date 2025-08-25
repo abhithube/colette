@@ -1,8 +1,10 @@
 use colette_common::RepositoryError;
-use colette_core::pagination::{Paginated, paginate};
 use uuid::Uuid;
 
-use crate::{Handler, PatCursor, PatQueryParams, PatQueryRepository, PersonalAccessTokenDto};
+use crate::{
+    Handler, Paginated, PatCursor, PatQueryParams, PatQueryRepository, PersonalAccessTokenDto,
+    paginate,
+};
 
 #[derive(Debug, Clone)]
 pub struct ListPatsQuery {

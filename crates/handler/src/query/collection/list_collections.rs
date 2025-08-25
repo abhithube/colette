@@ -1,9 +1,9 @@
 use colette_common::RepositoryError;
-use colette_core::pagination::{Paginated, paginate};
 use uuid::Uuid;
 
 use crate::{
     CollectionCursor, CollectionDto, CollectionQueryParams, CollectionQueryRepository, Handler,
+    Paginated, paginate,
 };
 
 #[derive(Debug, Clone)]

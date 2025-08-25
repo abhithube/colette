@@ -1,11 +1,10 @@
 use colette_common::RepositoryError;
-use colette_core::pagination::{Paginated, paginate};
 use colette_crud::EntryFilter;
 use uuid::Uuid;
 
 use crate::{
     CollectionQueryRepository, EntryCursor, EntryDto, EntryQueryParams, EntryQueryRepository,
-    Handler,
+    Handler, Paginated, paginate,
 };
 
 #[derive(Debug, Clone)]

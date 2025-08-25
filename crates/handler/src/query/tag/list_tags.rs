@@ -1,8 +1,7 @@
 use colette_common::RepositoryError;
-use colette_core::pagination::{Paginated, paginate};
 use uuid::Uuid;
 
-use crate::{Handler, TagCursor, TagDto, TagQueryParams, TagQueryRepository};
+use crate::{Handler, Paginated, TagCursor, TagDto, TagQueryParams, TagQueryRepository, paginate};
 
 #[derive(Debug, Clone)]
 pub struct ListTagsQuery {

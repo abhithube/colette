@@ -1,10 +1,9 @@
 use chrono::{DateTime, Utc};
 use colette_common::RepositoryError;
-use colette_core::pagination::Cursor;
 use url::Url;
 use uuid::Uuid;
 
-use crate::TagDto;
+use crate::{Cursor, TagDto};
 
 #[derive(Debug, Clone)]
 pub struct SubscriptionDto {

@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
 use colette_common::RepositoryError;
-use colette_core::pagination::Cursor;
 use colette_crud::BookmarkFilter;
 use uuid::Uuid;
+
+use crate::Cursor;
 
 #[derive(Debug, Clone)]
 pub struct CollectionDto {

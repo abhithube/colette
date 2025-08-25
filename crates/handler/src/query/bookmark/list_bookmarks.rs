@@ -1,11 +1,10 @@
 use colette_common::RepositoryError;
-use colette_core::pagination::{Paginated, paginate};
 use colette_crud::BookmarkFilter;
 use uuid::Uuid;
 
 use crate::{
     BookmarkCursor, BookmarkDto, BookmarkQueryParams, BookmarkQueryRepository,
-    CollectionQueryRepository, Handler,
+    CollectionQueryRepository, Handler, Paginated, paginate,
 };
 
 #[derive(Debug, Clone)]

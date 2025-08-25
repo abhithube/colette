@@ -1,4 +1,3 @@
-use colette_core::pagination;
 use colette_util::{CryptoError, base64_decode, base64_encode};
 use serde::{Deserialize, Serialize};
 
@@ -18,14 +17,14 @@ pub(crate) struct Paginated<T: utoipa::ToSchema> {
     pub(crate) cursor: Option<String>,
 }
 
-impl<T, U, V> TryFrom<pagination::Paginated<U, V>> for Paginated<T>
+impl<T, U, V> TryFrom<colette_handler::Paginated<U, V>> for Paginated<T>
 where
     T: From<U> + utoipa::ToSchema,
     V: Serialize,
 {
     type Error = ApiError;
 
-    fn try_from(value: pagination::Paginated<U, V>) -> Result<Self, Self::Error> {
+    fn try_from(value: colette_handler::Paginated<U, V>) -> Result<Self, Self::Error> {
         Ok(Self {
             items: value.items.into_iter().map(T::from).collect(),
             cursor: value.cursor.map(|e| encode_cursor(&e)).transpose()?,
