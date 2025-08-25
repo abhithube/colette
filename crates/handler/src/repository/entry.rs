@@ -36,27 +36,31 @@ impl Cursor for EntryDto {
     }
 }
 
-#[async_trait::async_trait]
 pub trait EntryQueryRepository: Sync {
-    async fn query(&self, params: EntryQueryParams) -> Result<Vec<EntryDto>, RepositoryError>;
+    fn query(
+        &self,
+        params: EntryQueryParams,
+    ) -> impl Future<Output = Result<Vec<EntryDto>, RepositoryError>> + Send;
 
-    async fn query_by_id(
+    fn query_by_id(
         &self,
         id: Uuid,
         user_id: Uuid,
-    ) -> Result<Option<EntryDto>, RepositoryError> {
-        let mut entries = self
-            .query(EntryQueryParams {
-                user_id,
-                id: Some(id),
-                ..Default::default()
-            })
-            .await?;
-        if entries.is_empty() {
-            return Ok(None);
-        }
+    ) -> impl Future<Output = Result<Option<EntryDto>, RepositoryError>> + Send {
+        async move {
+            let mut entries = self
+                .query(EntryQueryParams {
+                    user_id,
+                    id: Some(id),
+                    ..Default::default()
+                })
+                .await?;
+            if entries.is_empty() {
+                return Ok(None);
+            }
 
-        Ok(Some(entries.swap_remove(0)))
+            Ok(Some(entries.swap_remove(0)))
+        }
     }
 }
 

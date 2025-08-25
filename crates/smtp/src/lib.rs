@@ -8,9 +8,8 @@ use lettre::{
     transport::smtp::{self, authentication::Credentials},
 };
 
-#[async_trait::async_trait]
 pub trait SmtpClient: Sync {
-    async fn send(&self, email: SmtpEmail) -> Result<(), Error>;
+    fn send(&self, email: SmtpEmail) -> impl Future<Output = Result<(), Error>> + Send;
 }
 
 #[derive(Debug, Clone)]
@@ -38,7 +37,6 @@ impl SmtpClientImpl {
     }
 }
 
-#[async_trait::async_trait]
 impl SmtpClient for SmtpClientImpl {
     async fn send(&self, email: SmtpEmail) -> Result<(), Error> {
         let message = Message::builder()

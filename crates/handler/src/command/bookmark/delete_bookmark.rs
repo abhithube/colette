@@ -26,7 +26,6 @@ impl<BR: BookmarkRepository, JP: JobProducer> DeleteBookmarkHandler<BR, JP> {
     }
 }
 
-#[async_trait::async_trait]
 impl<BR: BookmarkRepository, JP: JobProducer> Handler<DeleteBookmarkCommand>
     for DeleteBookmarkHandler<BR, JP>
 {

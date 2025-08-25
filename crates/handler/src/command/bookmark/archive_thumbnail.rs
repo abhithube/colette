@@ -32,7 +32,6 @@ impl<BR: BookmarkRepository, HC: HttpClient, SC: S3Client> ArchiveThumbnailHandl
     }
 }
 
-#[async_trait::async_trait]
 impl<BR: BookmarkRepository, HC: HttpClient, SC: S3Client> Handler<ArchiveThumbnailCommand>
     for ArchiveThumbnailHandler<BR, HC, SC>
 {

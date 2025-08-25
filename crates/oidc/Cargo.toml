@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-async-trait.workspace = true
 oauth2 = { version = "5.0.0", default-features = false, features = ["reqwest"] }
 openidconnect = { version = "4.0.1", default-features = false }
 reqwest.workspace = true

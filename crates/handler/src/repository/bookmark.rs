@@ -35,28 +35,31 @@ impl Cursor for BookmarkDto {
     }
 }
 
-#[async_trait::async_trait]
 pub trait BookmarkQueryRepository: Sync {
-    async fn query(&self, params: BookmarkQueryParams)
-    -> Result<Vec<BookmarkDto>, RepositoryError>;
+    fn query(
+        &self,
+        params: BookmarkQueryParams,
+    ) -> impl Future<Output = Result<Vec<BookmarkDto>, RepositoryError>> + Send;
 
-    async fn query_by_id(
+    fn query_by_id(
         &self,
         id: Uuid,
         user_id: Uuid,
-    ) -> Result<Option<BookmarkDto>, RepositoryError> {
-        let mut bookmarks = self
-            .query(BookmarkQueryParams {
-                user_id,
-                id: Some(id),
-                ..Default::default()
-            })
-            .await?;
-        if bookmarks.is_empty() {
-            return Ok(None);
-        }
+    ) -> impl Future<Output = Result<Option<BookmarkDto>, RepositoryError>> + Send {
+        async move {
+            let mut bookmarks = self
+                .query(BookmarkQueryParams {
+                    user_id,
+                    id: Some(id),
+                    ..Default::default()
+                })
+                .await?;
+            if bookmarks.is_empty() {
+                return Ok(None);
+            }
 
-        Ok(Some(bookmarks.swap_remove(0)))
+            Ok(Some(bookmarks.swap_remove(0)))
+        }
     }
 }
 

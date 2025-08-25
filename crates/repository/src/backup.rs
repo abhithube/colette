@@ -16,7 +16,6 @@ impl PostgresBackupRepository {
     }
 }
 
-#[async_trait::async_trait]
 impl BackupRepository for PostgresBackupRepository {
     async fn import(&self, params: ImportBackupParams) -> Result<(), RepositoryError> {
         let mut bookmark_links = Vec::<DbUrl>::new();

@@ -26,7 +26,6 @@ impl<PR: PatRepository> CreatePatHandler<PR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<PR: PatRepository> Handler<CreatePatCommand> for CreatePatHandler<PR> {
     type Response = PatCreated;
     type Error = CreatePatError;

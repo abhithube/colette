@@ -21,7 +21,6 @@ impl PostgresSubscriptionRepository {
     }
 }
 
-#[async_trait::async_trait]
 impl SubscriptionRepository for PostgresSubscriptionRepository {
     async fn find_by_id(
         &self,
@@ -154,7 +153,6 @@ impl From<SubscriptionByIdRow> for Subscription {
     }
 }
 
-#[async_trait::async_trait]
 impl SubscriptionQueryRepository for PostgresSubscriptionRepository {
     async fn query(
         &self,

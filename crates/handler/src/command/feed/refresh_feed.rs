@@ -134,7 +134,6 @@ impl<FR: FeedRepository, FEQR: FeedEntryQueryRepository, HC: HttpClient>
     }
 }
 
-#[async_trait::async_trait]
 impl<FR: FeedRepository, FEQR: FeedEntryQueryRepository, HC: HttpClient> Handler<RefreshFeedCommand>
     for RefreshFeedHandler<FR, FEQR, HC>
 {

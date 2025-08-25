@@ -28,30 +28,31 @@ impl Cursor for PersonalAccessTokenDto {
     }
 }
 
-#[async_trait::async_trait]
 pub trait PatQueryRepository: Sync {
-    async fn query(
+    fn query(
         &self,
         params: PatQueryParams,
-    ) -> Result<Vec<PersonalAccessTokenDto>, RepositoryError>;
+    ) -> impl Future<Output = Result<Vec<PersonalAccessTokenDto>, RepositoryError>> + Send;
 
-    async fn query_by_id(
+    fn query_by_id(
         &self,
         id: Uuid,
         user_id: Uuid,
-    ) -> Result<Option<PersonalAccessTokenDto>, RepositoryError> {
-        let mut pats = self
-            .query(PatQueryParams {
-                id: Some(id),
-                user_id,
-                ..Default::default()
-            })
-            .await?;
-        if pats.is_empty() {
-            return Ok(None);
-        }
+    ) -> impl Future<Output = Result<Option<PersonalAccessTokenDto>, RepositoryError>> + Send {
+        async move {
+            let mut pats = self
+                .query(PatQueryParams {
+                    id: Some(id),
+                    user_id,
+                    ..Default::default()
+                })
+                .await?;
+            if pats.is_empty() {
+                return Ok(None);
+            }
 
-        Ok(Some(pats.swap_remove(0)))
+            Ok(Some(pats.swap_remove(0)))
+        }
     }
 }
 

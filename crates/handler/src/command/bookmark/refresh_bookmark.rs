@@ -29,7 +29,6 @@ impl<BR: BookmarkRepository, HC: HttpClient> RefreshBookmarkHandler<BR, HC> {
     }
 }
 
-#[async_trait::async_trait]
 impl<BR: BookmarkRepository, HC: HttpClient> Handler<RefreshBookmarkCommand>
     for RefreshBookmarkHandler<BR, HC>
 {

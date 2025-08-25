@@ -3,17 +3,22 @@ use email_address::EmailAddress;
 
 use crate::{User, UserId};
 
-#[async_trait::async_trait]
 pub trait UserRepository: Sync {
-    async fn find_by_id(&self, id: UserId) -> Result<Option<User>, RepositoryError>;
+    fn find_by_id(
+        &self,
+        id: UserId,
+    ) -> impl Future<Output = Result<Option<User>, RepositoryError>> + Send;
 
-    async fn find_by_email(&self, email: EmailAddress) -> Result<Option<User>, RepositoryError>;
+    fn find_by_email(
+        &self,
+        email: EmailAddress,
+    ) -> impl Future<Output = Result<Option<User>, RepositoryError>> + Send;
 
-    async fn find_by_provider_and_sub(
+    fn find_by_provider_and_sub(
         &self,
         provider: String,
         sub: String,
-    ) -> Result<Option<User>, RepositoryError>;
+    ) -> impl Future<Output = Result<Option<User>, RepositoryError>> + Send;
 
-    async fn save(&self, data: &User) -> Result<(), RepositoryError>;
+    fn save(&self, data: &User) -> impl Future<Output = Result<(), RepositoryError>> + Send;
 }

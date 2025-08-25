@@ -5,25 +5,31 @@ use url::Url;
 
 use crate::{Bookmark, BookmarkId};
 
-#[async_trait::async_trait]
 pub trait BookmarkRepository: Sync {
-    async fn find_by_id(
+    fn find_by_id(
         &self,
         id: BookmarkId,
         user_id: UserId,
-    ) -> Result<Option<Bookmark>, RepositoryError>;
+    ) -> impl Future<Output = Result<Option<Bookmark>, RepositoryError>> + Send;
 
-    async fn save(&self, data: &Bookmark) -> Result<(), RepositoryError>;
+    fn save(&self, data: &Bookmark) -> impl Future<Output = Result<(), RepositoryError>> + Send;
 
-    async fn delete_by_id(&self, id: BookmarkId, user_id: UserId) -> Result<(), RepositoryError>;
+    fn delete_by_id(
+        &self,
+        id: BookmarkId,
+        user_id: UserId,
+    ) -> impl Future<Output = Result<(), RepositoryError>> + Send;
 
-    async fn set_archived_path(
+    fn set_archived_path(
         &self,
         bookmark_id: BookmarkId,
         archived_path: Option<String>,
-    ) -> Result<(), RepositoryError>;
+    ) -> impl Future<Output = Result<(), RepositoryError>> + Send;
 
-    async fn import(&self, params: ImportBookmarksParams) -> Result<(), RepositoryError>;
+    fn import(
+        &self,
+        params: ImportBookmarksParams,
+    ) -> impl Future<Output = Result<(), RepositoryError>> + Send;
 }
 
 #[derive(Debug, Clone)]

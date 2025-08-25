@@ -38,7 +38,6 @@ impl<UR: UserRepository, OC: OidcClient, JM: JwtManager> ExchangeCodeHandler<UR,
     }
 }
 
-#[async_trait::async_trait]
 impl<UR: UserRepository, OC: OidcClient, JM: JwtManager> Handler<ExchangeCodeCommand>
     for ExchangeCodeHandler<UR, OC, JM>
 {

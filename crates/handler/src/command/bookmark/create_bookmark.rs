@@ -35,7 +35,6 @@ impl<BR: BookmarkRepository, JP: JobProducer> CreateBookmarkHandler<BR, JP> {
     }
 }
 
-#[async_trait::async_trait]
 impl<BR: BookmarkRepository, JP: JobProducer> Handler<CreateBookmarkCommand>
     for CreateBookmarkHandler<BR, JP>
 {

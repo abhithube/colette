@@ -22,7 +22,6 @@ impl<TQR: TagQueryRepository> ListTagsHandler<TQR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<TQR: TagQueryRepository> Handler<ListTagsQuery> for ListTagsHandler<TQR> {
     type Response = Paginated<TagDto, TagCursor>;
     type Error = ListTagsError;

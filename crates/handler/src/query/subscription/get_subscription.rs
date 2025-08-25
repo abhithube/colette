@@ -22,7 +22,6 @@ impl<SQR: SubscriptionQueryRepository> GetSubscriptionHandler<SQR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<SQR: SubscriptionQueryRepository> Handler<GetSubscriptionQuery>
     for GetSubscriptionHandler<SQR>
 {

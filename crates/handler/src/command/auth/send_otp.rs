@@ -38,7 +38,6 @@ impl<UR: UserRepository, SC: SmtpClient, CG: CodeGenerator> SendOtpHandler<UR, S
     }
 }
 
-#[async_trait::async_trait]
 impl<UR: UserRepository, SC: SmtpClient, CG: CodeGenerator> Handler<SendOtpCommand>
     for SendOtpHandler<UR, SC, CG>
 {

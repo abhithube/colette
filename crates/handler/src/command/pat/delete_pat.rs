@@ -19,7 +19,6 @@ impl<PR: PatRepository> DeletePatHandler<PR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<PR: PatRepository> Handler<DeletePatCommand> for DeletePatHandler<PR> {
     type Response = ();
     type Error = DeletePatError;

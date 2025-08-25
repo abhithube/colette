@@ -3,9 +3,11 @@ use colette_common::RepositoryError;
 
 use crate::backup::Backup;
 
-#[async_trait::async_trait]
 pub trait BackupRepository: Sync {
-    async fn import(&self, params: ImportBackupParams) -> Result<(), RepositoryError>;
+    fn import(
+        &self,
+        params: ImportBackupParams,
+    ) -> impl Future<Output = Result<(), RepositoryError>> + Send;
 }
 
 pub struct ImportBackupParams {

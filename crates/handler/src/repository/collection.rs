@@ -29,30 +29,31 @@ impl Cursor for CollectionDto {
     }
 }
 
-#[async_trait::async_trait]
 pub trait CollectionQueryRepository: Sync {
-    async fn query(
+    fn query(
         &self,
         params: CollectionQueryParams,
-    ) -> Result<Vec<CollectionDto>, RepositoryError>;
+    ) -> impl Future<Output = Result<Vec<CollectionDto>, RepositoryError>> + Send;
 
-    async fn query_by_id(
+    fn query_by_id(
         &self,
         id: Uuid,
         user_id: Uuid,
-    ) -> Result<Option<CollectionDto>, RepositoryError> {
-        let mut collections = self
-            .query(CollectionQueryParams {
-                user_id,
-                id: Some(id),
-                ..Default::default()
-            })
-            .await?;
-        if collections.is_empty() {
-            return Ok(None);
-        }
+    ) -> impl Future<Output = Result<Option<CollectionDto>, RepositoryError>> + Send {
+        async move {
+            let mut collections = self
+                .query(CollectionQueryParams {
+                    user_id,
+                    id: Some(id),
+                    ..Default::default()
+                })
+                .await?;
+            if collections.is_empty() {
+                return Ok(None);
+            }
 
-        Ok(Some(collections.swap_remove(0)))
+            Ok(Some(collections.swap_remove(0)))
+        }
     }
 }
 

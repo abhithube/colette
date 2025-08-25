@@ -19,7 +19,6 @@ impl<PR: PatRepository> ValidatePatHandler<PR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<PR: PatRepository> Handler<ValidatePatQuery> for ValidatePatHandler<PR> {
     type Response = UserId;
     type Error = ValidatePatError;

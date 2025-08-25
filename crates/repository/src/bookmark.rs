@@ -24,7 +24,6 @@ impl PostgresBookmarkRepository {
     }
 }
 
-#[async_trait::async_trait]
 impl BookmarkRepository for PostgresBookmarkRepository {
     async fn find_by_id(
         &self,
@@ -187,7 +186,6 @@ impl From<BookmarkByIdRow> for Bookmark {
     }
 }
 
-#[async_trait::async_trait]
 impl BookmarkQueryRepository for PostgresBookmarkRepository {
     async fn query(
         &self,

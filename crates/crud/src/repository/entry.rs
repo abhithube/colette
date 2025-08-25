@@ -3,13 +3,15 @@ use colette_common::RepositoryError;
 
 use crate::{Entry, EntryId};
 
-#[async_trait::async_trait]
 pub trait EntryRepository: Sync {
-    async fn find_by_id(
+    fn find_by_id(
         &self,
         id: EntryId,
         user_id: UserId,
-    ) -> Result<Option<Entry>, RepositoryError>;
+    ) -> impl std::future::Future<Output = Result<Option<Entry>, RepositoryError>> + Send;
 
-    async fn save(&self, data: &Entry) -> Result<(), RepositoryError>;
+    fn save(
+        &self,
+        data: &Entry,
+    ) -> impl std::future::Future<Output = Result<(), RepositoryError>> + Send;
 }

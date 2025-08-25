@@ -26,7 +26,6 @@ impl<UR: UserRepository, JM: JwtManager> RefreshAccessTokenHandler<UR, JM> {
     }
 }
 
-#[async_trait::async_trait]
 impl<UR: UserRepository, JM: JwtManager> Handler<RefreshAccessTokenCommand>
     for RefreshAccessTokenHandler<UR, JM>
 {

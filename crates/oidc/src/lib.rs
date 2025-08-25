@@ -10,16 +10,15 @@ use openidconnect::{
 use reqwest::Client as ReqwestClient;
 use url::{ParseError, Url};
 
-#[async_trait::async_trait]
 pub trait OidcClient: Sync {
     fn build_authorization_url(&self, scopes: Vec<String>) -> AuthorizationUrlData;
 
-    async fn exchange_code(
+    fn exchange_code(
         &self,
         code: String,
         pkce_verifier: String,
         nonce: String,
-    ) -> Result<Claims, Error>;
+    ) -> impl Future<Output = Result<Claims, Error>> + Send;
 }
 
 #[derive(Clone)]
@@ -55,7 +54,6 @@ impl OidcClientImpl {
     }
 }
 
-#[async_trait::async_trait]
 impl OidcClient for OidcClientImpl {
     fn build_authorization_url(&self, scopes: Vec<String>) -> AuthorizationUrlData {
         let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();

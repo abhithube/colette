@@ -19,7 +19,6 @@ impl<OC: OidcClient> BuildAuthorizationUrlHandler<OC> {
     }
 }
 
-#[async_trait::async_trait]
 impl<OC: OidcClient> Handler<BuildAuthorizationUrlQuery> for BuildAuthorizationUrlHandler<OC> {
     type Response = AuthorizationUrlData;
     type Error = BuildAuthorizationUrlError;

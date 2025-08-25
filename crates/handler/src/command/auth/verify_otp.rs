@@ -26,7 +26,6 @@ impl<UR: UserRepository, JM: JwtManager> VerifyOtpHandler<UR, JM> {
     }
 }
 
-#[async_trait::async_trait]
 impl<UR: UserRepository, JM: JwtManager> Handler<VerifyOtpCommand> for VerifyOtpHandler<UR, JM> {
     type Response = TokenData;
     type Error = LoginUserError;

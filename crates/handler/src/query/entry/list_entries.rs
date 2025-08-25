@@ -32,7 +32,6 @@ impl<EQR: EntryQueryRepository, CQR: CollectionQueryRepository> ListEntriesHandl
     }
 }
 
-#[async_trait::async_trait]
 impl<EQR: EntryQueryRepository, CQR: CollectionQueryRepository> Handler<ListEntriesQuery>
     for ListEntriesHandler<EQR, CQR>
 {

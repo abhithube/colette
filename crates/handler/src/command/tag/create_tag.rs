@@ -20,7 +20,6 @@ impl<TR: TagRepository> CreateTagHandler<TR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<TR: TagRepository> Handler<CreateTagCommand> for CreateTagHandler<TR> {
     type Response = Tag;
     type Error = CreateTagError;

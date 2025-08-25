@@ -18,7 +18,6 @@ impl<FR: FeedRepository> FetchOutdatedFeedsHandler<FR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<FR: FeedRepository> Handler<FetchOutdatedFeedsQuery> for FetchOutdatedFeedsHandler<FR> {
     type Response = Vec<Feed>;
     type Error = ListFeedsError;

@@ -27,27 +27,31 @@ impl Cursor for TagDto {
     }
 }
 
-#[async_trait::async_trait]
 pub trait TagQueryRepository: Sync {
-    async fn query(&self, params: TagQueryParams) -> Result<Vec<TagDto>, RepositoryError>;
+    fn query(
+        &self,
+        params: TagQueryParams,
+    ) -> impl Future<Output = Result<Vec<TagDto>, RepositoryError>> + Send;
 
-    async fn query_by_id(
+    fn query_by_id(
         &self,
         id: Uuid,
         user_id: Uuid,
-    ) -> Result<Option<TagDto>, RepositoryError> {
-        let mut tags = self
-            .query(TagQueryParams {
-                user_id,
-                id: Some(id),
-                ..Default::default()
-            })
-            .await?;
-        if tags.is_empty() {
-            return Ok(None);
-        }
+    ) -> impl Future<Output = Result<Option<TagDto>, RepositoryError>> + Send {
+        async move {
+            let mut tags = self
+                .query(TagQueryParams {
+                    user_id,
+                    id: Some(id),
+                    ..Default::default()
+                })
+                .await?;
+            if tags.is_empty() {
+                return Ok(None);
+            }
 
-        Ok(Some(tags.swap_remove(0)))
+            Ok(Some(tags.swap_remove(0)))
+        }
     }
 }
 

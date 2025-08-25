@@ -22,7 +22,6 @@ impl<HC: HttpClient> ScrapeBookmarkHandler<HC> {
     }
 }
 
-#[async_trait::async_trait]
 impl<HC: HttpClient> Handler<ScrapeBookmarkCommand> for ScrapeBookmarkHandler<HC> {
     type Response = BookmarkScraped;
     type Error = ScrapeBookmarkError;

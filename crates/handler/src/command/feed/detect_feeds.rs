@@ -28,7 +28,6 @@ impl<HC: HttpClient> DetectFeedsHandler<HC> {
     }
 }
 
-#[async_trait::async_trait]
 impl<HC: HttpClient> Handler<DetectFeedsCommand> for DetectFeedsHandler<HC> {
     type Response = Vec<FeedDetected>;
     type Error = DetectFeedsError;

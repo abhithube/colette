@@ -27,7 +27,6 @@ impl<SR: SubscriptionRepository> UpdateSubscriptionHandler<SR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<SR: SubscriptionRepository> Handler<UpdateSubscriptionCommand>
     for UpdateSubscriptionHandler<SR>
 {

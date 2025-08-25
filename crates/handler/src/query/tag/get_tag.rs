@@ -22,7 +22,6 @@ impl<TQR: TagQueryRepository> GetTagHandler<TQR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<TQR: TagQueryRepository> Handler<GetTagQuery> for GetTagHandler<TQR> {
     type Response = TagDto;
     type Error = GetTagError;

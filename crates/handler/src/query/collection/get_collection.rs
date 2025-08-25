@@ -22,7 +22,6 @@ impl<CQR: CollectionQueryRepository> GetCollectionHandler<CQR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<CQR: CollectionQueryRepository> Handler<GetCollectionQuery> for GetCollectionHandler<CQR> {
     type Response = CollectionDto;
     type Error = GetCollectionError;

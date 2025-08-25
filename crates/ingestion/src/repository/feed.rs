@@ -5,20 +5,31 @@ use url::Url;
 
 use crate::{Feed, FeedId};
 
-#[async_trait::async_trait]
 pub trait FeedRepository: Sync {
-    async fn find(&self, params: FeedFindParams) -> Result<Vec<Feed>, RepositoryError>;
+    fn find(
+        &self,
+        params: FeedFindParams,
+    ) -> impl Future<Output = Result<Vec<Feed>, RepositoryError>> + Send;
 
-    async fn find_by_source_url(&self, source_url: Url) -> Result<Option<Feed>, RepositoryError>;
+    fn find_by_source_url(
+        &self,
+        source_url: Url,
+    ) -> impl Future<Output = Result<Option<Feed>, RepositoryError>> + Send;
 
-    async fn find_outdated(
+    fn find_outdated(
         &self,
         params: FeedFindOutdatedParams,
-    ) -> Result<Vec<Feed>, RepositoryError>;
+    ) -> impl Future<Output = Result<Vec<Feed>, RepositoryError>> + Send;
 
-    async fn upsert(&self, params: FeedUpsertParams) -> Result<FeedId, RepositoryError>;
+    fn upsert(
+        &self,
+        params: FeedUpsertParams,
+    ) -> impl Future<Output = Result<FeedId, RepositoryError>> + Send;
 
-    async fn mark_as_failed(&self, source_url: Url) -> Result<(), RepositoryError>;
+    fn mark_as_failed(
+        &self,
+        source_url: Url,
+    ) -> impl Future<Output = Result<(), RepositoryError>> + Send;
 }
 
 #[derive(Debug, Clone, Default)]

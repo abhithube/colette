@@ -21,7 +21,6 @@ impl<BR: BackupRepository> ImportBackupHandler<BR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<BR: BackupRepository> Handler<ImportBackupCommand> for ImportBackupHandler<BR> {
     type Response = ();
     type Error = ImportBackupError;

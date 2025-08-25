@@ -15,12 +15,11 @@ pub struct FeedEntryDto {
     pub feed_id: Uuid,
 }
 
-#[async_trait::async_trait]
 pub trait FeedEntryQueryRepository: Sync {
-    async fn query(
+    fn query(
         &self,
         params: FeedEntryQueryParams,
-    ) -> Result<Vec<FeedEntryDto>, RepositoryError>;
+    ) -> impl Future<Output = Result<Vec<FeedEntryDto>, RepositoryError>> + Send;
 }
 
 #[derive(Debug, Clone, Default)]

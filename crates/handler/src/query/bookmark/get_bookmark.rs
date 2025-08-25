@@ -22,7 +22,6 @@ impl<BQR: BookmarkQueryRepository> GetBookmarkHandler<BQR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<BQR: BookmarkQueryRepository> Handler<GetBookmarkQuery> for GetBookmarkHandler<BQR> {
     type Response = BookmarkDto;
     type Error = GetBookmarkError;

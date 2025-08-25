@@ -25,7 +25,6 @@ impl<CQR: CollectionQueryRepository> ListCollectionsHandler<CQR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<CQR: CollectionQueryRepository> Handler<ListCollectionsQuery> for ListCollectionsHandler<CQR> {
     type Response = Paginated<CollectionDto, CollectionCursor>;
     type Error = ListCollectionsError;

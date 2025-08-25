@@ -4,15 +4,15 @@ use s3::{
     error::S3Error,
 };
 
-#[async_trait::async_trait]
 pub trait S3Client: Sync {
-    async fn get_object(&self, path: &str) -> Result<Vec<u8>, Error>;
+    fn get_object(&self, path: &str) -> impl Future<Output = Result<Vec<u8>, Error>> + Send;
 
-    async fn exists_object(&self, path: &str) -> Result<bool, Error>;
+    fn exists_object(&self, path: &str) -> impl Future<Output = Result<bool, Error>> + Send;
 
-    async fn put_object(&self, path: &str, data: &[u8]) -> Result<(), Error>;
+    fn put_object(&self, path: &str, data: &[u8])
+    -> impl Future<Output = Result<(), Error>> + Send;
 
-    async fn delete_object(&self, path: &str) -> Result<(), Error>;
+    fn delete_object(&self, path: &str) -> impl Future<Output = Result<(), Error>> + Send;
 }
 
 #[derive(Clone)]
@@ -49,7 +49,6 @@ impl S3ClientImpl {
     }
 }
 
-#[async_trait::async_trait]
 impl S3Client for S3ClientImpl {
     async fn get_object(&self, path: &str) -> Result<Vec<u8>, Error> {
         let data = self.bucket.get_object(path).await?;

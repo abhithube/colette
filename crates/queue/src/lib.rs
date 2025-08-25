@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use colette_common::uuid_generate_ts;
 use serde::Serialize;
 use serde_json::Value;
-use tokio::sync::mpsc::{self, error::SendError, Receiver, Sender};
+use tokio::sync::mpsc::{self, Receiver, Sender, error::SendError};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -31,14 +31,12 @@ impl Job {
     }
 }
 
-#[async_trait::async_trait]
 pub trait JobProducer: Send + Sync {
-    async fn push(&mut self, job: Job) -> Result<(), Error>;
+    fn push(&mut self, job: Job) -> impl Future<Output = Result<(), Error>> + Send;
 }
 
-#[async_trait::async_trait]
 pub trait JobConsumer: Sync {
-    async fn pop(&mut self) -> Result<Option<Job>, Error>;
+    fn pop(&mut self) -> impl Future<Output = Result<Option<Job>, Error>> + Send;
 }
 
 #[derive(Debug, Clone)]
@@ -46,7 +44,6 @@ pub struct TokioJobProducer {
     tx: Sender<Job>,
 }
 
-#[async_trait::async_trait]
 impl JobProducer for TokioJobProducer {
     async fn push(&mut self, job: Job) -> Result<(), Error> {
         self.tx.send(job).await?;
@@ -60,7 +57,6 @@ pub struct TokioJobConsumer {
     rx: Receiver<Job>,
 }
 
-#[async_trait::async_trait]
 impl JobConsumer for TokioJobConsumer {
     async fn pop(&mut self) -> Result<Option<Job>, Error> {
         let next = self.rx.recv().await;

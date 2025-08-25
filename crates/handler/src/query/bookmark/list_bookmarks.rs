@@ -30,7 +30,6 @@ impl<BQR: BookmarkQueryRepository, CQR: CollectionQueryRepository> ListBookmarks
     }
 }
 
-#[async_trait::async_trait]
 impl<BQR: BookmarkQueryRepository, CQR: CollectionQueryRepository> Handler<ListBookmarksQuery>
     for ListBookmarksHandler<BQR, CQR>
 {

@@ -24,7 +24,6 @@ impl<BQR: BookmarkQueryRepository> ExportBookmarksHandler<BQR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<BQR: BookmarkQueryRepository> Handler<ExportBookmarksQuery> for ExportBookmarksHandler<BQR> {
     type Response = Bytes;
     type Error = ExportBookmarksError;

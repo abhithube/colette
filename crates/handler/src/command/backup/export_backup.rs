@@ -39,7 +39,6 @@ impl<BQR: BookmarkQueryRepository, SQR: SubscriptionQueryRepository, TQR: TagQue
     }
 }
 
-#[async_trait::async_trait]
 impl<BQR: BookmarkQueryRepository, SQR: SubscriptionQueryRepository, TQR: TagQueryRepository>
     Handler<ExportBackupCommand> for ExportBackupHandler<BQR, SQR, TQR>
 {

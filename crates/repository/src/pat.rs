@@ -18,7 +18,6 @@ impl PostgresPatRepository {
     }
 }
 
-#[async_trait::async_trait]
 impl PatRepository for PostgresPatRepository {
     async fn find_by_id(
         &self,
@@ -136,7 +135,6 @@ impl From<PatByLookupHashRow> for PatByLookupHash {
     }
 }
 
-#[async_trait::async_trait]
 impl PatQueryRepository for PostgresPatRepository {
     async fn query(
         &self,

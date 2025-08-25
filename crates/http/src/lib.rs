@@ -3,18 +3,22 @@ use http::{Request, Response};
 use http_body_util::BodyExt;
 use reqwest::{Body, Client, Url};
 
-#[async_trait::async_trait]
 pub trait HttpClient: Send + Sync {
-    async fn send(&self, request: Request<Bytes>) -> Result<Response<Body>, Error>;
+    fn send(
+        &self,
+        request: Request<Bytes>,
+    ) -> impl Future<Output = Result<Response<Body>, Error>> + Send;
 
-    async fn get(&self, url: &Url) -> Result<Bytes, Error> {
-        let resp = self
-            .send(Request::get(url.as_str()).body(Default::default())?)
-            .await?;
+    fn get(&self, url: &Url) -> impl Future<Output = Result<Bytes, Error>> + Send {
+        async {
+            let resp = self
+                .send(Request::get(url.as_str()).body(Default::default())?)
+                .await?;
 
-        let body = resp.into_body().collect().await?.to_bytes();
+            let body = resp.into_body().collect().await?.to_bytes();
 
-        Ok(body)
+            Ok(body)
+        }
     }
 }
 
@@ -29,7 +33,6 @@ impl ReqwestClient {
     }
 }
 
-#[async_trait::async_trait]
 impl HttpClient for ReqwestClient {
     async fn send(&self, request: Request<Bytes>) -> Result<Response<Body>, Error> {
         let resp = self.client.execute(request.try_into()?).await?;

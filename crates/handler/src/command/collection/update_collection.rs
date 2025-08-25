@@ -27,7 +27,6 @@ impl<CR: CollectionRepository> UpdateCollectionHandler<CR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<CR: CollectionRepository> Handler<UpdateCollectionCommand> for UpdateCollectionHandler<CR> {
     type Response = Collection;
     type Error = UpdateCollectionError;

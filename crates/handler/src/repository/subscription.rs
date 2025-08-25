@@ -36,30 +36,31 @@ impl Cursor for SubscriptionDto {
     }
 }
 
-#[async_trait::async_trait]
 pub trait SubscriptionQueryRepository: Sync {
-    async fn query(
+    fn query(
         &self,
         params: SubscriptionQueryParams,
-    ) -> Result<Vec<SubscriptionDto>, RepositoryError>;
+    ) -> impl Future<Output = Result<Vec<SubscriptionDto>, RepositoryError>> + Send;
 
-    async fn query_by_id(
+    fn query_by_id(
         &self,
         id: Uuid,
         user_id: Uuid,
-    ) -> Result<Option<SubscriptionDto>, RepositoryError> {
-        let mut subscriptions = self
-            .query(SubscriptionQueryParams {
-                user_id,
-                id: Some(id),
-                ..Default::default()
-            })
-            .await?;
-        if subscriptions.is_empty() {
-            return Ok(None);
-        }
+    ) -> impl Future<Output = Result<Option<SubscriptionDto>, RepositoryError>> + Send {
+        async move {
+            let mut subscriptions = self
+                .query(SubscriptionQueryParams {
+                    user_id,
+                    id: Some(id),
+                    ..Default::default()
+                })
+                .await?;
+            if subscriptions.is_empty() {
+                return Ok(None);
+            }
 
-        Ok(Some(subscriptions.swap_remove(0)))
+            Ok(Some(subscriptions.swap_remove(0)))
+        }
     }
 }
 

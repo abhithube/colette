@@ -20,7 +20,6 @@ impl<ER: EntryRepository> MarkEntryAsReadHandler<ER> {
     }
 }
 
-#[async_trait::async_trait]
 impl<ER: EntryRepository> Handler<MarkEntryAsReadCommand> for MarkEntryAsReadHandler<ER> {
     type Response = ();
     type Error = MarkEntryAsReadError;

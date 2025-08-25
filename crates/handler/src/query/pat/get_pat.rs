@@ -22,7 +22,6 @@ impl<PQR: PatQueryRepository> GetPatHandler<PQR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<PQR: PatQueryRepository> Handler<GetPatQuery> for GetPatHandler<PQR> {
     type Response = PersonalAccessTokenDto;
     type Error = GetPatError;

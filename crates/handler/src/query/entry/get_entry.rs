@@ -22,7 +22,6 @@ impl<EQR: EntryQueryRepository> GetEntryHandler<EQR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<EQR: EntryQueryRepository> Handler<GetEntryQuery> for GetEntryHandler<EQR> {
     type Response = EntryDto;
     type Error = GetEntryError;

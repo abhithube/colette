@@ -25,7 +25,6 @@ impl<PQR: PatQueryRepository> ListPatsHandler<PQR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<PQR: PatQueryRepository> Handler<ListPatsQuery> for ListPatsHandler<PQR> {
     type Response = Paginated<PersonalAccessTokenDto, PatCursor>;
     type Error = ListPatsError;

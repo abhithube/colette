@@ -26,7 +26,6 @@ impl PostgresFeedRepository {
     }
 }
 
-#[async_trait::async_trait]
 impl FeedRepository for PostgresFeedRepository {
     async fn find(&self, params: FeedFindParams) -> Result<Vec<Feed>, RepositoryError> {
         let feeds = sqlx::query_file_as!(

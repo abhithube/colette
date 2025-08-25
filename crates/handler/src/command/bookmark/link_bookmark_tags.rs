@@ -23,7 +23,6 @@ impl<BR: BookmarkRepository> LinkBookmarkTagsHandler<BR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<BR: BookmarkRepository> Handler<LinkBookmarkTagsCommand> for LinkBookmarkTagsHandler<BR> {
     type Response = ();
     type Error = LinkBookmarkTagsError;

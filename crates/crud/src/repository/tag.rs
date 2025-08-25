@@ -3,11 +3,18 @@ use colette_common::RepositoryError;
 
 use crate::{Tag, TagId};
 
-#[async_trait::async_trait]
 pub trait TagRepository: Sync {
-    async fn find_by_id(&self, id: TagId, user_id: UserId) -> Result<Option<Tag>, RepositoryError>;
+    fn find_by_id(
+        &self,
+        id: TagId,
+        user_id: UserId,
+    ) -> impl Future<Output = Result<Option<Tag>, RepositoryError>> + Send;
 
-    async fn save(&self, data: &Tag) -> Result<(), RepositoryError>;
+    fn save(&self, data: &Tag) -> impl Future<Output = Result<(), RepositoryError>> + Send;
 
-    async fn delete_by_id(&self, id: TagId, user_id: UserId) -> Result<(), RepositoryError>;
+    fn delete_by_id(
+        &self,
+        id: TagId,
+        user_id: UserId,
+    ) -> impl Future<Output = Result<(), RepositoryError>> + Send;
 }

@@ -18,7 +18,6 @@ impl<UR: UserRepository> GetUserHandler<UR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<UR: UserRepository> Handler<GetUserQuery> for GetUserHandler<UR> {
     type Response = User;
     type Error = GetUserError;

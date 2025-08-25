@@ -20,7 +20,6 @@ impl<TR: TagRepository> DeleteTagHandler<TR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<TR: TagRepository> Handler<DeleteTagCommand> for DeleteTagHandler<TR> {
     type Response = ();
     type Error = DeleteTagError;

@@ -34,7 +34,6 @@ impl<BR: BookmarkRepository, JP: JobProducer> UpdateBookmarkHandler<BR, JP> {
     }
 }
 
-#[async_trait::async_trait]
 impl<BR: BookmarkRepository, JP: JobProducer> Handler<UpdateBookmarkCommand>
     for UpdateBookmarkHandler<BR, JP>
 {

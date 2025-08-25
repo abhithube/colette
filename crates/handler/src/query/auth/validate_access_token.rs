@@ -17,7 +17,6 @@ impl<JM: JwtManager> ValidateAccessTokenHandler<JM> {
     }
 }
 
-#[async_trait::async_trait]
 impl<JM: JwtManager> Handler<ValidateAccessTokenQuery> for ValidateAccessTokenHandler<JM> {
     type Response = Claims;
     type Error = ValidateAccessTokenError;

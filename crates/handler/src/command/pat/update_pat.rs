@@ -22,7 +22,6 @@ impl<PR: PatRepository> UpdatePatHandler<PR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<PR: PatRepository> Handler<UpdatePatCommand> for UpdatePatHandler<PR> {
     type Response = PersonalAccessToken;
     type Error = UpdatePatError;

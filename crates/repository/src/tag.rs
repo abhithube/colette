@@ -17,7 +17,6 @@ impl PostgresTagRepository {
     }
 }
 
-#[async_trait::async_trait]
 impl TagRepository for PostgresTagRepository {
     async fn find_by_id(&self, id: TagId, user_id: UserId) -> Result<Option<Tag>, RepositoryError> {
         let tag = sqlx::query_file_as!(
@@ -90,7 +89,6 @@ impl From<TagByIdRow> for Tag {
     }
 }
 
-#[async_trait::async_trait]
 impl TagQueryRepository for PostgresTagRepository {
     async fn query(&self, params: TagQueryParams) -> Result<Vec<TagDto>, RepositoryError> {
         let tags = sqlx::query_file_as!(

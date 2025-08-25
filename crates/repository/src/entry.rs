@@ -24,7 +24,6 @@ impl PostgresEntryRepository {
     }
 }
 
-#[async_trait::async_trait]
 impl EntryRepository for PostgresEntryRepository {
     async fn find_by_id(
         &self,
@@ -92,7 +91,6 @@ impl From<EntryByIdRow> for Entry {
     }
 }
 
-#[async_trait::async_trait]
 impl EntryQueryRepository for PostgresEntryRepository {
     async fn query(&self, params: EntryQueryParams) -> Result<Vec<EntryDto>, RepositoryError> {
         let (cursor_published_at, cursor_id) = if let Some((published_at, id)) = params.cursor {

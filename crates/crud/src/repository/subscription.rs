@@ -4,23 +4,28 @@ use url::Url;
 
 use crate::{Subscription, SubscriptionId};
 
-#[async_trait::async_trait]
 pub trait SubscriptionRepository: Sync {
-    async fn find_by_id(
+    fn find_by_id(
         &self,
         id: SubscriptionId,
         user_id: UserId,
-    ) -> Result<Option<Subscription>, RepositoryError>;
+    ) -> impl std::future::Future<Output = Result<Option<Subscription>, RepositoryError>> + Send;
 
-    async fn save(&self, data: &Subscription) -> Result<(), RepositoryError>;
+    fn save(
+        &self,
+        data: &Subscription,
+    ) -> impl std::future::Future<Output = Result<(), RepositoryError>> + Send;
 
-    async fn delete_by_id(
+    fn delete_by_id(
         &self,
         id: SubscriptionId,
         user_id: UserId,
-    ) -> Result<(), RepositoryError>;
+    ) -> impl std::future::Future<Output = Result<(), RepositoryError>> + Send;
 
-    async fn import(&self, params: ImportSubscriptionsParams) -> Result<(), RepositoryError>;
+    fn import(
+        &self,
+        params: ImportSubscriptionsParams,
+    ) -> impl std::future::Future<Output = Result<(), RepositoryError>> + Send;
 }
 
 #[derive(Debug, Clone)]

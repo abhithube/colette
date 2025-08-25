@@ -22,7 +22,6 @@ impl<CR: CollectionRepository> DeleteCollectionHandler<CR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<CR: CollectionRepository> Handler<DeleteCollectionCommand> for DeleteCollectionHandler<CR> {
     type Response = ();
     type Error = DeleteCollectionError;

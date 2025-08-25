@@ -17,7 +17,6 @@ impl PostgresFeedEntryRepository {
     }
 }
 
-#[async_trait::async_trait]
 impl FeedEntryQueryRepository for PostgresFeedEntryRepository {
     async fn query(
         &self,

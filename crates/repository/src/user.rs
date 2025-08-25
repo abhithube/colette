@@ -18,7 +18,6 @@ impl PostgresUserRepository {
     }
 }
 
-#[async_trait::async_trait]
 impl UserRepository for PostgresUserRepository {
     async fn find_by_id(&self, id: UserId) -> Result<Option<User>, RepositoryError> {
         let user = sqlx::query_file_as!(

@@ -2,22 +2,28 @@ use colette_common::RepositoryError;
 
 use crate::{LookupHash, PatByLookupHash, PatId, PersonalAccessToken, UserId};
 
-#[async_trait::async_trait]
 pub trait PatRepository: Sync {
-    async fn find_by_id(
+    fn find_by_id(
         &self,
         id: PatId,
         user_id: UserId,
-    ) -> Result<Option<PersonalAccessToken>, RepositoryError>;
+    ) -> impl Future<Output = Result<Option<PersonalAccessToken>, RepositoryError>> + Send;
 
-    async fn find_by_lookup_hash(
+    fn find_by_lookup_hash(
         &self,
         lookup_hash: &LookupHash,
-    ) -> Result<Option<PatByLookupHash>, RepositoryError>;
+    ) -> impl Future<Output = Result<Option<PatByLookupHash>, RepositoryError>> + Send;
 
-    async fn count(&self, user_id: UserId) -> Result<u8, RepositoryError>;
+    fn count(&self, user_id: UserId) -> impl Future<Output = Result<u8, RepositoryError>> + Send;
 
-    async fn save(&self, data: &PersonalAccessToken) -> Result<(), RepositoryError>;
+    fn save(
+        &self,
+        data: &PersonalAccessToken,
+    ) -> impl Future<Output = Result<(), RepositoryError>> + Send;
 
-    async fn delete_by_id(&self, id: PatId, user_id: UserId) -> Result<(), RepositoryError>;
+    fn delete_by_id(
+        &self,
+        id: PatId,
+        user_id: UserId,
+    ) -> impl Future<Output = Result<(), RepositoryError>> + Send;
 }

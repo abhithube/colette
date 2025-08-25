@@ -21,7 +21,6 @@ impl<TR: TagRepository> UpdateTagHandler<TR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<TR: TagRepository> Handler<UpdateTagCommand> for UpdateTagHandler<TR> {
     type Response = ();
     type Error = UpdateTagError;

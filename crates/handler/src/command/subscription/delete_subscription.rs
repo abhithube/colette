@@ -22,7 +22,6 @@ impl<SR: SubscriptionRepository> DeleteSubscriptionHandler<SR> {
     }
 }
 
-#[async_trait::async_trait]
 impl<SR: SubscriptionRepository> Handler<DeleteSubscriptionCommand>
     for DeleteSubscriptionHandler<SR>
 {

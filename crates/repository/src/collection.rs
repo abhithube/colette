@@ -17,7 +17,6 @@ impl PostgresCollectionRepository {
     }
 }
 
-#[async_trait::async_trait]
 impl CollectionRepository for PostgresCollectionRepository {
     async fn find_by_id(
         &self,
@@ -96,7 +95,6 @@ impl From<CollectionByIdRow> for Collection {
     }
 }
 
-#[async_trait::async_trait]
 impl CollectionQueryRepository for PostgresCollectionRepository {
     async fn query(
         &self,

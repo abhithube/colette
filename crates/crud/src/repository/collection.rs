@@ -3,17 +3,20 @@ use colette_common::RepositoryError;
 
 use crate::{BookmarkFilter, Collection, CollectionId};
 
-#[async_trait::async_trait]
 pub trait CollectionRepository: Sync {
-    async fn find_by_id(
+    fn find_by_id(
         &self,
         id: CollectionId,
         user_id: UserId,
-    ) -> Result<Option<Collection>, RepositoryError>;
+    ) -> impl Future<Output = Result<Option<Collection>, RepositoryError>> + Send;
 
-    async fn save(&self, data: &Collection) -> Result<(), RepositoryError>;
+    fn save(&self, data: &Collection) -> impl Future<Output = Result<(), RepositoryError>> + Send;
 
-    async fn delete_by_id(&self, id: CollectionId, user_id: UserId) -> Result<(), RepositoryError>;
+    fn delete_by_id(
+        &self,
+        id: CollectionId,
+        user_id: UserId,
+    ) -> impl Future<Output = Result<(), RepositoryError>> + Send;
 }
 
 #[derive(Debug, Clone)]
