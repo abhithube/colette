@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  id,\n  source_url AS \"source_url: DbUrl\",\n  link AS \"link: DbUrl\",\n  title,\n  description,\n  refresh_interval_min,\n  status AS \"status: DbFeedStatus\",\n  refreshed_at,\n  is_custom\nFROM\n  feeds\nWHERE\n  (\n    $1::UUID IS NULL\n    OR id = $1\n  )\n  AND (\n    $2::TEXT IS NULL\n    OR source_url > $2\n  )\nORDER BY\n  title ASC\nLIMIT\n  $3\n",
+  "query": "SELECT\n  id,\n  source_url AS \"source_url: DbUrl\",\n  link AS \"link: DbUrl\",\n  title,\n  description,\n  is_custom,\n  status AS \"status: DbFeedStatus\",\n  refresh_interval_min,\n  last_refreshed_at,\n  created_at,\n  updated_at\nFROM\n  feeds\nWHERE\n  last_refreshed_at IS NULL\n  OR last_refreshed_at + (refresh_interval_min * INTERVAL '1 minute') <= now()\nORDER BY\n  last_refreshed_at ASC,\n  refresh_interval_min ASC\nLIMIT\n  $1\n",
   "describe": {
     "columns": [
       {
@@ -30,8 +30,8 @@
       },
       {
         "ordinal": 5,
-        "name": "refresh_interval_min",
-        "type_info": "Int4"
+        "name": "is_custom",
+        "type_info": "Bool"
       },
       {
         "ordinal": 6,
@@ -40,19 +40,27 @@
       },
       {
         "ordinal": 7,
-        "name": "refreshed_at",
-        "type_info": "Timestamptz"
+        "name": "refresh_interval_min",
+        "type_info": "Int4"
       },
       {
         "ordinal": 8,
-        "name": "is_custom",
-        "type_info": "Bool"
+        "name": "last_refreshed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid",
-        "Text",
         "Int8"
       ]
     },
@@ -64,9 +72,11 @@
       true,
       false,
       false,
+      false,
       true,
+      false,
       false
     ]
   },
-  "hash": "8e890743bed77e3172411b0de086023630477fd5ac211186f39712d8e761714b"
+  "hash": "8175391226d011697de244492d62f7b37eb90b92c566afb47856312eebc590c6"
 }

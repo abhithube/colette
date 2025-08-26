@@ -1040,7 +1040,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Feed'
+                $ref: '#/components/schemas/FeedScraped'
         '401':
           description: User not authenticated
           content:
@@ -2264,43 +2264,6 @@ components:
       - description
       - author
       - tag
-    Feed:
-      type: object
-      description: RSS feed
-      required:
-      - id
-      - sourceUrl
-      - link
-      - title
-      - description
-      - refreshedAt
-      properties:
-        id:
-          type: string
-          format: uuid
-          description: Unique identifier of the feed
-        sourceUrl:
-          type: string
-          format: uri
-          description: URL to scrape for feed updates
-        link:
-          type: string
-          format: uri
-          description: URL of the webpage the feed links to
-        title:
-          type: string
-          description: Title of the feed
-        description:
-          type:
-          - string
-          - 'null'
-          description: Description of the feed
-        refreshedAt:
-          type:
-          - string
-          - 'null'
-          format: date-time
-          description: Timestamp at which the feed was refreshed
     FeedDetect:
       type: object
       description: Data to detect RSS feeds using
@@ -2335,6 +2298,31 @@ components:
           type: string
           format: uri
           description: URL of an RSS feed to scrape
+    FeedScraped:
+      type: object
+      description: RSS feed
+      required:
+      - sourceUrl
+      - link
+      - title
+      - description
+      properties:
+        sourceUrl:
+          type: string
+          format: uri
+          description: URL to scrape for feed updates
+        link:
+          type: string
+          format: uri
+          description: URL of the webpage the feed links to
+        title:
+          type: string
+          description: Title of the feed
+        description:
+          type:
+          - string
+          - 'null'
+          description: Description of the feed
     LinkBookmarkTags:
       type: object
       description: Action to link tags to a bookmark

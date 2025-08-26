@@ -58,7 +58,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
     let collection_repository = PostgresCollectionRepository::new(pool.clone());
-    let feed_entry_repository = PostgresFeedEntryRepository::new(pool.clone());
     let pat_repository = PostgresPatRepository::new(pool.clone());
     let subscription_repository = PostgresSubscriptionRepository::new(pool.clone());
     let entry_repository = PostgresEntryRepository::new(pool.clone());
@@ -147,11 +146,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
     let fetch_outdated_feeds_handler =
         Arc::new(FetchOutdatedFeedsHandler::new(feed_repository.clone()));
-    let refresh_feed_handler = Arc::new(RefreshFeedHandler::new(
-        feed_repository.clone(),
-        feed_entry_repository.clone(),
-        feed_scraper.clone(),
-    ));
 
     let mut api_state = ApiState {
         // Auth
@@ -227,8 +221,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         mark_entry_as_unread: Arc::new(MarkEntryAsUnreadHandler::new(entry_repository)),
 
         // Feeds
-        detect_feeds: Arc::new(DetectFeedsHandler::new(http_client, feed_scraper)),
-        refresh_feed: refresh_feed_handler.clone(),
+        detect_feeds: Arc::new(DetectFeedsHandler::new(http_client, feed_scraper.clone())),
+        scrape_feed: Arc::new(ScrapeFeedHandler::new(
+            feed_repository.clone(),
+            feed_scraper.clone(),
+        )),
 
         // Personal access tokens
         list_pats: Arc::new(ListPatsHandler::new(pat_repository.clone())),
@@ -313,7 +310,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         scrape_feed_consumer,
         ServiceBuilder::new()
             .concurrency_limit(5)
-            .service(ScrapeFeedJobHandler::new(refresh_feed_handler))
+            .service(ScrapeFeedJobHandler::new(Arc::new(
+                RefreshFeedHandler::new(feed_repository, feed_scraper),
+            )))
             .boxed(),
     );
     let mut scrape_bookmark_worker = JobWorker::new(

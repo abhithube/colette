@@ -4,17 +4,19 @@ SELECT
   link AS "link: DbUrl",
   title,
   description,
-  refresh_interval_min,
+  is_custom,
   status AS "status: DbFeedStatus",
-  refreshed_at,
-  is_custom
+  refresh_interval_min,
+  last_refreshed_at,
+  created_at,
+  updated_at
 FROM
   feeds
 WHERE
-  refreshed_at IS NULL
-  OR refreshed_at + (refresh_interval_min * INTERVAL '1 minute') <= now()
+  last_refreshed_at IS NULL
+  OR last_refreshed_at + (refresh_interval_min * INTERVAL '1 minute') <= now()
 ORDER BY
-  refreshed_at ASC,
+  last_refreshed_at ASC,
   refresh_interval_min ASC
 LIMIT
   $1

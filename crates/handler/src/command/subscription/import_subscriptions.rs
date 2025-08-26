@@ -4,10 +4,11 @@ use bytes::{Buf, Bytes};
 use colette_authentication::UserId;
 use colette_common::RepositoryError;
 use colette_crud::{ImportSubscriptionsParams, SubscriptionBatchItem, SubscriptionRepository};
+use colette_ingestion::DEFAULT_INTERVAL;
 use colette_opml::Outline;
 use url::Url;
 
-use crate::{DEFAULT_INTERVAL, Handler};
+use crate::Handler;
 
 #[derive(Debug, Clone)]
 pub struct ImportSubscriptionsCommand {

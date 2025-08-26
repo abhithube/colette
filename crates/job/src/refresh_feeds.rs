@@ -54,7 +54,8 @@ impl Service<Job> for RefreshFeedsJobHandler {
 
             for feed in feeds {
                 let data = ScrapeFeedJobData {
-                    url: feed.source_url,
+                    feed_id: feed.id(),
+                    source_url: feed.source_url().to_owned(),
                 };
                 let job = Job::create("scrape_feed", data)?;
 

@@ -13,7 +13,7 @@ pub fn uuid_generate_ts(now: DateTime<Utc>) -> Uuid {
     ))
 }
 
-pub fn uuid_generate_ctx(ctx: ContextV7, now: DateTime<Utc>) -> Uuid {
+pub fn uuid_generate_ctx(ctx: &ContextV7, now: DateTime<Utc>) -> Uuid {
     Uuid::new_v7(Timestamp::from_unix(
         ctx,
         now.timestamp() as u64,

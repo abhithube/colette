@@ -1,180 +1,92 @@
-use std::{cmp, sync::Arc};
+use std::sync::Arc;
 
 use colette_common::RepositoryError;
 use colette_http::HttpClient;
-use colette_ingestion::{
-    Feed, FeedError, FeedFindParams, FeedId, FeedRepository, FeedUpsertParams,
-};
-use colette_scraper::feed::{FeedScraper, ProcessedFeed};
-use url::Url;
+use colette_ingestion::{FeedBatch, FeedEntry, FeedError, FeedId, FeedRepository};
+use colette_scraper::feed::FeedScraper;
+use uuid::ContextV7;
 
-use crate::{FeedEntryQueryParams, FeedEntryQueryRepository, Handler};
-
-pub const DEFAULT_INTERVAL: u32 = 60;
-const MIN_INTERVAL: u32 = 5;
-const MAX_INTERVAL: u32 = DEFAULT_INTERVAL * 24;
-const SAMPLE_SIZE: usize = 20;
-const BACKOFF_MULTIPLIER: f32 = 1.15;
+use crate::Handler;
 
 #[derive(Debug, Clone)]
 pub struct RefreshFeedCommand {
-    pub url: Url,
+    pub id: FeedId,
 }
 
-pub struct RefreshFeedHandler<FR: FeedRepository, FEQR: FeedEntryQueryRepository, HC: HttpClient> {
+pub struct RefreshFeedHandler<FR: FeedRepository, HC: HttpClient> {
     feed_repository: FR,
-    feed_entry_query_repository: FEQR,
+
     feed_scraper: Arc<FeedScraper<HC>>,
 }
 
-impl<FR: FeedRepository, FEQR: FeedEntryQueryRepository, HC: HttpClient>
-    RefreshFeedHandler<FR, FEQR, HC>
-{
-    pub fn new(
-        feed_repository: FR,
-        feed_entry_query_repository: FEQR,
-        feed_scraper: Arc<FeedScraper<HC>>,
-    ) -> Self {
+impl<FR: FeedRepository, HC: HttpClient> RefreshFeedHandler<FR, HC> {
+    pub fn new(feed_repository: FR, feed_scraper: Arc<FeedScraper<HC>>) -> Self {
         Self {
             feed_repository,
-            feed_entry_query_repository,
+
             feed_scraper,
-        }
-    }
-
-    async fn get_feed(&self, id: FeedId) -> Result<Feed, RefreshFeedError> {
-        let mut feeds = self
-            .feed_repository
-            .find(FeedFindParams {
-                id: Some(id),
-                ..Default::default()
-            })
-            .await?;
-        if feeds.is_empty() {
-            return Err(RefreshFeedError::Feed(FeedError::NotFound(id.as_inner())));
-        }
-
-        Ok(feeds.swap_remove(0))
-    }
-
-    async fn calculate_refresh_interval(
-        &self,
-        source_url: Url,
-        processed: &ProcessedFeed,
-    ) -> Result<u32, RefreshFeedError> {
-        match self.feed_repository.find_by_source_url(source_url).await? {
-            Some(feed) => {
-                let latest_entries = self
-                    .feed_entry_query_repository
-                    .query(FeedEntryQueryParams {
-                        limit: Some(1),
-                        feed_id: Some(feed.id.as_inner()),
-                        ..Default::default()
-                    })
-                    .await?;
-
-                let has_new = processed.entries.first().is_some_and(|a| {
-                    latest_entries
-                        .first()
-                        .is_some_and(|b| a.published.gt(&b.published_at))
-                });
-
-                if has_new {
-                    let mut dates = processed
-                        .entries
-                        .iter()
-                        .take(SAMPLE_SIZE)
-                        .map(|e| e.published)
-                        .collect::<Vec<_>>();
-
-                    if dates.len() < SAMPLE_SIZE {
-                        let entries = self
-                            .feed_entry_query_repository
-                            .query(FeedEntryQueryParams {
-                                feed_id: Some(feed.id.as_inner()),
-                                limit: Some(SAMPLE_SIZE - dates.len()),
-                                ..Default::default()
-                            })
-                            .await?;
-
-                        for entry in entries {
-                            dates.push(entry.published_at);
-                        }
-                    }
-
-                    if dates.len() < 2 {
-                        return Ok(DEFAULT_INTERVAL);
-                    }
-
-                    let mut deltas = dates
-                        .windows(2)
-                        .map(|e| (e[0] - e[1]).num_minutes() as u32)
-                        .collect::<Vec<_>>();
-
-                    deltas.sort_unstable();
-
-                    let median = if deltas.len() % 2 == 0 {
-                        let right = deltas.len() / 2;
-                        let left = right - 1;
-                        (deltas[left] + deltas[right]) / 2
-                    } else {
-                        deltas[deltas.len() / 2]
-                    };
-
-                    Ok(median.clamp(MIN_INTERVAL, MAX_INTERVAL))
-                } else {
-                    Ok(cmp::min(
-                        (feed.refresh_interval_min as f32 * BACKOFF_MULTIPLIER) as u32,
-                        MAX_INTERVAL,
-                    ))
-                }
-            }
-            None => Ok(DEFAULT_INTERVAL),
         }
     }
 }
 
-impl<FR: FeedRepository, FEQR: FeedEntryQueryRepository, HC: HttpClient> Handler<RefreshFeedCommand>
-    for RefreshFeedHandler<FR, FEQR, HC>
+impl<FR: FeedRepository, HC: HttpClient> Handler<RefreshFeedCommand>
+    for RefreshFeedHandler<FR, HC>
 {
-    type Response = Feed;
+    type Response = ();
     type Error = RefreshFeedError;
 
-    async fn handle(&self, mut cmd: RefreshFeedCommand) -> Result<Self::Response, Self::Error> {
-        let mut processed = match self.feed_scraper.scrape(&mut cmd.url).await {
+    async fn handle(&self, cmd: RefreshFeedCommand) -> Result<Self::Response, Self::Error> {
+        let mut feed =
+            self.feed_repository
+                .find_by_id(cmd.id)
+                .await?
+                .ok_or(RefreshFeedError::Feed(FeedError::NotFound(
+                    cmd.id.as_inner(),
+                )))?;
+
+        let mut source_url = feed.source_url().to_owned();
+
+        let processed = match self.feed_scraper.scrape(&mut source_url).await {
             Ok(processed) => Ok(processed),
             Err(e) => {
-                self.feed_repository.mark_as_failed(cmd.url.clone()).await?;
+                self.feed_repository
+                    .mark_as_failed(source_url.clone())
+                    .await?;
 
                 Err(e)
             }
         }?;
 
-        processed
+        feed.set_link(processed.link);
+        feed.set_title(processed.title);
+        if let Some(description) = processed.description {
+            feed.set_description(description);
+        } else {
+            feed.remove_description();
+        }
+
+        let uuid_ctx = ContextV7::new();
+        let feed_entries = processed
             .entries
-            .sort_by(|a, b| a.published.cmp(&b.published));
-
-        let refresh_interval_min = self
-            .calculate_refresh_interval(cmd.url.clone(), &processed)
-            .await?;
-
-        let is_custom = processed.link == cmd.url;
-        let feed_entry_items = processed.entries.into_iter().map(Into::into).collect();
-
-        let id = self
-            .feed_repository
-            .upsert(FeedUpsertParams {
-                source_url: cmd.url,
-                link: processed.link,
-                title: processed.title,
-                description: processed.description,
-                refresh_interval_min,
-                is_custom,
-                feed_entry_items,
+            .into_iter()
+            .map(|e| {
+                FeedEntry::new(
+                    &uuid_ctx,
+                    e.link,
+                    e.title,
+                    e.published,
+                    e.description,
+                    e.author,
+                    e.thumbnail,
+                )
             })
+            .collect();
+
+        self.feed_repository
+            .upsert(FeedBatch { feed, feed_entries })
             .await?;
 
-        self.get_feed(id).await
+        Ok(())
     }
 }
 

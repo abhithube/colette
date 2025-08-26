@@ -4,11 +4,20 @@ SELECT
   link AS "link: DbUrl",
   title,
   description,
-  refresh_interval_min,
+  is_custom,
   status AS "status: DbFeedStatus",
-  refreshed_at,
-  is_custom
+  refresh_interval_min,
+  last_refreshed_at,
+  created_at,
+  updated_at
 FROM
   feeds
 WHERE
-  source_url = $1
+  (
+    $1::UUID IS NULL
+    OR id = $1
+  )
+  AND (
+    $2::TEXT IS NULL
+    OR source_url = $2
+  )

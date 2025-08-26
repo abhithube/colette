@@ -1,8 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_common::RepositoryError;
 use colette_ingestion::{
-    Feed, FeedFindOutdatedParams, FeedFindParams, FeedId, FeedRepository, FeedStatus,
-    FeedUpsertParams,
+    Feed, FeedBatch, FeedFindOutdatedParams, FeedId, FeedRepository, FeedStatus,
 };
 use sqlx::{
     Decode, Encode, PgPool, Postgres, Type,
@@ -27,26 +26,26 @@ impl PostgresFeedRepository {
 }
 
 impl FeedRepository for PostgresFeedRepository {
-    async fn find(&self, params: FeedFindParams) -> Result<Vec<Feed>, RepositoryError> {
-        let feeds = sqlx::query_file_as!(
-            FeedRow,
-            "queries/feeds/find.sql",
-            params.id.map(|e| e.as_inner()),
-            params.cursor.map(DbUrl) as Option<DbUrl>,
-            params.limit.map(|e| e as i64)
-        )
-        .map(Into::into)
-        .fetch_all(&self.pool)
-        .await?;
-
-        Ok(feeds)
-    }
-
-    async fn find_by_source_url(&self, source_url: Url) -> Result<Option<Feed>, RepositoryError> {
+    async fn find_by_id(&self, id: FeedId) -> Result<Option<Feed>, RepositoryError> {
         let feed = sqlx::query_file_as!(
             FeedRow,
             "queries/feeds/find_by_source_url.sql",
-            DbUrl(source_url) as DbUrl
+            id.as_inner(),
+            Option::<&str>::None
+        )
+        .map(Into::into)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(feed)
+    }
+
+    async fn find_by_source_url(&self, source_url: &Url) -> Result<Option<Feed>, RepositoryError> {
+        let feed = sqlx::query_file_as!(
+            FeedRow,
+            "queries/feeds/find_by_source_url.sql",
+            Option::<Uuid>::None,
+            DbUrl(source_url.to_owned()) as DbUrl
         )
         .map(Into::into)
         .fetch_optional(&self.pool)
@@ -71,42 +70,55 @@ impl FeedRepository for PostgresFeedRepository {
         Ok(feeds)
     }
 
-    async fn upsert(&self, params: FeedUpsertParams) -> Result<FeedId, RepositoryError> {
+    async fn upsert(&self, data: FeedBatch) -> Result<(), RepositoryError> {
+        let mut fe_ids = Vec::<Uuid>::new();
         let mut fe_links = Vec::<DbUrl>::new();
         let mut fe_titles = Vec::<String>::new();
         let mut fe_published_ats = Vec::<DateTime<Utc>>::new();
         let mut fe_descriptions = Vec::<Option<String>>::new();
         let mut fe_authors = Vec::<Option<String>>::new();
         let mut fe_thumbnail_urls = Vec::<Option<DbUrl>>::new();
+        let mut fe_created_ats = Vec::<DateTime<Utc>>::new();
+        let mut fe_updated_ats = Vec::<DateTime<Utc>>::new();
 
-        for item in params.feed_entry_items {
-            fe_links.push(DbUrl(item.link));
-            fe_titles.push(item.title);
-            fe_published_ats.push(item.published_at);
-            fe_descriptions.push(item.description);
-            fe_authors.push(item.author);
-            fe_thumbnail_urls.push(item.thumbnail_url.map(Into::into));
+        for item in data.feed_entries {
+            fe_ids.push(item.id().as_inner());
+            fe_links.push(DbUrl(item.link().to_owned()));
+            fe_titles.push(item.title().to_owned());
+            fe_published_ats.push(item.published_at());
+            fe_descriptions.push(item.description().map(ToOwned::to_owned));
+            fe_authors.push(item.author().map(ToOwned::to_owned));
+            fe_thumbnail_urls.push(item.thumbnail_url().map(ToOwned::to_owned).map(DbUrl));
+            fe_created_ats.push(item.created_at());
+            fe_updated_ats.push(item.updated_at());
         }
 
-        let id = sqlx::query_file_scalar!(
+        sqlx::query_file!(
             "queries/feeds/upsert.sql",
-            DbUrl(params.source_url) as DbUrl,
-            DbUrl(params.link) as DbUrl,
-            params.title,
-            params.description,
-            params.refresh_interval_min as i32,
-            params.is_custom,
+            data.feed.id().as_inner(),
+            DbUrl(data.feed.source_url().to_owned()) as DbUrl,
+            DbUrl(data.feed.link().to_owned()) as DbUrl,
+            data.feed.title(),
+            data.feed.description(),
+            data.feed.is_custom(),
+            DbFeedStatus(data.feed.status().to_owned()) as DbFeedStatus,
+            data.feed.last_refreshed_at(),
+            data.feed.created_at(),
+            data.feed.updated_at(),
+            &fe_ids,
             &fe_links as &[DbUrl],
             &fe_titles,
             &fe_published_ats,
             &fe_descriptions as &[Option<String>],
             &fe_authors as &[Option<String>],
-            &fe_thumbnail_urls as &[Option<DbUrl>]
+            &fe_thumbnail_urls as &[Option<DbUrl>],
+            &fe_created_ats,
+            &fe_updated_ats,
         )
-        .fetch_one(&self.pool)
+        .execute(&self.pool)
         .await?;
 
-        Ok(id.into())
+        Ok(())
     }
 
     async fn mark_as_failed(&self, source_url: Url) -> Result<(), RepositoryError> {
@@ -127,25 +139,29 @@ pub(crate) struct FeedRow {
     link: DbUrl,
     title: String,
     description: Option<String>,
-    refresh_interval_min: i32,
-    status: DbFeedStatus,
-    refreshed_at: Option<DateTime<Utc>>,
     is_custom: bool,
+    status: DbFeedStatus,
+    refresh_interval_min: i32,
+    last_refreshed_at: Option<DateTime<Utc>>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 impl From<FeedRow> for Feed {
     fn from(value: FeedRow) -> Self {
-        Self {
-            id: value.id.into(),
-            source_url: value.source_url.into(),
-            link: value.link.0,
-            title: value.title,
-            description: value.description,
-            refreshed_at: value.refreshed_at,
-            refresh_interval_min: value.refresh_interval_min as u32,
-            status: value.status.into(),
-            is_custom: value.is_custom,
-        }
+        Self::from_unchecked(
+            value.id,
+            value.source_url.0,
+            value.link.0,
+            value.title,
+            value.description,
+            value.is_custom,
+            value.status.0,
+            value.refresh_interval_min as u32,
+            value.last_refreshed_at,
+            value.created_at,
+            value.updated_at,
+        )
     }
 }
 

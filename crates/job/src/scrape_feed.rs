@@ -8,22 +8,19 @@ use colette_handler::{Handler as _, RefreshFeedCommand, RefreshFeedHandler};
 use colette_http::ReqwestClient;
 use colette_ingestion::ScrapeFeedJobData;
 use colette_queue::Job;
-use colette_repository::{PostgresFeedEntryRepository, PostgresFeedRepository};
+use colette_repository::PostgresFeedRepository;
 use futures::FutureExt;
 use tower::Service;
 
 use crate::Error;
 
 pub struct ScrapeFeedJobHandler {
-    refresh_feed:
-        Arc<RefreshFeedHandler<PostgresFeedRepository, PostgresFeedEntryRepository, ReqwestClient>>,
+    refresh_feed: Arc<RefreshFeedHandler<PostgresFeedRepository, ReqwestClient>>,
 }
 
 impl ScrapeFeedJobHandler {
     pub fn new(
-        refresh_feed: Arc<
-            RefreshFeedHandler<PostgresFeedRepository, PostgresFeedEntryRepository, ReqwestClient>,
-        >,
+        refresh_feed: Arc<RefreshFeedHandler<PostgresFeedRepository, ReqwestClient>>,
     ) -> Self {
         Self { refresh_feed }
     }
@@ -44,10 +41,10 @@ impl Service<Job> for ScrapeFeedJobHandler {
         async move {
             let data = serde_json::from_value::<ScrapeFeedJobData>(job.data)?;
 
-            tracing::debug!("Scraping feed at URL: {}", data.url.as_str());
+            tracing::debug!("Scraping feed at URL: {}", data.source_url.as_str());
 
             refresh_feed
-                .handle(RefreshFeedCommand { url: data.url })
+                .handle(RefreshFeedCommand { id: data.feed_id })
                 .await
                 .map_err(|e| Error::Service(e.to_string()))?;
 

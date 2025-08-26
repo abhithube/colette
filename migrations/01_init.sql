@@ -1,14 +1,7 @@
-CREATE OR REPLACE FUNCTION set_updated_at () RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ language 'plpgsql';
-
 CREATE TABLE users (
   id UUID NOT NULL PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
-  verified BOOL NOT NULL DEFAULT FALSE,
+  verified BOOL NOT NULL,
   display_name TEXT,
   image_url TEXT,
   created_at TIMESTAMPTZ NOT NULL,
@@ -47,25 +40,21 @@ CREATE TABLE personal_access_tokens (
 );
 
 CREATE TABLE feeds (
-  id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID NOT NULL PRIMARY KEY,
   source_url TEXT NOT NULL UNIQUE,
   link TEXT NOT NULL,
   title TEXT NOT NULL,
   description TEXT,
+  is_custom BOOLEAN NOT NULL,
+  status TEXT NOT NULL,
   refresh_interval_min INTEGER NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending',
-  refreshed_at TIMESTAMPTZ,
-  is_custom BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  last_refreshed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
 );
 
-CREATE TRIGGER feeds_updated_at BEFORE
-UPDATE ON feeds FOR EACH ROW
-EXECUTE PROCEDURE set_updated_at ();
-
 CREATE TABLE feed_entries (
-  id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID NOT NULL PRIMARY KEY,
   link TEXT NOT NULL,
   title TEXT NOT NULL,
   published_at TIMESTAMPTZ NOT NULL,
@@ -73,14 +62,10 @@ CREATE TABLE feed_entries (
   author TEXT,
   thumbnail_url TEXT,
   feed_id UUID NOT NULL REFERENCES feeds (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL,
   UNIQUE (feed_id, link)
 );
-
-CREATE TRIGGER feed_entries_updated_at BEFORE
-UPDATE ON feed_entries FOR EACH ROW
-EXECUTE PROCEDURE set_updated_at ();
 
 CREATE TABLE subscriptions (
   id UUID NOT NULL PRIMARY KEY,

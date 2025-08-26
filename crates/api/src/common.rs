@@ -115,8 +115,7 @@ pub struct ApiState {
 
     // Feeds
     pub detect_feeds: Arc<DetectFeedsHandler<ReqwestClient>>,
-    pub refresh_feed:
-        Arc<RefreshFeedHandler<PostgresFeedRepository, PostgresFeedEntryRepository, ReqwestClient>>,
+    pub scrape_feed: Arc<ScrapeFeedHandler<PostgresFeedRepository, ReqwestClient>>,
 
     // Personal access tokens
     pub list_pats: Arc<ListPatsHandler<PostgresPatRepository>>,

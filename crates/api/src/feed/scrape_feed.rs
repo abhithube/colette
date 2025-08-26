@@ -3,13 +3,13 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_handler::{Handler as _, RefreshFeedCommand, RefreshFeedError};
+use colette_handler::{Handler as _, ScrapeFeedCommand, ScrapeFeedError};
 use url::Url;
 
 use crate::{
     ApiState,
     common::{ApiError, Json},
-    feed::{FEEDS_TAG, Feed},
+    feed::{FEEDS_TAG, FeedScraped},
 };
 
 #[utoipa::path(
@@ -27,12 +27,12 @@ pub(super) async fn handler(
     Json(body): Json<FeedScrape>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
-        .refresh_feed
-        .handle(RefreshFeedCommand { url: body.url })
+        .scrape_feed
+        .handle(ScrapeFeedCommand { url: body.url })
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),
-        Err(RefreshFeedError::Scraper(e)) => Err(ErrResponse::BadGateway(e.into())),
+        Err(ScrapeFeedError::Scraper(e)) => Err(ErrResponse::BadGateway(e.into())),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
@@ -47,7 +47,7 @@ pub(super) struct FeedScrape {
 
 #[derive(utoipa::IntoResponses)]
 #[response(status = StatusCode::CREATED, description = "Scraped feed")]
-pub(super) struct OkResponse(Feed);
+pub(super) struct OkResponse(FeedScraped);
 
 impl IntoResponse for OkResponse {
     fn into_response(self) -> Response {

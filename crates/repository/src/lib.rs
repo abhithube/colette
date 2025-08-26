@@ -4,7 +4,6 @@ use colette_crud::{BooleanOp, DateOp, NumberOp, TextOp};
 pub use collection::PostgresCollectionRepository;
 pub use entry::PostgresEntryRepository;
 pub use feed::PostgresFeedRepository;
-pub use feed_entry::PostgresFeedEntryRepository;
 pub use pat::PostgresPatRepository;
 use sqlx::{
     Decode, Encode, Postgres, Type,
@@ -22,7 +21,6 @@ mod bookmark;
 mod collection;
 mod entry;
 mod feed;
-mod feed_entry;
 mod pat;
 mod subscription;
 mod tag;

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  id,\n  source_url AS \"source_url: DbUrl\",\n  link AS \"link: DbUrl\",\n  title,\n  description,\n  refresh_interval_min,\n  status AS \"status: DbFeedStatus\",\n  refreshed_at,\n  is_custom\nFROM\n  feeds\nWHERE\n  source_url = $1\n",
+  "query": "SELECT\n  id,\n  source_url AS \"source_url: DbUrl\",\n  link AS \"link: DbUrl\",\n  title,\n  description,\n  is_custom,\n  status AS \"status: DbFeedStatus\",\n  refresh_interval_min,\n  last_refreshed_at,\n  created_at,\n  updated_at\nFROM\n  feeds\nWHERE\n  (\n    $1::UUID IS NULL\n    OR id = $1\n  )\n  AND (\n    $2::TEXT IS NULL\n    OR source_url = $2\n  )\n",
   "describe": {
     "columns": [
       {
@@ -30,8 +30,8 @@
       },
       {
         "ordinal": 5,
-        "name": "refresh_interval_min",
-        "type_info": "Int4"
+        "name": "is_custom",
+        "type_info": "Bool"
       },
       {
         "ordinal": 6,
@@ -40,17 +40,28 @@
       },
       {
         "ordinal": 7,
-        "name": "refreshed_at",
-        "type_info": "Timestamptz"
+        "name": "refresh_interval_min",
+        "type_info": "Int4"
       },
       {
         "ordinal": 8,
-        "name": "is_custom",
-        "type_info": "Bool"
+        "name": "last_refreshed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
+        "Uuid",
         "Text"
       ]
     },
@@ -62,9 +73,11 @@
       true,
       false,
       false,
+      false,
       true,
+      false,
       false
     ]
   },
-  "hash": "db332ffcfbbff4cb693f57a2729e2309dca7d0a5a171e59c2221f1b6ac088374"
+  "hash": "f28444bc6d82bce3d17907c18b7f12b0bb90adb32e9afe90e362f31b5dff4a86"
 }

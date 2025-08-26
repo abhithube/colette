@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  upserted_feed AS (\n    INSERT INTO\n      feeds (\n        id,\n        source_url,\n        link,\n        title,\n        description,\n        is_custom,\n        status,\n        last_refreshed_at,\n        created_at,\n        updated_at\n      )\n    VALUES\n      ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\n    ON CONFLICT (source_url) DO UPDATE\n    SET\n      link = EXCLUDED.link,\n      title = EXCLUDED.title,\n      description = EXCLUDED.description,\n      status = EXCLUDED.status,\n      last_refreshed_at = EXCLUDED.last_refreshed_at,\n      is_custom = EXCLUDED.is_custom,\n      updated_at = EXCLUDED.updated_at\n  ),\n  input_fes AS (\n    SELECT\n      *,\n      $1 AS feed_id\n    FROM\n      unnest(\n        $11::UUID[],\n        $12::TEXT[],\n        $13::TEXT[],\n        $14::TIMESTAMPTZ[],\n        $15::TEXT[],\n        $16::TEXT[],\n        $17::UUID[],\n        $18::TIMESTAMPTZ[],\n        $19::TIMESTAMPTZ[]\n      ) AS t (\n        id,\n        link,\n        title,\n        published_at,\n        description,\n        author,\n        thumbnail_url,\n        created_at,\n        updated_at\n      )\n  )\nINSERT INTO\n  feed_entries (\n    id,\n    link,\n    title,\n    published_at,\n    description,\n    author,\n    thumbnail_url,\n    feed_id,\n    created_at,\n    updated_at\n  )\nSELECT\n  fe.id,\n  fe.link,\n  fe.title,\n  fe.published_at,\n  fe.description,\n  fe.author,\n  fe.thumbnail_url,\n  fe.feed_id,\n  fe.created_at,\n  fe.updated_at\nFROM\n  input_fes fe\nON CONFLICT (feed_id, link) DO UPDATE\nSET\n  title = EXCLUDED.title,\n  published_at = EXCLUDED.published_at,\n  description = EXCLUDED.description,\n  author = EXCLUDED.author,\n  thumbnail_url = EXCLUDED.thumbnail_url,\n  updated_at = EXCLUDED.updated_at\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "UuidArray",
+        "TextArray",
+        "TextArray",
+        "TimestamptzArray",
+        "TextArray",
+        "TextArray",
+        "UuidArray",
+        "TimestamptzArray",
+        "TimestamptzArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d8ebfcd754be7dab3e0126ca3233af6cfe9728cdfa7c7bd4d307c5a23e079368"
+}
