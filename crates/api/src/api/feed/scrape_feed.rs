@@ -1,0 +1,84 @@
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
+use colette_handler::{Handler as _, ScrapeFeedCommand, ScrapeFeedError};
+use url::Url;
+
+use crate::api::{
+    ApiState,
+    common::{ApiError, Json},
+    feed::{FEEDS_TAG, FeedScraped},
+};
+
+#[utoipa::path(
+    post,
+    path = "/scrape",
+    request_body = FeedScrape,
+    responses(OkResponse, ErrResponse),
+    operation_id = "scrapeFeed",
+    description = "Scrape web feed",
+    tag = FEEDS_TAG
+  )]
+#[axum::debug_handler]
+pub(super) async fn handler(
+    State(state): State<ApiState>,
+    Json(body): Json<FeedScrape>,
+) -> Result<OkResponse, ErrResponse> {
+    match state
+        .scrape_feed
+        .handle(ScrapeFeedCommand { url: body.url })
+        .await
+    {
+        Ok(data) => Ok(OkResponse(data.into())),
+        Err(ScrapeFeedError::Scraper(e)) => Err(ErrResponse::BadGateway(e.into())),
+        Err(e) => Err(ErrResponse::InternalServerError(e.into())),
+    }
+}
+
+/// Data to scrape an RSS feed using
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct FeedScrape {
+    /// URL of an RSS feed to scrape
+    url: Url,
+}
+
+#[derive(utoipa::IntoResponses)]
+#[response(status = StatusCode::CREATED, description = "Scraped feed")]
+pub(super) struct OkResponse(FeedScraped);
+
+impl IntoResponse for OkResponse {
+    fn into_response(self) -> Response {
+        (StatusCode::CREATED, axum::Json(self.0)).into_response()
+    }
+}
+
+#[allow(dead_code)]
+#[derive(utoipa::IntoResponses)]
+pub(super) enum ErrResponse {
+    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
+    Unauthorized(ApiError),
+
+    #[response(status = StatusCode::UNPROCESSABLE_ENTITY, description = "Invalid input")]
+    UnprocessableEntity(ApiError),
+
+    #[response(status = StatusCode::BAD_GATEWAY, description = "Failed to fetch data")]
+    BadGateway(ApiError),
+
+    #[response(status = "default", description = "Unknown error")]
+    InternalServerError(ApiError),
+}
+
+impl IntoResponse for ErrResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
+            Self::InternalServerError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
+            }
+            _ => unreachable!(),
+        }
+    }
+}

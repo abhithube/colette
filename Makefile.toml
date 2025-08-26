@@ -1,9 +1,13 @@
 config.default_to_workspace = false
 env_files = [".env"]
 
-[tasks.dev]
+[tasks.dev-api]
 command = "cargo"
-args = ["run"]
+args = ["run", "-p", "colette-api"]
+
+[tasks.dev-worker]
+command = "cargo"
+args = ["run", "-p", "colette-worker"]
 
 [tasks.build]
 command = "cargo"
