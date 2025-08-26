@@ -6,23 +6,23 @@ members = [
   "crates/core/authentication",
   "crates/common",
   "crates/core/crud",
-  "crates/crypto",
+  "crates/infra/crypto",
   "crates/feed",
   "crates/handler",
-  "crates/http",
+  "crates/infra/http",
   "crates/core/ingestion",
   "crates/job",
-  "crates/jwt",
+  "crates/infra/jwt",
   "crates/meta",
   "crates/netscape",
-  "crates/oidc",
+  "crates/infra/oidc",
   "crates/opml",
   "crates/plugins",
-  "crates/queue",
-  "crates/repository",
-  "crates/s3",
+  "crates/infra/queue",
+  "crates/infra/repository",
+  "crates/infra/s3",
   "crates/scraper",
-  "crates/smtp",
+  "crates/infra/smtp",
   "crates/util",
 ]
 resolver = "2"
@@ -46,23 +46,23 @@ colette-archival.path = "crates/core/archival"
 colette-authentication.path = "crates/core/authentication"
 colette-common.path = "crates/common"
 colette-crud.path = "crates/core/crud"
-colette-crypto.path = "crates/crypto"
+colette-crypto.path = "crates/infra/crypto"
 colette-feed.path = "crates/feed"
 colette-handler.path = "crates/handler"
-colette-http.path = "crates/http"
+colette-http.path = "crates/infra/http"
 colette-ingestion.path = "crates/core/ingestion"
 colette-job.path = "crates/job"
-colette-jwt.path = "crates/jwt"
+colette-jwt.path = "crates/infra/jwt"
 colette-meta.path = "crates/meta"
 colette-netscape.path = "crates/netscape"
-colette-oidc.path = "crates/oidc"
+colette-oidc.path = "crates/infra/oidc"
 colette-opml.path = "crates/opml"
 colette-plugins.path = "crates/plugins"
-colette-queue.path = "crates/queue"
-colette-repository.path = "crates/repository"
-colette-s3.path = "crates/s3"
+colette-queue.path = "crates/infra/queue"
+colette-repository.path = "crates/infra/repository"
+colette-s3.path = "crates/infra/s3"
 colette-scraper.path = "crates/scraper"
-colette-smtp.path = "crates/smtp"
+colette-smtp.path = "crates/infra/smtp"
 colette-util.path = "crates/util"
 email_address = { version = "0.2.9", default-features = false, features = [
   "serde_support",
