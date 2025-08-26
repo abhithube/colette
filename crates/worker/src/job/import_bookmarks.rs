@@ -14,7 +14,7 @@ use futures::FutureExt;
 use tokio::sync::Mutex;
 use tower::Service;
 
-use crate::Error;
+use crate::job::Error;
 
 pub struct ImportBookmarksJobHandler {
     list_bookmarks:

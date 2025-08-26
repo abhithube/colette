@@ -12,7 +12,7 @@ use futures::FutureExt;
 use tokio::sync::Mutex;
 use tower::Service;
 
-use crate::Error;
+use crate::job::Error;
 
 pub struct RefreshFeedsJobHandler {
     fetch_outdated_feeds: Arc<FetchOutdatedFeedsHandler<PostgresFeedRepository>>,

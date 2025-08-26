@@ -13,7 +13,7 @@ use colette_s3::S3ClientImpl;
 use futures::FutureExt;
 use tower::Service;
 
-use crate::Error;
+use crate::job::Error;
 
 pub struct ArchiveThumbnailJobHandler {
     archive_thumbnail:

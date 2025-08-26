@@ -6,11 +6,6 @@ use colette_api::{ApiConfig, ApiOidcConfig, ApiS3Config, ApiServerConfig, ApiSta
 use colette_crypto::OtpCodeGenerator;
 use colette_handler::*;
 use colette_http::ReqwestClient;
-use colette_job::{
-    archive_thumbnail::ArchiveThumbnailJobHandler, import_bookmarks::ImportBookmarksJobHandler,
-    refresh_feeds::RefreshFeedsJobHandler, scrape_bookmark::ScrapeBookmarkJobHandler,
-    scrape_feed::ScrapeFeedJobHandler,
-};
 use colette_jwt::JwtManagerImpl;
 use colette_oidc::OidcClientImpl;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
@@ -20,13 +15,10 @@ use colette_s3::S3ClientImpl;
 use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
 use colette_smtp::{SmtpClientImpl, SmtpConfig};
 use sqlx::PgPool;
-use tokio::{net::TcpListener, sync::Mutex};
-use tower::{ServiceBuilder, ServiceExt};
+use tokio::net::TcpListener;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use worker::{CronWorker, JobWorker};
 
 mod config;
-mod worker;
 
 #[derive(Clone, rust_embed::Embed)]
 #[folder = "$CARGO_MANIFEST_DIR/../web/dist/"]
@@ -306,62 +298,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         api.into_make_service_with_connect_info::<SocketAddr>(),
     );
 
-    let mut scrape_feed_worker = JobWorker::new(
-        scrape_feed_consumer,
-        ServiceBuilder::new()
-            .concurrency_limit(5)
-            .service(ScrapeFeedJobHandler::new(Arc::new(
-                RefreshFeedHandler::new(feed_repository, feed_scraper),
-            )))
-            .boxed(),
-    );
-    let mut scrape_bookmark_worker = JobWorker::new(
-        scrape_bookmark_consumer,
-        ServiceBuilder::new()
-            .concurrency_limit(5)
-            .service(ScrapeBookmarkJobHandler::new(refresh_bookmark_handler))
-            .boxed(),
-    );
-    let mut archive_thumbnail_worker = JobWorker::new(
-        archive_thumbnail_consumer,
-        ServiceBuilder::new()
-            .concurrency_limit(5)
-            .service(ArchiveThumbnailJobHandler::new(archive_thumbnail_handler))
-            .boxed(),
-    );
-    let mut import_bookmarks_worker = JobWorker::new(
-        import_bookmarks_consumer,
-        ServiceBuilder::new()
-            .service(ImportBookmarksJobHandler::new(
-                list_bookmarks_handler,
-                Arc::new(Mutex::new(scrape_bookmark_producer)),
-            ))
-            .boxed(),
-    );
-
-    let start_refresh_feeds_worker = async {
-        let mut worker = CronWorker::new(
-            "refresh_feeds",
-            "0 * * * * *".parse().unwrap(),
-            ServiceBuilder::new()
-                .service(RefreshFeedsJobHandler::new(
-                    fetch_outdated_feeds_handler,
-                    Arc::new(Mutex::new(scrape_feed_producer)),
-                ))
-                .boxed(),
-        );
-
-        worker.start().await;
-    };
-
-    let _ = tokio::join!(
-        server,
-        scrape_feed_worker.start(),
-        scrape_bookmark_worker.start(),
-        archive_thumbnail_worker.start(),
-        import_bookmarks_worker.start(),
-        start_refresh_feeds_worker
-    );
+    server.await?;
 
     Ok(())
 }

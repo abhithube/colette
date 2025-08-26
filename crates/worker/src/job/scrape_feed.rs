@@ -12,7 +12,7 @@ use colette_repository::PostgresFeedRepository;
 use futures::FutureExt;
 use tower::Service;
 
-use crate::Error;
+use crate::job::Error;
 
 pub struct ScrapeFeedJobHandler {
     refresh_feed: Arc<RefreshFeedHandler<PostgresFeedRepository, ReqwestClient>>,

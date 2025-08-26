@@ -11,7 +11,6 @@ members = [
   "crates/handler",
   "crates/infra/http",
   "crates/core/ingestion",
-  "crates/job",
   "crates/infra/jwt",
   "crates/meta",
   "crates/netscape",
@@ -24,6 +23,7 @@ members = [
   "crates/scraper",
   "crates/infra/smtp",
   "crates/util",
+  "crates/worker",
 ]
 resolver = "2"
 
@@ -34,6 +34,7 @@ axum = { version = "0.8.1", default-features = false, features = [
   "json",
   "query",
   "macros",
+  "tokio",
 ] }
 bytes = { version = "1.9.0", default-features = false }
 chrono = { version = "0.4.39", default-features = false, features = [
@@ -51,7 +52,6 @@ colette-feed.path = "crates/feed"
 colette-handler.path = "crates/handler"
 colette-http.path = "crates/infra/http"
 colette-ingestion.path = "crates/core/ingestion"
-colette-job.path = "crates/job"
 colette-jwt.path = "crates/infra/jwt"
 colette-meta.path = "crates/meta"
 colette-netscape.path = "crates/netscape"
@@ -64,6 +64,7 @@ colette-s3.path = "crates/infra/s3"
 colette-scraper.path = "crates/scraper"
 colette-smtp.path = "crates/infra/smtp"
 colette-util.path = "crates/util"
+config = { version = "0.15.11", default-features = false, features = ["toml"] }
 email_address = { version = "0.2.9", default-features = false, features = [
   "serde_support",
 ] }
@@ -74,6 +75,7 @@ http-body-util = { version = "0.1.2", default-features = false }
 quick-xml = { version = "0.37.2", default-features = false }
 reqwest = { version = "0.12.12", default-features = false, features = [
   "http2",
+  "rustls-tls-webpki-roots",
 ] }
 scraper = { version = "0.23.1", default-features = false }
 serde = { version = "1.0.217", default-features = false }
@@ -85,17 +87,26 @@ sqlx = { version = "0.8.6", default-features = false, features = [
   "json",
   "macros",
   "postgres",
+  "runtime-tokio",
+  "tls-rustls-ring-webpki",
   "uuid",
 ] }
 thiserror = { version = "2.0.11", default-features = false }
 time = { version = "0.3.39", default-features = false, features = ["serde"] }
-tokio = { version = "1.43.0", default-features = false, features = ["macros"] }
-tower = { version = "0.5.2", default-features = false }
+tokio = { version = "1.43.0", default-features = false, features = [
+  "macros",
+  "rt-multi-thread",
+] }
 tower-http = { version = "0.6.2", default-features = false, features = [
   "cors",
   "trace",
 ] }
 tracing = { version = "0.1.41", default-features = false }
+tracing-subscriber = { version = "0.3.19", default-features = false, features = [
+  "ansi",
+  "env-filter",
+  "tracing-log",
+] }
 url = { version = "2.5.4", default-features = false, features = ["serde"] }
 uuid = { version = "1.11.1", default-features = false, features = [
   "serde",

@@ -1,0 +1,7 @@
+[server]
+port = 8001
+base_url = "http://localhost:8001"
+
+[s3]
+bucket_name = "colette"
+path_style_enabled = true

@@ -12,7 +12,7 @@ use colette_repository::PostgresBookmarkRepository;
 use futures::FutureExt;
 use tower::Service;
 
-use crate::Error;
+use crate::job::Error;
 
 pub struct ScrapeBookmarkJobHandler {
     refresh_bookmark: Arc<RefreshBookmarkHandler<PostgresBookmarkRepository, ReqwestClient>>,

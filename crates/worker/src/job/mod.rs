@@ -1,8 +1,14 @@
-pub mod archive_thumbnail;
-pub mod import_bookmarks;
-pub mod refresh_feeds;
-pub mod scrape_bookmark;
-pub mod scrape_feed;
+pub use archive_thumbnail::*;
+pub use import_bookmarks::*;
+pub use refresh_feeds::*;
+pub use scrape_bookmark::*;
+pub use scrape_feed::*;
+
+mod archive_thumbnail;
+mod import_bookmarks;
+mod refresh_feeds;
+mod scrape_bookmark;
+mod scrape_feed;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
