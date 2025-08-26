@@ -2,15 +2,15 @@
 members = [
   "apps/server",
   "crates/api",
-  "crates/archival",
-  "crates/authentication",
+  "crates/core/archival",
+  "crates/core/authentication",
   "crates/common",
-  "crates/crud",
+  "crates/core/crud",
   "crates/crypto",
   "crates/feed",
   "crates/handler",
   "crates/http",
-  "crates/ingestion",
+  "crates/core/ingestion",
   "crates/job",
   "crates/jwt",
   "crates/meta",
@@ -42,15 +42,15 @@ chrono = { version = "0.4.39", default-features = false, features = [
   "std",
 ] }
 colette-api.path = "crates/api"
-colette-archival.path = "crates/archival"
-colette-authentication.path = "crates/authentication"
+colette-archival.path = "crates/core/archival"
+colette-authentication.path = "crates/core/authentication"
 colette-common.path = "crates/common"
-colette-crud.path = "crates/crud"
+colette-crud.path = "crates/core/crud"
 colette-crypto.path = "crates/crypto"
 colette-feed.path = "crates/feed"
 colette-handler.path = "crates/handler"
 colette-http.path = "crates/http"
-colette-ingestion.path = "crates/ingestion"
+colette-ingestion.path = "crates/core/ingestion"
 colette-job.path = "crates/job"
 colette-jwt.path = "crates/jwt"
 colette-meta.path = "crates/meta"
