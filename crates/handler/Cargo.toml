@@ -6,9 +6,9 @@ edition = "2024"
 [dependencies]
 bytes.workspace = true
 chrono.workspace = true
+colette-archival.workspace = true
 colette-authentication.workspace = true
 colette-common.workspace = true
-colette-core.workspace = true
 colette-crud.workspace = true
 colette-crypto.workspace = true
 colette-http.workspace = true

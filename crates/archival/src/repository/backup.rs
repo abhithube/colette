@@ -1,7 +1,7 @@
 use colette_authentication::UserId;
 use colette_common::RepositoryError;
 
-use crate::backup::Backup;
+use crate::Backup;
 
 pub trait BackupRepository: Sync {
     fn import(

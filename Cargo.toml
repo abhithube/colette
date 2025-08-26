@@ -2,9 +2,9 @@
 members = [
   "apps/server",
   "crates/api",
+  "crates/archival",
   "crates/authentication",
   "crates/common",
-  "crates/core",
   "crates/crud",
   "crates/crypto",
   "crates/feed",
@@ -42,9 +42,9 @@ chrono = { version = "0.4.39", default-features = false, features = [
   "std",
 ] }
 colette-api.path = "crates/api"
+colette-archival.path = "crates/archival"
 colette-authentication.path = "crates/authentication"
 colette-common.path = "crates/common"
-colette-core.path = "crates/core"
 colette-crud.path = "crates/crud"
 colette-crypto.path = "crates/crypto"
 colette-feed.path = "crates/feed"

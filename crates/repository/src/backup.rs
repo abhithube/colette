@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
+use colette_archival::{BackupRepository, ImportBackupParams};
 use colette_common::RepositoryError;
-use colette_core::backup::{BackupRepository, ImportBackupParams};
 use sqlx::PgPool;
 
 use crate::DbUrl;

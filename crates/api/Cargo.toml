@@ -14,7 +14,6 @@ axum-extra = { version = "0.10.0", default-features = false, features = [
 bytes.workspace = true
 chrono.workspace = true
 colette-authentication.workspace = true
-colette-core.workspace = true
 colette-crud.workspace = true
 colette-crypto.workspace = true
 colette-handler.workspace = true

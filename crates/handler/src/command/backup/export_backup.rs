@@ -1,11 +1,12 @@
 use bytes::Bytes;
+use colette_archival::{Backup, BackupBookmark, BackupSubscription, BackupTag};
 use colette_common::RepositoryError;
-use colette_core::backup::Backup;
 use uuid::Uuid;
 
 use crate::{
-    BookmarkQueryParams, BookmarkQueryRepository, Handler, SubscriptionQueryParams,
-    SubscriptionQueryRepository, TagQueryParams, TagQueryRepository,
+    BookmarkDto, BookmarkQueryParams, BookmarkQueryRepository, Handler, SubscriptionDto,
+    SubscriptionQueryParams, SubscriptionQueryRepository, TagDto, TagQueryParams,
+    TagQueryRepository,
 };
 
 #[derive(Debug, Clone)]
@@ -71,16 +72,56 @@ impl<BQR: BookmarkQueryRepository, SQR: SubscriptionQueryRepository, TQR: TagQue
             .await?;
 
         let backup = Backup {
-            subscriptions: Vec::new(),
-            bookmarks: Vec::new(),
-            tags: Vec::new(), // subscriptions: subscriptions.into_iter().map(Into::into).collect(),
-                              // bookmarks: bookmarks.into_iter().map(Into::into).collect(),
-                              // tags: tags.into_iter().map(Into::into).collect(),
+            subscriptions: subscriptions.into_iter().map(Into::into).collect(),
+            bookmarks: bookmarks.into_iter().map(Into::into).collect(),
+            tags: tags.into_iter().map(Into::into).collect(),
         };
 
         let raw = serde_json::to_vec_pretty(&backup)?;
 
         Ok(raw.into())
+    }
+}
+
+impl From<SubscriptionDto> for BackupSubscription {
+    fn from(value: SubscriptionDto) -> Self {
+        Self {
+            id: value.id,
+            source_url: value.source_url,
+            title: value.title,
+            description: value.description,
+            tags: value.tags.into_iter().map(Into::into).collect(),
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+        }
+    }
+}
+
+impl From<BookmarkDto> for BackupBookmark {
+    fn from(value: BookmarkDto) -> Self {
+        Self {
+            id: value.id,
+            link: value.link,
+            title: value.title,
+            thumbnail_url: value.thumbnail_url,
+            published_at: value.published_at,
+            author: value.author,
+            archived_path: value.archived_path,
+            tags: value.tags.into_iter().map(Into::into).collect(),
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+        }
+    }
+}
+
+impl From<TagDto> for BackupTag {
+    fn from(value: TagDto) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+        }
     }
 }
 
